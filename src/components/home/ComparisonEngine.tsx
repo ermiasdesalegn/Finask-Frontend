@@ -1,25 +1,74 @@
 import { Star } from "lucide-react";
-import { UNIVERSITIES } from "../../constants";
+import {
+  displayRating,
+  universityCity,
+  universityCover,
+  universityRank,
+} from "../../lib/universityUi";
+import type { University } from "../../types";
 
-const ComparisonEngine = () => {
+const climateHint = (uni: University): string => {
+  const tags = uni.tagsDisplayNames ?? uni.tags ?? [];
+  return tags[0] ?? "—";
+};
+
+const ComparisonEngine = ({
+  universities,
+  loading,
+}: {
+  universities: University[];
+  loading: boolean;
+}) => {
+  const slice = universities.slice(0, 3);
+
+  if (loading && slice.length === 0) {
+    return (
+      <section className="px-6 py-20">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-16 text-center">
+            <div className="mx-auto mb-4 h-10 w-64 animate-pulse rounded-lg bg-slate-100 dark:bg-zinc-800" />
+            <div className="mx-auto h-4 w-96 max-w-full animate-pulse rounded bg-slate-100 dark:bg-zinc-800" />
+          </div>
+          <div className="h-64 animate-pulse rounded-[2rem] bg-slate-100 dark:bg-zinc-800" />
+        </div>
+      </section>
+    );
+  }
+
+  if (slice.length === 0) {
+    return null;
+  }
+
   return (
-    <section className="py-20 px-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold mb-4 dark:text-white">Comparison Engine</h2>
-          <p className="text-slate-600 dark:text-slate-400">Make data-driven decisions with side-by-side analysis</p>
+    <section className="px-6 py-20">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-16 text-center">
+          <h2 className="mb-4 text-4xl font-bold dark:text-white">
+            Comparison Engine
+          </h2>
+          <p className="text-slate-600 dark:text-slate-400">
+            Make data-driven decisions with side-by-side analysis
+          </p>
         </div>
 
-        <div className="overflow-x-auto rounded-[2rem] border border-slate-100 dark:border-white/10 shadow-xl">
-          <table className="w-full text-left border-collapse bg-white dark:bg-[#1e1e1e]">
+        <div className="overflow-x-auto rounded-[2rem] border border-slate-100 shadow-xl dark:border-white/10">
+          <table className="w-full border-collapse bg-white text-left dark:bg-[#1e1e1e]">
             <thead>
               <tr className="bg-slate-50 dark:bg-white/5">
-                <th className="p-6 text-sm font-bold text-slate-400 uppercase tracking-widest">Criteria</th>
-                {UNIVERSITIES.slice(0, 3).map(uni => (
-                  <th key={uni.id} className="p-6">
+                <th className="p-6 text-sm font-bold uppercase tracking-widest text-slate-400">
+                  Criteria
+                </th>
+                {slice.map((uni) => (
+                  <th key={uni.slug || uni._id} className="p-6">
                     <div className="flex items-center gap-3">
-                      <img src={uni.image} className="w-10 h-10 rounded-lg object-cover" alt="" />
-                      <span className="font-bold dark:text-white">{uni.name}</span>
+                      <img
+                        src={universityCover(uni)}
+                        className="h-10 w-10 rounded-lg object-cover"
+                        alt=""
+                      />
+                      <span className="font-bold dark:text-white">
+                        {uni.name}
+                      </span>
                     </div>
                   </th>
                 ))}
@@ -27,21 +76,39 @@ const ComparisonEngine = () => {
             </thead>
             <tbody className="divide-y divide-slate-50 dark:divide-white/5">
               {[
-                { label: "National Ranking", key: "ranking" },
-                { label: "Student Rating", key: "rating" },
-                { label: "Climate Type", key: "climate" },
-                { label: "Region", key: "region" }
+                { label: "National Ranking", key: "ranking" as const },
+                { label: "Student Rating", key: "rating" as const },
+                { label: "Climate / focus", key: "climate" as const },
+                { label: "City", key: "region" as const },
               ].map((row, i) => (
-                <tr key={i} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                  <td className="p-6 font-bold text-slate-600 dark:text-slate-400">{row.label}</td>
-                  {UNIVERSITIES.slice(0, 3).map(uni => (
-                    <td key={uni.id} className="p-6 dark:text-white">
+                <tr
+                  key={i}
+                  className="transition-colors hover:bg-slate-50 dark:hover:bg-white/5"
+                >
+                  <td className="p-6 font-bold text-slate-600 dark:text-slate-400">
+                    {row.label}
+                  </td>
+                  {slice.map((uni) => (
+                    <td
+                      key={uni.slug || uni._id}
+                      className="p-6 dark:text-white"
+                    >
                       {row.key === "rating" ? (
                         <div className="flex items-center gap-1 font-bold">
-                          <Star size={14} className="text-brand-yellow" fill="currentColor" />
-                          {uni.rating}
+                          <Star
+                            size={14}
+                            className="text-brand-yellow"
+                            fill="currentColor"
+                          />
+                          {displayRating(uni)}
                         </div>
-                      ) : (uni as any)[row.key]}
+                      ) : row.key === "ranking" ? (
+                        universityRank(uni)
+                      ) : row.key === "climate" ? (
+                        climateHint(uni)
+                      ) : (
+                        universityCity(uni) || "—"
+                      )}
                     </td>
                   ))}
                 </tr>

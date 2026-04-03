@@ -5,6 +5,7 @@ import Navbar from "./components/layout/Navbar";
 import { CustomCursor } from "./components/ui/custom-cursor";
 import { FlickeringGrid } from "./components/ui/flickering-grid";
 import ScrollToTop from "./components/utils/ScrollToTop";
+import { setApiToastNotifier } from "./lib/api";
 import { cn } from "./lib/utils";
 import AboutPage from "./pages/AboutPage";
 import HomePage from "./pages/HomePage";
@@ -12,55 +13,66 @@ import ProgramsPage from "./pages/ProgramsPage";
 import UniversitiesPage from "./pages/UniversitiesPage";
 import UniversityPage from "./pages/University";
 
-export default function App() {
-  // Initialize dark mode based on system preference or localStorage
+function AppShell() {
   const [darkMode, setDarkMode] = useState(() => {
-    // Check if user has a saved preference
-    const savedTheme = localStorage.getItem('theme');
+    const savedTheme = localStorage.getItem("theme");
     if (savedTheme) {
-      return savedTheme === 'dark';
+      return savedTheme === "dark";
     }
-    // Otherwise, use system preference
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
   });
 
-  // Apply dark mode class to document
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    setApiToastNotifier((msg) => {
+      setToast(msg);
+      window.setTimeout(() => setToast(null), 5000);
+    });
+    return () => setApiToastNotifier(null);
+  }, []);
+
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add("dark");
     } else {
       document.documentElement.classList.remove("dark");
     }
-    // Save user preference
-    localStorage.setItem('theme', darkMode ? 'dark' : 'light');
+    localStorage.setItem("theme", darkMode ? "dark" : "light");
   }, [darkMode]);
 
-  // Listen for system theme changes
   useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
     const handleChange = (e: MediaQueryListEvent) => {
-      // Only auto-update if user hasn't manually set a preference
-      const savedTheme = localStorage.getItem('theme');
+      const savedTheme = localStorage.getItem("theme");
       if (!savedTheme) {
         setDarkMode(e.matches);
       }
     };
 
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
   }, []);
 
   return (
     <>
       <ScrollToTop />
       <CustomCursor />
-      
-      {/* Fixed Flickering Grid Background */}
+
+      {toast && (
+        <div
+          className="fixed bottom-6 left-1/2 z-[200] max-w-md -translate-x-1/2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-800 shadow-xl dark:border-white/10 dark:bg-zinc-900 dark:text-slate-100"
+          role="status"
+        >
+          {toast}
+        </div>
+      )}
+
       <div className="fixed inset-0 z-0">
         <FlickeringGrid
           className={cn(
-            "absolute inset-0 w-full h-full",
+            "absolute inset-0 h-full w-full",
             "[mask-image:radial-gradient(800px_circle_at_center,white,transparent)]"
           )}
           squareSize={6}
@@ -70,40 +82,52 @@ export default function App() {
           flickerChance={0.1}
         />
       </div>
-      
-      <div className="min-h-screen relative z-10">
-        <Navbar 
-          darkMode={darkMode} 
-          toggleDarkMode={() => setDarkMode(!darkMode)} 
+
+      <div className="relative z-10 min-h-screen">
+        <Navbar
+          darkMode={darkMode}
+          toggleDarkMode={() => setDarkMode(!darkMode)}
         />
-        
+
         <main>
           <Routes>
             <Route path="/" element={<HomePage />} />
-            
-            <Route path="/universities" element={
-              <div className="pt-20 min-h-screen bg-white dark:bg-[#121212] transition-colors duration-300">
-                <UniversitiesPage />
-              </div>
-            } />
-            
-            <Route path="/universities/:id" element={
-              <div className="pt-20 min-h-screen bg-white dark:bg-[#121212] transition-colors duration-300">
-                <UniversityPage />
-              </div>
-            } />
-            
-            <Route path="/programs" element={
-              <div className="pt-20 min-h-screen bg-white dark:bg-[#121212] transition-colors duration-300">
-                <ProgramsPage />
-              </div>
-            } />
 
-            <Route path="/about" element={
-              <div className="pt-20 min-h-screen bg-white dark:bg-[#121212] transition-colors duration-300">
-                <AboutPage />
-              </div>
-            } />
+            <Route
+              path="/universities"
+              element={
+                <div className="min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]">
+                  <UniversitiesPage />
+                </div>
+              }
+            />
+
+            <Route
+              path="/universities/:slug"
+              element={
+                <div className="min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]">
+                  <UniversityPage />
+                </div>
+              }
+            />
+
+            <Route
+              path="/programs"
+              element={
+                <div className="min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]">
+                  <ProgramsPage />
+                </div>
+              }
+            />
+
+            <Route
+              path="/about"
+              element={
+                <div className="min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]">
+                  <AboutPage />
+                </div>
+              }
+            />
           </Routes>
         </main>
 
@@ -111,4 +135,8 @@ export default function App() {
       </div>
     </>
   );
+}
+
+export default function App() {
+  return <AppShell />;
 }
