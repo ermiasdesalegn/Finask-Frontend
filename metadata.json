@@ -1,0 +1,7 @@
+{
+  "name": "Finask",
+  "description": "A centralized web platform for Ethiopian 12th-grade students transitioning to higher education.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
