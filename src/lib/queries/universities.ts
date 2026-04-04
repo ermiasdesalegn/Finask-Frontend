@@ -1,9 +1,14 @@
 import { queryOptions, useQuery } from "@tanstack/react-query";
 import type { UniversitiesListFilters } from "../services/universityService";
 import {
+  DISCOVER_TOP_LIMIT,
+  fetchFeaturedUniversities,
+  fetchTopRankedUniversities,
+  fetchTopRatedUniversities,
+  fetchTrendingUniversities,
   fetchUniversitiesList,
-  fetchUniversityDetail,
   fetchUniversityCampuses,
+  fetchUniversityDetail,
 } from "../services/universityService";
 import { queryKeys } from "../queryKeys";
 import { STALE_MS } from "./staleTimes";
@@ -16,8 +21,56 @@ export function universitiesListQueryOptions(filters: UniversitiesListFilters) {
   });
 }
 
-export function useUniversitiesListQuery(filters: UniversitiesListFilters) {
-  return useQuery(universitiesListQueryOptions(filters));
+export function useUniversitiesListQuery(
+  filters: UniversitiesListFilters,
+  options?: { enabled?: boolean }
+) {
+  return useQuery({
+    ...universitiesListQueryOptions(filters),
+    enabled: options?.enabled !== false,
+  });
+}
+
+export function useTrendingUniversitiesQuery(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: queryKeys.universitiesTrending(),
+    queryFn: () => fetchTrendingUniversities(),
+    staleTime: STALE_MS.list,
+    enabled: options?.enabled !== false,
+  });
+}
+
+export function useFeaturedUniversitiesQuery(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: queryKeys.universitiesFeatured(),
+    queryFn: () => fetchFeaturedUniversities(),
+    staleTime: STALE_MS.list,
+    enabled: options?.enabled !== false,
+  });
+}
+
+export function useTopRankedUniversitiesQuery(
+  limit = DISCOVER_TOP_LIMIT,
+  options?: { enabled?: boolean }
+) {
+  return useQuery({
+    queryKey: queryKeys.universitiesTopRanked(limit),
+    queryFn: () => fetchTopRankedUniversities(limit),
+    staleTime: STALE_MS.list,
+    enabled: options?.enabled !== false,
+  });
+}
+
+export function useTopRatedUniversitiesQuery(
+  limit = DISCOVER_TOP_LIMIT,
+  options?: { enabled?: boolean }
+) {
+  return useQuery({
+    queryKey: queryKeys.universitiesTopRated(limit),
+    queryFn: () => fetchTopRatedUniversities(limit),
+    staleTime: STALE_MS.list,
+    enabled: options?.enabled !== false,
+  });
 }
 
 const PENDING_KEY = "__pending__";

@@ -7,6 +7,7 @@ import {
     Filter,
     Heart,
     Landmark,
+    LayoutGrid,
     Map as MapIcon,
     MapPin,
     Plane,
@@ -14,18 +15,27 @@ import {
     SlidersHorizontal,
     Sparkles,
     Star,
+    Thermometer,
     Trees,
     Trophy,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import React, { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import EthiopiaMap from "../components/home/EthiopiaMap";
 import { AnimatedGridPattern } from "../components/ui/animated-grid-pattern";
 import { REGION_FILTERS } from "../constants";
 import { useDebounce } from "../lib/hooks/useDebounce";
 import { staggerBlurContainer, staggerBlurItem } from "../lib/motion/pageMotion";
-import { useCitiesListQuery, useUniversitiesListQuery } from "../lib/queries";
+import {
+    useCitiesListQuery,
+    useFeaturedUniversitiesQuery,
+    useTopRankedUniversitiesQuery,
+    useTopRatedUniversitiesQuery,
+    useTrendingUniversitiesQuery,
+    useUniversitiesListQuery,
+} from "../lib/queries";
+import { DISCOVER_TOP_LIMIT } from "../lib/services/universityService";
 import { useSearchQuery } from "../lib/queries/search";
 import {
     displayRating,
@@ -47,6 +57,17 @@ type FilterState = {
 };
 type SortOption = "rating-desc" | "name-asc" | "name-desc";
 
+type DiscoverPreset = "trending" | "featured" | "top-ranked" | "top-rated";
+
+const CLIMATE_ZONE_FILTERS: { id: string | null; label: string }[] = [
+  { id: null, label: "All zones" },
+  { id: "dega", label: "Dega" },
+  { id: "weynadega", label: "Weynadega" },
+  { id: "kolla", label: "Kolla" },
+  { id: "berha", label: "Berha" },
+  { id: "wurch", label: "Wurch" },
+];
+
 const UniversitiesPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeRegionLabel, setActiveRegionLabel] = useState("All");
@@ -60,9 +81,28 @@ const UniversitiesPage: React.FC = () => {
     setting: null,
   });
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const debouncedQuery = useDebounce(searchQuery, 300);
   const isSearching = debouncedQuery.trim().length >= 2;
+
+  const discoverPreset = useMemo((): DiscoverPreset | null => {
+    const f = searchParams.get("filter");
+    const s = searchParams.get("sort");
+    if (f === "trending") return "trending";
+    if (f === "featured") return "featured";
+    if (f === "research") return null;
+    if (s === "rank") return "top-ranked";
+    if (s === "rating") return "top-rated";
+    return null;
+  }, [searchParams]);
+
+  const researchFromUrl = searchParams.get("filter") === "research";
+  const galleryView = searchParams.get("view") === "gallery";
+  const climateView = searchParams.get("view") === "climate";
+  const climateZoneParam = searchParams.get("zone");
+
+  const useMainList = discoverPreset === null;
 
   const activeRegionApi = REGION_FILTERS.find(
     (r) => r.label === activeRegionLabel
@@ -75,24 +115,100 @@ const UniversitiesPage: React.FC = () => {
       sort: "-ratingsAverage" as const,
       ratingsAverageGte: filters.minRating,
       isFeatured: filters.featuredOnly ? true : null,
+      tags: researchFromUrl ? ("research" as const) : null,
+      elevationName: climateView && climateZoneParam ? climateZoneParam : null,
     }),
-    [activeRegionApi, filters.minRating, filters.featuredOnly]
+    [
+      activeRegionApi,
+      filters.minRating,
+      filters.featuredOnly,
+      researchFromUrl,
+      climateView,
+      climateZoneParam,
+    ]
   );
 
-  const universitiesQuery = useUniversitiesListQuery(listFilters);
+  const universitiesQuery = useUniversitiesListQuery(listFilters, {
+    enabled: useMainList,
+  });
+  const trendingQuery = useTrendingUniversitiesQuery({
+    enabled: discoverPreset === "trending",
+  });
+  const featuredDiscoverQuery = useFeaturedUniversitiesQuery({
+    enabled: discoverPreset === "featured",
+  });
+  const topRankedQuery = useTopRankedUniversitiesQuery(DISCOVER_TOP_LIMIT, {
+    enabled: discoverPreset === "top-ranked",
+  });
+  const topRatedQuery = useTopRatedUniversitiesQuery(DISCOVER_TOP_LIMIT, {
+    enabled: discoverPreset === "top-rated",
+  });
+
   const citiesQuery = useCitiesListQuery();
   const searchQuery_ = useSearchQuery(debouncedQuery, 20);
 
-  const universities = universitiesQuery.data?.data?.universities ?? [];
+  const rawUniversities = useMemo(() => {
+    switch (discoverPreset) {
+      case "trending":
+        return trendingQuery.data?.data?.universities ?? [];
+      case "featured":
+        return featuredDiscoverQuery.data?.data?.universities ?? [];
+      case "top-ranked":
+        return topRankedQuery.data?.data?.universities ?? [];
+      case "top-rated":
+        return topRatedQuery.data?.data?.universities ?? [];
+      default:
+        return universitiesQuery.data?.data?.universities ?? [];
+    }
+  }, [
+    discoverPreset,
+    trendingQuery.data,
+    featuredDiscoverQuery.data,
+    topRankedQuery.data,
+    topRatedQuery.data,
+    universitiesQuery.data,
+  ]);
+
+  const browseListUniversities =
+    universitiesQuery.data?.data?.universities ?? [];
   const cities = citiesQuery.data?.data?.cities ?? [];
-  const listLoading = universitiesQuery.isPending;
-  // Show search spinner only when actively fetching a new search term
+  const listLoading =
+    (useMainList && universitiesQuery.isPending) ||
+    (discoverPreset === "trending" && trendingQuery.isPending) ||
+    (discoverPreset === "featured" && featuredDiscoverQuery.isPending) ||
+    (discoverPreset === "top-ranked" && topRankedQuery.isPending) ||
+    (discoverPreset === "top-rated" && topRatedQuery.isPending);
+
   const searchLoading = isSearching && searchQuery_.isFetching;
-  const listError = universitiesQuery.isError
-    ? universitiesQuery.error instanceof Error
-      ? universitiesQuery.error.message
-      : "Failed to load"
-    : null;
+  const listError = useMemo(() => {
+    const q =
+      useMainList && universitiesQuery.isError
+        ? universitiesQuery.error
+        : discoverPreset === "trending" && trendingQuery.isError
+          ? trendingQuery.error
+          : discoverPreset === "featured" && featuredDiscoverQuery.isError
+            ? featuredDiscoverQuery.error
+            : discoverPreset === "top-ranked" && topRankedQuery.isError
+              ? topRankedQuery.error
+              : discoverPreset === "top-rated" && topRatedQuery.isError
+                ? topRatedQuery.error
+                : null;
+    if (!q) return null;
+    return q instanceof Error ? q.message : "Failed to load";
+  }, [
+    useMainList,
+    universitiesQuery.isError,
+    universitiesQuery.error,
+    discoverPreset,
+    trendingQuery.isError,
+    trendingQuery.error,
+    featuredDiscoverQuery.isError,
+    featuredDiscoverQuery.error,
+    topRankedQuery.isError,
+    topRankedQuery.error,
+    topRatedQuery.isError,
+    topRatedQuery.error,
+  ]);
 
   const activeFilterCount = Object.values(filters).filter(
     (v) => v !== null && v !== false
@@ -105,11 +221,85 @@ const UniversitiesPage: React.FC = () => {
       setting: null,
     });
 
+  const discoverActive =
+    discoverPreset !== null ||
+    researchFromUrl ||
+    galleryView ||
+    climateView;
+
+  /** Elevation zone query only applies to GET /universities (not trending/featured/top-*). */
+  const showClimateChips =
+    climateView && !isSearching && discoverPreset === null;
+
   const isBrowsingMode =
-    !isSearching && activeFilterCount === 0 && activeRegionLabel === "All";
+    !isSearching &&
+    activeFilterCount === 0 &&
+    activeRegionLabel === "All" &&
+    !discoverActive;
+
+  const discoverHeading = useMemo(() => {
+    if (isBrowsingMode || isSearching) return null;
+    const g = galleryView ? " Larger campus photos." : "";
+    if (discoverPreset === "trending") {
+      return {
+        title: "Trending",
+        subtitle: `Universities gaining attention right now.${g}`,
+      };
+    }
+    if (discoverPreset === "featured") {
+      return {
+        title: "Just for you",
+        subtitle: `Featured picks from our editors.${g}`,
+      };
+    }
+    if (discoverPreset === "top-ranked") {
+      return {
+        title: "Top ranked",
+        subtitle: `Sorted by Ethiopia rank (EduRank).${g}`,
+      };
+    }
+    if (discoverPreset === "top-rated") {
+      return {
+        title: "Top rated",
+        subtitle: `Highest average ratings in the directory.${g}`,
+      };
+    }
+    if (researchFromUrl) {
+      return {
+        title: "Research universities",
+        subtitle: `Institutions tagged for research strength.${g}`,
+      };
+    }
+    if (climateView) {
+      const z = climateZoneParam
+        ? CLIMATE_ZONE_FILTERS.find((c) => c.id === climateZoneParam)?.label ??
+          climateZoneParam
+        : null;
+      return {
+        title: z ? `Climate: ${z}` : "Browse by climate",
+        subtitle: z
+          ? "Universities whose city sits in this elevation zone."
+          : "Filter by Ethiopian elevation / climate zone (Köppen-style buckets).",
+      };
+    }
+    if (galleryView) {
+      return {
+        title: "Campus gallery",
+        subtitle: "Larger photos to preview each campus.",
+      };
+    }
+    return null;
+  }, [
+    isBrowsingMode,
+    isSearching,
+    discoverPreset,
+    researchFromUrl,
+    galleryView,
+    climateView,
+    climateZoneParam,
+  ]);
 
   const filteredAndSortedUniversities = useMemo(() => {
-    // When the debounced query is active, use Atlas Search results directly
     if (isSearching) {
       const apiResults = (searchQuery_.data?.data?.universities ?? []) as University[];
       return [...apiResults].sort((a, b) => {
@@ -121,13 +311,16 @@ const UniversitiesPage: React.FC = () => {
       });
     }
 
-    // Otherwise filter the already-fetched list (region/rating/featured filters)
-    let result = universities.filter((u) => {
+    let result = rawUniversities.filter((u) => {
       const rating = u.ratingsAverage ?? 0;
       const matchRating =
         filters.minRating === null || rating >= filters.minRating;
       const matchFeatured = !filters.featuredOnly || u.isFeatured;
-      return matchRating && matchFeatured;
+      const matchRegion =
+        activeRegionApi == null ||
+        (u.address?.region ?? "").toLowerCase() ===
+          activeRegionApi.toLowerCase();
+      return matchRating && matchFeatured && matchRegion;
     });
 
     result = [...result].sort((a, b) => {
@@ -138,21 +331,34 @@ const UniversitiesPage: React.FC = () => {
       return 0;
     });
     return result;
-  }, [universities, isSearching, searchQuery_.data, filters, sortBy]);
+  }, [
+    rawUniversities,
+    isSearching,
+    searchQuery_.data,
+    filters,
+    sortBy,
+    activeRegionApi,
+  ]);
 
   const researchUnis = useMemo(
-    () => universities.filter((u) => (u.tags ?? []).includes("research")),
-    [universities]
+    () =>
+      browseListUniversities.filter((u) =>
+        (u.tags ?? []).includes("research")
+      ),
+    [browseListUniversities]
   );
   const interestUnis = useMemo(
     () =>
-      universities.filter(
+      browseListUniversities.filter(
         (u) =>
           u.isFeatured || (u.tags ?? []).includes("specialized")
       ),
-    [universities]
+    [browseListUniversities]
   );
-  const nearSlice = useMemo(() => universities.slice(0, 4), [universities]);
+  const nearSlice = useMemo(
+    () => browseListUniversities.slice(0, 4),
+    [browseListUniversities]
+  );
 
   const HorizontalRow = ({
     title,
@@ -187,51 +393,78 @@ const UniversitiesPage: React.FC = () => {
     </section>
   );
 
-  const renderUniCard = (uni: University) => (
-    <motion.div
-      variants={itemVariants}
-      key={uni._id || uni.slug}
-      onClick={() => navigate(universityPath(uni))}
-      className="group w-72 shrink-0 cursor-pointer snap-start rounded-[1.5rem] border border-slate-200/60 bg-white/70 p-2 backdrop-blur-md transition-all duration-300 hover:border-brand-blue/30 hover:shadow-xl hover:shadow-brand-blue/5 dark:border-white/5 dark:bg-zinc-900/70 md:w-80"
-    >
-      <div className="relative mb-3 h-44 overflow-hidden rounded-xl bg-slate-100 dark:bg-zinc-800 md:h-48">
-        <img
-          src={universityCover(uni)}
-          alt={uni.name}
-          className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-        />
-        <button
-          type="button"
-          className="absolute right-3 top-3 rounded-full bg-black/40 p-1.5 text-white backdrop-blur-md transition-all hover:scale-110 hover:bg-black/60 active:scale-95"
-          onClick={(e) => e.stopPropagation()}
+  const renderUniCard = (
+    uni: University,
+    variant: "scroller" | "grid" = "scroller"
+  ) => {
+    const inGallery = variant === "grid" && galleryView;
+    const imgCount = Math.max(1, (uni.images?.length ?? 0) + 1);
+    const scrollerClass =
+      "group w-72 shrink-0 cursor-pointer snap-start rounded-[1.5rem] border border-slate-200/60 bg-white/70 p-2 backdrop-blur-md transition-all duration-300 hover:border-brand-blue/30 hover:shadow-xl hover:shadow-brand-blue/5 dark:border-white/5 dark:bg-zinc-900/70 md:w-80";
+    const gridClass =
+      "group w-full cursor-pointer rounded-[1.5rem] border border-slate-200/60 bg-white/70 p-2 backdrop-blur-md transition-all duration-300 hover:border-brand-blue/30 hover:shadow-xl hover:shadow-brand-blue/5 dark:border-white/5 dark:bg-zinc-900/70";
+    return (
+      <motion.div
+        variants={itemVariants}
+        key={uni._id || uni.slug}
+        onClick={() => navigate(universityPath(uni))}
+        className={variant === "scroller" ? scrollerClass : gridClass}
+      >
+        <div
+          className={cn(
+            "relative mb-3 overflow-hidden rounded-xl bg-slate-100 dark:bg-zinc-800",
+            inGallery ? "h-52 md:h-64" : "h-44 md:h-48"
+          )}
         >
-          <Heart size={14} />
-        </button>
-      </div>
-      <div className="px-3 pb-3">
-        <h3 className="mb-1.5 truncate text-base font-black text-slate-900 transition-colors group-hover:text-brand-blue dark:text-white md:text-lg">
-          {uni.name}
-        </h3>
-        <div className="mb-3 flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-slate-400">
-          <MapPin size={12} className="text-brand-blue" />{" "}
-          {universityCity(uni) || "—"}
-          <span className="mx-1 text-slate-300 dark:text-slate-600">•</span>
-          <Star size={12} className="text-brand-yellow" fill="currentColor" />{" "}
-          {displayRating(uni)}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {uni.rank?.eduRank?.ethiopiaRank != null && (
-            <span className="flex items-center gap-1 rounded-md bg-blue-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-brand-blue dark:bg-brand-blue/10 md:text-[10px]">
-              <Trophy size={10} /> #{uni.rank.eduRank.ethiopiaRank} in Ethiopia
+          <img
+            src={universityCover(uni)}
+            alt={uni.name}
+            className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+          />
+          {inGallery && (
+            <span className="absolute bottom-2 right-2 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-black text-white backdrop-blur-sm">
+              1 / {imgCount}
             </span>
           )}
-          <span className="flex items-center gap-1 rounded-md bg-slate-100 px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-slate-600 dark:bg-zinc-800 dark:text-slate-300 md:text-[10px]">
-            <CloudSun size={10} /> Featured picks
-          </span>
+          <button
+            type="button"
+            className="absolute right-3 top-3 rounded-full bg-black/40 p-1.5 text-white backdrop-blur-md transition-all hover:scale-110 hover:bg-black/60 active:scale-95"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Heart size={14} />
+          </button>
+          {inGallery && (
+            <div className="absolute left-3 top-3 rounded-full bg-black/40 p-1.5 text-white backdrop-blur-md">
+              <LayoutGrid size={14} />
+            </div>
+          )}
         </div>
-      </div>
-    </motion.div>
-  );
+        <div className="px-3 pb-3">
+          <h3 className="mb-1.5 truncate text-base font-black text-slate-900 transition-colors group-hover:text-brand-blue dark:text-white md:text-lg">
+            {uni.name}
+          </h3>
+          <div className="mb-3 flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-slate-400">
+            <MapPin size={12} className="text-brand-blue" />{" "}
+            {universityCity(uni) || "—"}
+            <span className="mx-1 text-slate-300 dark:text-slate-600">•</span>
+            <Star size={12} className="text-brand-yellow" fill="currentColor" />{" "}
+            {displayRating(uni)}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {uni.rank?.eduRank?.ethiopiaRank != null && (
+              <span className="flex items-center gap-1 rounded-md bg-blue-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-brand-blue dark:bg-brand-blue/10 md:text-[10px]">
+                <Trophy size={10} /> #{uni.rank.eduRank.ethiopiaRank} in Ethiopia
+              </span>
+            )}
+            <span className="flex items-center gap-1 rounded-md bg-slate-100 px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-slate-600 dark:bg-zinc-800 dark:text-slate-300 md:text-[10px]">
+              <CloudSun size={10} />{" "}
+              {inGallery ? "Gallery view" : "Featured picks"}
+            </span>
+          </div>
+        </div>
+      </motion.div>
+    );
+  };
 
   const renderCityCard = (city: (typeof cities)[0]) => (
     <motion.div
@@ -634,7 +867,7 @@ const UniversitiesPage: React.FC = () => {
           </motion.div>
         </section>
 
-        {listLoading && !universities.length ? (
+        {listLoading && rawUniversities.length === 0 ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div
@@ -649,19 +882,22 @@ const UniversitiesPage: React.FC = () => {
             initial="hidden"
             animate="show"
           >
-            <EthiopiaMap universities={universities} loading={listLoading} />
+            <EthiopiaMap
+              universities={browseListUniversities}
+              loading={listLoading}
+            />
             <HorizontalRow
               title="Universities Near You"
               subtitle="Popular picks from our directory"
               items={nearSlice}
-              renderItem={(u) => renderUniCard(u as University)}
+              renderItem={(u) => renderUniCard(u as University, "scroller")}
             />
 
             <HorizontalRow
               title="Institutional Excellence"
               subtitle="Research-focused institutions"
               items={researchUnis.slice(0, 12)}
-              renderItem={(u) => renderUniCard(u as University)}
+              renderItem={(u) => renderUniCard(u as University, "scroller")}
             />
 
             <HorizontalRow
@@ -675,26 +911,87 @@ const UniversitiesPage: React.FC = () => {
               title="Matching your Interests"
               subtitle="Featured and specialized schools"
               items={interestUnis.slice(0, 12)}
-              renderItem={(u) => renderUniCard(u as University)}
+              renderItem={(u) => renderUniCard(u as University, "scroller")}
             />
           </motion.div>
         ) : (
           <section className="mb-20">
             <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="h-6 w-1.5 rounded-full bg-brand-blue shadow-[0_0_12px_rgba(37,99,235,0.6)]" />
-                <h2 className="text-xl font-black tracking-tight text-slate-900 dark:text-white md:text-2xl">
-                  {isSearching ? `Results for "${debouncedQuery}"` : "Campus Directory"}
-                </h2>
+              <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-6 w-1.5 rounded-full bg-brand-blue shadow-[0_0_12px_rgba(37,99,235,0.6)]" />
+                  <h2 className="text-xl font-black tracking-tight text-slate-900 dark:text-white md:text-2xl">
+                    {isSearching
+                      ? `Results for "${debouncedQuery}"`
+                      : discoverHeading?.title ?? "Campus Directory"}
+                  </h2>
+                </div>
+                {discoverHeading?.subtitle && !isSearching && (
+                  <p className="max-w-xl text-xs font-medium text-slate-500 dark:text-slate-400 sm:ml-2 md:text-sm">
+                    {discoverHeading.subtitle}
+                  </p>
+                )}
               </div>
-              <div className="flex items-center gap-2 rounded-lg border border-slate-200/60 bg-white px-3 py-1.5 shadow-sm dark:border-white/5 dark:bg-zinc-900">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-brand-yellow shadow-[0_0_8px_rgba(250,204,21,0.6)]" />
-                <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                  {filteredAndSortedUniversities.length}{" "}
-                  {filteredAndSortedUniversities.length === 1 ? "Result" : "Results"}
-                </span>
+              <div className="flex flex-wrap items-center gap-2">
+                {discoverActive && !isSearching && (
+                  <button
+                    type="button"
+                    onClick={() => navigate("/universities")}
+                    className="rounded-full border border-slate-200/80 bg-white px-4 py-2 text-xs font-bold text-slate-600 transition-colors hover:border-brand-blue/40 hover:text-brand-blue dark:border-white/10 dark:bg-zinc-900 dark:text-slate-300"
+                  >
+                    Full directory
+                  </button>
+                )}
+                <div className="flex items-center gap-2 rounded-lg border border-slate-200/60 bg-white px-3 py-1.5 shadow-sm dark:border-white/5 dark:bg-zinc-900">
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-brand-yellow shadow-[0_0_8px_rgba(250,204,21,0.6)]" />
+                  <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                    {filteredAndSortedUniversities.length}{" "}
+                    {filteredAndSortedUniversities.length === 1
+                      ? "Result"
+                      : "Results"}
+                  </span>
+                </div>
               </div>
             </div>
+
+            {showClimateChips && (
+              <div className="mb-6 flex flex-wrap items-center gap-2">
+                <Thermometer
+                  size={14}
+                  className="text-teal-600 dark:text-teal-400"
+                />
+                {CLIMATE_ZONE_FILTERS.map((z) => {
+                  const active =
+                    (z.id === null && !climateZoneParam) ||
+                    z.id === climateZoneParam;
+                  return (
+                    <button
+                      key={String(z.id)}
+                      type="button"
+                      onClick={() => {
+                        setSearchParams(
+                          (prev) => {
+                            const n = new URLSearchParams(prev);
+                            if (z.id) n.set("zone", z.id);
+                            else n.delete("zone");
+                            return n;
+                          },
+                          { replace: true }
+                        );
+                      }}
+                      className={cn(
+                        "rounded-full px-3 py-1.5 text-xs font-bold transition-all",
+                        active
+                          ? "bg-teal-600 text-white shadow-md shadow-teal-600/25"
+                          : "border border-slate-200/80 bg-white/80 text-slate-600 hover:border-teal-500/40 dark:border-white/10 dark:bg-zinc-900 dark:text-slate-300"
+                      )}
+                    >
+                      {z.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             {searchLoading ? (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -709,9 +1006,16 @@ const UniversitiesPage: React.FC = () => {
                   initial="hidden"
                   animate="show"
                   key="directory-grid"
-                  className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                  className={cn(
+                    "grid gap-5",
+                    galleryView
+                      ? "sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-2"
+                      : "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                  )}
                 >
-                  {filteredAndSortedUniversities.map((u) => renderUniCard(u))}
+                  {filteredAndSortedUniversities.map((u) =>
+                    renderUniCard(u, "grid")
+                  )}
 
                   {filteredAndSortedUniversities.length === 0 && (
                     <div className="col-span-full py-16 text-center">

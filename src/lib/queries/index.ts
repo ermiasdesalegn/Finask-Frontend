@@ -1,3 +1,4 @@
+export * from "./campuses";
 export * from "./cities";
 export * from "./home";
 export * from "./programs";

@@ -14,6 +14,23 @@ export const queryKeys = {
       filters.sort ?? "-ratingsAverage",
       filters.ratingsAverageGte ?? null,
       filters.isFeatured ?? null,
+      filters.tags ?? null,
+      filters.elevationName ?? null,
+    ] as const,
+
+  universitiesTrending: () => ["universities", "trending"] as const,
+  universitiesFeatured: () => ["universities", "featured"] as const,
+  universitiesTopRanked: (n: number) =>
+    ["universities", "top-ranked", n] as const,
+  universitiesTopRated: (n: number) =>
+    ["universities", "top-rated", n] as const,
+
+  campusesList: (opts?: { limit?: number; sort?: string }) =>
+    [
+      "campuses",
+      "list",
+      opts?.limit ?? 250,
+      opts?.sort ?? "default",
     ] as const,
 
   citiesList: (opts?: { limit?: number; sort?: string; fields?: string }) =>

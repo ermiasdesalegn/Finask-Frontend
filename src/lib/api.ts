@@ -17,7 +17,30 @@ function resolveMock<T>(path: string): T | null {
     return mock.mockUniversityBySlug(decodeURIComponent(slug)) as T;
   }
   if (path.match(/\/universities\/[^/]+\/campuses/)) return mock.mockUniversityCampuses() as T;
-  if (path.startsWith("/universities")) return mock.mockUniversitiesList() as T;
+  {
+    const basePath = path.split("?")[0];
+    if (
+      basePath === "/universities/trending" ||
+      path.startsWith("/universities/trending?")
+    ) {
+      return mock.mockUniversitiesTrending() as T;
+    }
+    if (
+      basePath === "/universities/featured" ||
+      path.startsWith("/universities/featured?")
+    ) {
+      return mock.mockUniversitiesFeatured() as T;
+    }
+    const topRanked = basePath.match(/^\/universities\/top-(\d+)-ranked$/);
+    if (topRanked) {
+      return mock.mockUniversitiesTopRanked(Number(topRanked[1])) as T;
+    }
+    const topRated = basePath.match(/^\/universities\/top-(\d+)-rated$/);
+    if (topRated) {
+      return mock.mockUniversitiesTopRated(Number(topRated[1])) as T;
+    }
+  }
+  if (path.startsWith("/universities")) return mock.mockUniversitiesList(path) as T;
   if (path.match(/^\/programs\/rare(\?|$)/)) {
     return mock.mockRarePrograms() as T;
   }
@@ -34,6 +57,9 @@ function resolveMock<T>(path: string): T | null {
     return mock.mockProgramDetail(decodeURIComponent(programOne[1])) as T;
   }
   if (path.startsWith("/programs")) return mock.mockProgramsList() as T;
+  if (path.split("?")[0] === "/campuses") {
+    return mock.mockCampusesList() as T;
+  }
   if (path.match(/\/cities\/slug\/(.+)/)) {
     const slug = path.split("/cities/slug/")[1].split("?")[0];
     return mock.mockCityByIdentifier(decodeURIComponent(slug)) as T;

@@ -254,6 +254,27 @@ const CITIES = [
   { _id: "mock-hawassa", name: "Hawassa", slug: "hawassa", region: "Sidama", regionDisplayName: "Sidama", coverImage: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=600", climate: { climateTag: "Temperate", summary: "Warm, Temperate" }, cityProfile: { hasAirport: false, population: 400000, distanceFromCapital: 275 } },
 ];
 
+const MOCK_CAMPUSES_GLOBAL = [
+  {
+    _id: "mock-campus-1",
+    name: "Main Campus",
+    university: "addis-ababa-university",
+    overview: "Central campus with engineering and medicine faculties.",
+    address: { city: "Addis Ababa", poBox: "1176" },
+    coverImage: FALLBACK_IMG,
+    location: { type: "Point", coordinates: [38.7615, 9.0406] },
+  },
+  {
+    _id: "mock-campus-2",
+    name: "Jimma Health Campus",
+    university: "jimma-university",
+    overview: "Medical and health sciences hub.",
+    address: { city: "Jimma", poBox: "378" },
+    coverImage: "https://images.unsplash.com/photo-1607013407627-8ea69cad1dd3?auto=format&fit=crop&q=80&w=600",
+    location: { type: "Point", coordinates: [36.8358, 7.6756] },
+  },
+];
+
 // Build university-program relationships
 const UNI_PROGRAMS: Record<string, string[]> = {
   "mock-aau": ["mock-se", "mock-cs", "mock-med", "mock-law", "mock-biz", "mock-civil", "mock-arch", "mock-agri", "mock-psych", "mock-english", "mock-teach"],
@@ -268,12 +289,81 @@ const UNI_PROGRAMS: Record<string, string[]> = {
 
 // ── Response builders ──────────────────────────────────────────────────────
 
-export function mockUniversitiesList(): UniversitiesListResponse {
-  return { status: "success", totalResults: UNIVERSITIES.length, results: UNIVERSITIES.length, data: { universities: UNIVERSITIES as any } };
+export function mockUniversitiesTrending(): UniversitiesListResponse {
+  const rows = UNIVERSITIES.slice(0, 6);
+  return {
+    status: "success",
+    totalResults: rows.length,
+    results: rows.length,
+    data: { universities: rows as any },
+  };
+}
+
+export function mockUniversitiesFeatured(): UniversitiesListResponse {
+  const rows = UNIVERSITIES.filter((u) => u.isFeatured);
+  return {
+    status: "success",
+    totalResults: rows.length,
+    results: rows.length,
+    data: { universities: rows as any },
+  };
+}
+
+export function mockUniversitiesTopRanked(n: number): UniversitiesListResponse {
+  const rows = [...UNIVERSITIES]
+    .sort(
+      (a, b) =>
+        (a.rank.eduRank.ethiopiaRank ?? 99) -
+        (b.rank.eduRank.ethiopiaRank ?? 99)
+    )
+    .slice(0, Math.min(n, UNIVERSITIES.length));
+  return {
+    status: "success",
+    totalResults: rows.length,
+    results: rows.length,
+    data: { universities: rows as any },
+  };
+}
+
+export function mockUniversitiesTopRated(n: number): UniversitiesListResponse {
+  const rows = [...UNIVERSITIES]
+    .sort((a, b) => b.ratingsAverage - a.ratingsAverage)
+    .slice(0, Math.min(n, UNIVERSITIES.length));
+  return {
+    status: "success",
+    totalResults: rows.length,
+    results: rows.length,
+    data: { universities: rows as any },
+  };
+}
+
+export function mockUniversitiesList(path = "/universities"): UniversitiesListResponse {
+  const qs = path.includes("?")
+    ? new URLSearchParams(path.split("?")[1])
+    : new URLSearchParams();
+  let rows = [...UNIVERSITIES];
+  const tag = qs.get("tags");
+  if (tag) {
+    rows = rows.filter((u) => (u.tags as string[])?.includes(tag));
+  }
+  return {
+    status: "success",
+    totalResults: rows.length,
+    results: rows.length,
+    data: { universities: rows as any },
+  };
 }
 
 export function mockCitiesList(): CitiesListResponse {
   return { status: "success", results: CITIES.length, data: { cities: CITIES as any } };
+}
+
+export function mockCampusesList(): CampusesListResponse {
+  return {
+    status: "success",
+    results: MOCK_CAMPUSES_GLOBAL.length,
+    data: { campuses: MOCK_CAMPUSES_GLOBAL as any },
+  };
 }
 
 /** GET /cities/:id or /cities/slug/:slug — shape matches handlerFactory + getCityBySlug */

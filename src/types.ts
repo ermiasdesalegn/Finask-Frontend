@@ -31,6 +31,8 @@ export interface University {
   isFeatured?: boolean;
   address?: {
     city?: string;
+    /** Regional state / admin region (matches API `city_region` filter values). */
+    region?: string;
     street?: string;
     poBox?: string;
     fullAddress?: string;
@@ -144,11 +146,21 @@ export interface Campus {
   coverImage?: string;
   images?: string[];
   overview?: string;
+  wikipediaLink?: string;
+  location?: { type?: string; coordinates?: number[] };
   address?: University["address"];
+  contacts?: {
+    emails?: string[];
+    phoneNumbers?: string[];
+    faxes?: string[];
+    websiteUrl?: string;
+  };
+  /** Program ObjectIds when not populated */
+  programs?: string[];
   distanceFromMainCampus?: number;
   ratingsAverage?: number;
   ratingsQuantity?: number;
-  university?: string;
+  university?: string | { _id: string; name?: string; slug?: string };
 }
 
 export interface CityClimateMonth {
@@ -260,7 +272,7 @@ export interface ProgramsListResponse {
 export interface RareProgramsResponse {
   status: string;
   results: number;
-  data: { docs: Program[] };
+  data: { docs?: Program[]; data?: Program[] };
 }
 
 /** GET /programs/:id or GET /programs/slug/:slug */

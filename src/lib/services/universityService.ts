@@ -9,6 +9,9 @@ import type {
 
 const MONGO_OBJECT_ID_RE = /^[a-f0-9]{24}$/i;
 
+/** Max items for Discover top-ranked / top-rated slices (backend route uses this in the path). */
+export const DISCOVER_TOP_LIMIT = 100;
+
 export type UniversitiesListFilters = {
   limit?: number;
   /** e.g. -ratingsAverage */
@@ -17,6 +20,10 @@ export type UniversitiesListFilters = {
   cityRegion?: string | null;
   ratingsAverageGte?: number | null;
   isFeatured?: boolean | null;
+  /** Matches universities whose `tags` array contains this value (e.g. research). */
+  tags?: string | null;
+  /** Backend elevation_ filter against joined elevation zone (e.g. dega, kolla). */
+  elevationName?: string | null;
 };
 
 /** GET /api/v1/universities — matches Express aggregation list handler */
@@ -35,9 +42,72 @@ export async function fetchUniversitiesList(
   if (filters.isFeatured === true) {
     params.set("isFeatured", "true");
   }
+  if (filters.tags) {
+    params.set("tags", filters.tags);
+  }
+  if (filters.elevationName) {
+    params.set("elevation_name", filters.elevationName);
+  }
   return apiGet<UniversitiesListResponse>(
     `/universities?${params.toString()}`
   );
+}
+
+/** Some API docs / older deploys return `data.data` instead of `data.universities`. */
+type LooseUniversitiesPayload = {
+  status: string;
+  results?: number;
+  totalResults?: number;
+  data?: {
+    universities?: University[];
+    data?: University[];
+  };
+};
+
+function normalizeUniversitiesListResponse(
+  res: LooseUniversitiesPayload
+): UniversitiesListResponse {
+  const list =
+    res.data?.universities ??
+    (Array.isArray(res.data?.data) ? res.data!.data! : []);
+  return {
+    status: res.status,
+    totalResults: res.totalResults ?? list.length,
+    results: res.results ?? list.length,
+    data: { universities: list },
+  };
+}
+
+/** GET /api/v1/universities/trending */
+export async function fetchTrendingUniversities(): Promise<UniversitiesListResponse> {
+  const res = await apiGet<LooseUniversitiesPayload>("/universities/trending");
+  return normalizeUniversitiesListResponse(res);
+}
+
+/** GET /api/v1/universities/featured */
+export async function fetchFeaturedUniversities(): Promise<UniversitiesListResponse> {
+  const res = await apiGet<LooseUniversitiesPayload>("/universities/featured");
+  return normalizeUniversitiesListResponse(res);
+}
+
+/** GET /api/v1/universities/top-:n-ranked */
+export async function fetchTopRankedUniversities(
+  limit = DISCOVER_TOP_LIMIT
+): Promise<UniversitiesListResponse> {
+  const res = await apiGet<LooseUniversitiesPayload>(
+    `/universities/top-${limit}-ranked`
+  );
+  return normalizeUniversitiesListResponse(res);
+}
+
+/** GET /api/v1/universities/top-:n-rated */
+export async function fetchTopRatedUniversities(
+  limit = DISCOVER_TOP_LIMIT
+): Promise<UniversitiesListResponse> {
+  const res = await apiGet<LooseUniversitiesPayload>(
+    `/universities/top-${limit}-rated`
+  );
+  return normalizeUniversitiesListResponse(res);
 }
 
 /** GET /api/v1/universities/slug/:slug — mounted before /:id in Express */

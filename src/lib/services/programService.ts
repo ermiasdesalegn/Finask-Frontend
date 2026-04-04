@@ -28,16 +28,20 @@ export async function fetchProgramsList(
   return apiGet<ProgramsListResponse>(`/programs?${params.toString()}`);
 }
 
-/** GET /api/v1/programs/rare — returns `data.docs` */
+/** GET /api/v1/programs/rare — backend returns `data.docs` (optional `?limit=`). */
 export async function fetchRarePrograms(options?: {
   limit?: number;
 }): Promise<Program[]> {
   const params = new URLSearchParams();
   params.set("limit", String(options?.limit ?? 80));
-  const res = await apiGet<RareProgramsResponse>(
-    `/programs/rare?${params.toString()}`
-  );
-  return res.data.docs ?? [];
+  const res = await apiGet<
+    RareProgramsResponse & { data?: { docs?: Program[]; data?: Program[] } }
+  >(`/programs/rare?${params.toString()}`);
+  const d = res.data;
+  if (!d) return [];
+  if (Array.isArray(d.docs)) return d.docs;
+  if (Array.isArray(d.data)) return d.data;
+  return [];
 }
 
 function programFromDetailResponse(res: ProgramDetailResponse): Program {
