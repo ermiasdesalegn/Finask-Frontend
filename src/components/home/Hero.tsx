@@ -70,9 +70,10 @@ const Hero = ({
     reviewTotal > 0 ? `+${compactReviews}` : "+21k";
 
   return (
-    <section className="relative px-6 pb-20 pt-32">
-      <div className="absolute right-0 top-0 h-[50%] w-[50%] -translate-y-1/2 translate-x-1/4 rounded-full bg-brand-blue/5 blur-[120px]" />
-      <div className="absolute bottom-0 left-0 h-[40%] w-[40%] -translate-x-1/4 translate-y-1/4 rounded-full bg-brand-yellow/5 blur-[100px]" />
+    <section className="relative overflow-x-hidden px-6 pb-20 pt-32">
+      {/* Keep blurs inside the viewport — horizontal translate was causing page-wide overflow */}
+      <div className="absolute right-0 top-0 h-[50%] w-[50%] -translate-y-1/2 rounded-full bg-brand-blue/5 blur-[120px]" />
+      <div className="absolute bottom-0 left-0 h-[40%] w-[40%] translate-y-1/4 rounded-full bg-brand-yellow/5 blur-[100px]" />
 
       <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-16 lg:grid-cols-2">
         <motion.div

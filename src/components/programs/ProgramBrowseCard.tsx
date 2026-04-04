@@ -1,6 +1,8 @@
-import { BookOpen, Clock, ExternalLink, Star } from "lucide-react";
+import { BookOpen, ChevronDown, Clock, ExternalLink, Star } from "lucide-react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import type { ProgramFieldStyle } from "../../constants/programFieldStyles";
+import { unwrapMarkdownLink } from "../../lib/unwrapMarkdownLink";
 import { formatRatingsQuantityCompact } from "../../lib/universityUi";
 import type { Program } from "../../types";
 import { ProgramUniversitiesScroller } from "./ProgramUniversitiesScroller";
@@ -14,23 +16,22 @@ function tagLabels(program: Program): string[] {
 }
 
 function programCover(program: Program): string | undefined {
-  const c = program.coverImage?.trim();
+  const c = unwrapMarkdownLink(program.coverImage);
   if (c) return c;
-  const first = program.images?.find((u) => typeof u === "string" && u.trim());
-  return first?.trim();
+  const first = program.images?.map((u) => unwrapMarkdownLink(u)).find(Boolean);
+  return first;
 }
 
 export function ProgramBrowseCard({
   program,
   cat,
   detailPath,
-  prefetchUniversities,
 }: {
   program: Program;
   cat: ProgramFieldStyle;
   detailPath: string;
-  prefetchUniversities: boolean;
 }) {
+  const [showUniversities, setShowUniversities] = useState(false);
   const cover = programCover(program);
   const tags = tagLabels(program);
   const overview = program.overview?.trim();
@@ -163,15 +164,34 @@ export function ProgramBrowseCard({
         </div>
       </div>
 
-      <div className="border-t border-slate-100 px-5 py-5 dark:border-white/10 md:px-6">
-        <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
-          Universities offering this program
-        </p>
-        <ProgramUniversitiesScroller
-          program={program}
-          cat={cat}
-          enabled={prefetchUniversities}
-        />
+      <div className="border-t border-slate-100 dark:border-white/10 md:px-6">
+        <button
+          type="button"
+          onClick={() => setShowUniversities((v) => !v)}
+          className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-slate-50/80 dark:hover:bg-white/5 md:px-6"
+        >
+          <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
+            Universities offering this program
+            <span className="mt-0.5 block text-xs font-bold normal-case tracking-normal text-slate-400 dark:text-slate-500">
+              {showUniversities ? "Tap to hide" : "Tap to load — saves API quota"}
+            </span>
+          </span>
+          <ChevronDown
+            size={20}
+            className={`shrink-0 text-slate-400 transition-transform duration-200 ${
+              showUniversities ? "rotate-180" : ""
+            }`}
+          />
+        </button>
+        {showUniversities ? (
+          <div className="border-t border-slate-100 px-5 pb-5 pt-2 dark:border-white/10 md:px-6">
+            <ProgramUniversitiesScroller
+              program={program}
+              cat={cat}
+              enabled
+            />
+          </div>
+        ) : null}
       </div>
     </article>
   );

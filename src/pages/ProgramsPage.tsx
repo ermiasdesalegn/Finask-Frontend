@@ -7,7 +7,7 @@ import {
   X,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { ProgramBrowseCard } from "../components/programs/ProgramBrowseCard";
 import { AnimatedGridPattern } from "../components/ui/animated-grid-pattern";
@@ -156,35 +156,6 @@ const ProgramsPage: React.FC = () => {
       );
     });
   }, [fieldKeys, grouped, search, fieldParam]);
-
-  const [visibleFields, setVisibleFields] = useState<Set<string>>(new Set());
-  const sectionRefs = useRef<Map<string, HTMLElement>>(new Map());
-
-  useEffect(() => {
-    setVisibleFields(new Set());
-  }, [filterRare, fieldParam]);
-
-  useEffect(() => {
-    if (sectionRefs.current.size === 0) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (!entry.isIntersecting) return;
-          const fieldKey = (entry.target as HTMLElement).dataset.fieldKey;
-          if (!fieldKey) return;
-          setVisibleFields((prev) => {
-            if (prev.has(fieldKey)) return prev;
-            return new Set([...prev, fieldKey]);
-          });
-        });
-      },
-      { rootMargin: "200px" }
-    );
-    sectionRefs.current.forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
-  // Re-run whenever the list of visible field keys changes (new sections rendered)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredFieldKeys.join(","), loading]);
 
   return (
     <div className="relative min-h-screen w-full bg-white pb-24 transition-colors duration-300 dark:bg-[#121212]">
@@ -383,10 +354,6 @@ const ProgramsPage: React.FC = () => {
         ) : (
           filteredFieldKeys.map((fieldKey, catIndex) => {
             const cat = PROGRAM_FIELD_STYLES[fieldKey] ?? DEFAULT_PROGRAM_FIELD_STYLE;
-            const prefetchUniversities =
-              visibleFields.has(fieldKey) ||
-              filteredFieldKeys.indexOf(fieldKey) < 3 ||
-              (fieldParam != null && fieldKey === fieldParam);
             const progs = (grouped.get(fieldKey) ?? []).filter(
               (p) =>
                 !search ||
@@ -404,14 +371,6 @@ const ProgramsPage: React.FC = () => {
             return (
               <motion.section
                 key={fieldKey}
-                ref={(el) => {
-                  if (el) {
-                    sectionRefs.current.set(fieldKey, el);
-                  } else {
-                    sectionRefs.current.delete(fieldKey);
-                  }
-                }}
-                data-field-key={fieldKey}
                 initial="hidden"
                 whileInView="show"
                 viewport={{ once: true, margin: "-48px", amount: 0.08 }}
@@ -452,7 +411,6 @@ const ProgramsPage: React.FC = () => {
                         program={program}
                         cat={cat}
                         detailPath={detailPath}
-                        prefetchUniversities={prefetchUniversities}
                       />
                     );
                   })}

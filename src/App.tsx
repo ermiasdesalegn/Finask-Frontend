@@ -89,7 +89,7 @@ function AppShell() {
         />
       </div>
 
-      <div className="relative z-10 min-h-screen">
+      <div className="relative z-10 min-h-screen overflow-x-hidden">
         <Navbar
           darkMode={darkMode}
           toggleDarkMode={() => setDarkMode(!darkMode)}

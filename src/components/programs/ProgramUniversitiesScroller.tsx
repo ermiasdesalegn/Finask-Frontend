@@ -37,19 +37,26 @@ export function ProgramUniversitiesScroller({
   program,
   cat,
   enabled = false,
+  /** Program detail page: fetch as soon as enabled (no scroll gate) */
+  eager = false,
 }: {
   program: Program;
   cat: ProgramFieldStyle;
   /** Parent allows fetch once this program row is near the viewport */
   enabled?: boolean;
+  eager?: boolean;
 }) {
   void cat;
   const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement>(null);
-  const [rowInView, setRowInView] = useState(false);
+  const [rowInView, setRowInView] = useState(() => Boolean(eager));
   const programId = programStableId(program);
 
   useEffect(() => {
+    if (eager) {
+      setRowInView(true);
+      return;
+    }
     if (!enabled || !programId) return;
     const el = containerRef.current;
     if (!el) return;
@@ -60,11 +67,11 @@ export function ProgramUniversitiesScroller({
           obs.disconnect();
         }
       },
-      { rootMargin: "280px 0px", threshold: 0 }
+      { rootMargin: "80px 0px", threshold: 0 }
     );
     obs.observe(el);
     return () => obs.disconnect();
-  }, [enabled, programId]);
+  }, [enabled, programId, eager]);
 
   const shouldFetch = enabled && rowInView && Boolean(programId);
   const { data, isPending } = useProgramUniversitiesQuery(
@@ -72,9 +79,10 @@ export function ProgramUniversitiesScroller({
   );
 
   const rows = data?.data?.universityprograms ?? [];
-  const unis: University[] = rows
-    .map((r) => r.university)
-    .filter((u): u is University => Boolean(u));
+  const rowsWithUni = rows.filter(
+    (r): r is (typeof rows)[number] & { university: University } =>
+      typeof r.university === "object" && r.university != null && Boolean(r.university.name || r.university.slug || r.university._id)
+  );
 
   if (!enabled || !programId) return null;
 
@@ -90,17 +98,19 @@ export function ProgramUniversitiesScroller({
           ))}
         </div>
       ) : null}
-      {rowInView && !isPending && unis.length > 0 ? (
+      {rowInView && !isPending && rowsWithUni.length > 0 ? (
         <motion.div
           variants={containerVariants}
           initial="hidden"
           animate="show"
           className="-mx-6 flex gap-5 overflow-x-auto px-6 pb-3 [scrollbar-width:none] lg:mx-0 lg:px-0 [&::-webkit-scrollbar]:hidden"
         >
-          {unis.map((uni) => (
+          {rowsWithUni.map((row) => {
+            const uni = row.university;
+            return (
             <motion.div
               variants={itemVariants}
-              key={uni._id || uni.slug}
+              key={row._id || uni._id || uni.slug}
               onClick={() => navigate(universityPath(uni))}
               className="group w-64 shrink-0 cursor-pointer overflow-hidden rounded-[2rem] border border-slate-200/60 bg-white/90 shadow-sm backdrop-blur-md transition-all duration-300 hover:-translate-y-1.5 hover:border-brand-blue/30 hover:shadow-xl hover:shadow-brand-blue/10 dark:border-white/10 dark:bg-zinc-900/90"
             >
@@ -128,9 +138,16 @@ export function ProgramUniversitiesScroller({
                 <h4 className="mb-1 line-clamp-1 text-sm font-black text-slate-900 transition-colors group-hover:text-brand-blue dark:text-white">
                   {uni.name}
                 </h4>
-                <div className="mb-3 flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
-                  <MapPin size={11} className="shrink-0 text-brand-blue" />{" "}
-                  {universityCity(uni) || "Ethiopia"}
+                <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-500 dark:text-slate-400">
+                  <span className="flex items-center gap-1">
+                    <MapPin size={11} className="shrink-0 text-brand-blue" />{" "}
+                    {universityCity(uni) || "Ethiopia"}
+                  </span>
+                  {row.yearOffered != null ? (
+                    <span className="text-[11px] font-semibold text-slate-400">
+                      Since {row.yearOffered}
+                    </span>
+                  ) : null}
                 </div>
                 <div className="flex items-center justify-between border-t border-slate-100 pt-3 dark:border-white/10">
                   <div className="flex items-center gap-1 text-xs font-bold text-slate-700 dark:text-slate-300">
@@ -147,8 +164,15 @@ export function ProgramUniversitiesScroller({
                 </div>
               </div>
             </motion.div>
-          ))}
+          );
+          })}
         </motion.div>
+      ) : null}
+      {rowInView && !isPending && rows.length === 0 ? (
+        <p className="text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+          No universities are linked to this program in the directory yet. Check back later or browse
+          universities from the home page.
+        </p>
       ) : null}
     </div>
   );

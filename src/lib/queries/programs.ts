@@ -70,6 +70,8 @@ export function programUniversitiesQueryOptions(programId: string) {
     queryFn: () => fetchUniversitiesForProgram(programId),
     enabled: Boolean(programId),
     staleTime: STALE_MS.programUniversities,
+    /** N× programs on one page — never double-fire on failure */
+    retry: false,
   });
 }
 

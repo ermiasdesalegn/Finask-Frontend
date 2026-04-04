@@ -101,8 +101,10 @@ export interface Program {
 
 export interface UniversityProgramOffering {
   _id: string;
-  university?: University;
-  program?: Program;
+  /** Populated `University` or raw ObjectId string */
+  university?: University | string;
+  /** Populated `Program` or raw ObjectId */
+  program?: Program | string;
   yearOffered?: number;
   graduatesCount?: number;
 }
@@ -115,6 +117,7 @@ export interface Review {
     _id: string;
     firstName?: string;
     lastName?: string;
+    fullName?: string;
     profileImage?: string;
     headline?: string;
   };
@@ -123,6 +126,7 @@ export interface Review {
   createdAt?: string;
   updatedAt?: string;
   likesCount?: number;
+  likes?: string[];
 }
 
 export interface Question {
