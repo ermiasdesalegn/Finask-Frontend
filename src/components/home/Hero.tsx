@@ -1,13 +1,17 @@
-import { ArrowRight } from "lucide-react";
-import { motion } from "motion/react";
-import { Link } from "react-router-dom";
-import type { HomePagePayload } from "../../types";
-import {
-  displayRating,
-  formatRatingsQuantityCompact,
-  universityCover,
-} from "../../lib/universityUi";
+import { ArrowRight, Search } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import heroImg from "../../assets/hero-img.png";
+import { useDebounce } from "../../lib/hooks/useDebounce";
+import { useSearchQuery } from "../../lib/queries/search";
+import {
+    displayRating,
+    formatRatingsQuantityCompact,
+    universityCover,
+} from "../../lib/universityUi";
+import type { HomePagePayload } from "../../types";
+import { SearchDropdown } from "../ui/SearchDropdown";
 
 function uniqueBySlug(list: { slug?: string }[]): number {
   return new Set(list.map((u) => u.slug).filter(Boolean)).size;
@@ -32,6 +36,12 @@ const Hero = ({
   home: HomePagePayload | null;
   loading: boolean;
 }) => {
+  const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState("");
+  const debouncedQuery = useDebounce(searchQuery, 300);
+  const isSearching = debouncedQuery.trim().length >= 2;
+  const searchResults = useSearchQuery(debouncedQuery, 10);
+  const searchLoading = isSearching && searchResults.isFetching;
   const topRated = home?.topRated ?? [];
   const avatars = topRated
     .filter((u) => universityCover(u))
@@ -100,6 +110,64 @@ const Hero = ({
             >
               Contact Us
             </button>
+          </div>
+
+          {/* Search bar */}
+          <div className="relative mt-8 max-w-lg">
+            <div className="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white/90 px-4 py-3.5 shadow-lg shadow-slate-200/40 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/90">
+              <Search size={18} className="shrink-0 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search universities, programs, cities..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1 bg-transparent text-sm font-medium text-slate-900 outline-none placeholder:text-slate-400 dark:text-white"
+              />
+              <AnimatePresence>
+                {searchLoading && (
+                  <motion.div
+                    key="spin"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="h-4 w-4 animate-spin rounded-full border-2 border-brand-blue border-t-transparent"
+                  />
+                )}
+                {!searchLoading && searchQuery && (
+                  <motion.button
+                    key="clear"
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    className="rounded-full bg-slate-100 p-1 text-slate-500 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </motion.button>
+                )}
+                {!searchLoading && !searchQuery && (
+                  <motion.button
+                    key="discover"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    type="button"
+                    onClick={() => navigate("/discover")}
+                    className="shrink-0 rounded-xl bg-brand-blue px-3 py-1.5 text-xs font-bold text-white transition-all hover:bg-blue-700"
+                  >
+                    Browse all
+                  </motion.button>
+                )}
+              </AnimatePresence>
+            </div>
+            <SearchDropdown
+              open={isSearching}
+              results={searchResults.data?.data ?? null}
+              loading={searchLoading}
+              query={debouncedQuery}
+              onClose={() => setSearchQuery("")}
+            />
           </div>
 
           <div className="mt-16 flex flex-wrap items-center gap-8">

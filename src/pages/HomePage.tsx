@@ -1,7 +1,7 @@
-import ComparisonEngine from "../components/home/ComparisonEngine";
-import DiscoveryHub from "../components/home/DiscoveryHub";
+﻿import ComparisonEngine from "../components/home/ComparisonEngine";
 import EthiopiaMap from "../components/home/EthiopiaMap";
 import Hero from "../components/home/Hero";
+import HomeHighlights from "../components/home/HomeHighlights";
 import { useAuth } from "../context/AuthContext";
 import { pickUniversitiesForMap } from "../lib/home/mapUniversitiesFromHome";
 import { useHomePageQuery } from "../lib/queries";
@@ -45,7 +45,7 @@ const HomePage = () => {
       ) : (
         <>
           <EthiopiaMap universities={mapUniversities} loading={loading} />
-          <DiscoveryHub home={home} loading={loading} />
+          <HomeHighlights home={home} loading={loading} />
           <ComparisonEngine
             universities={(home?.topRated ?? []).slice(0, 3)}
             loading={loading}

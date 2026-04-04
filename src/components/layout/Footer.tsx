@@ -1,238 +1,243 @@
-import { ArrowRight, Facebook, Instagram, Linkedin, Mail, MapPin, Phone, Sparkles, Twitter, Youtube } from "lucide-react";
+﻿import { ArrowRight, BookOpen, Building2, Mail, MapPin, Phone, Sparkles } from "lucide-react";
 import { motion } from "motion/react";
 import { Link } from "react-router-dom";
 import finaskLogo from "../../assets/finask-logo.png";
 
-const Footer = () => {
-  const currentYear = new Date().getFullYear();
+const NAV_LINKS = [
+  { label: "Home", to: "/" },
+  { label: "Discover", to: "/discover" },
+  { label: "Universities", to: "/universities" },
+  { label: "Programs", to: "/programs" },
+  { label: "About", to: "/about" },
+  { label: "Favorites", to: "/favorites" },
+];
 
-  const linkClass =
-    "text-slate-400 hover:text-white transition-colors inline-flex items-center group";
-  const lineSpan = (
-    <span className="w-0 group-hover:w-2 h-0.5 bg-brand-blue transition-all duration-300 mr-0 group-hover:mr-2 rounded-full" />
-  );
+const SOCIAL_LINKS = [
+  { label: "Telegram", href: "https://t.me/finask", icon: "✈" },
+  { label: "Instagram", href: "https://instagram.com/finask", icon: "◎" },
+  { label: "LinkedIn", href: "https://linkedin.com/company/finask", icon: "in" },
+  { label: "YouTube", href: "https://youtube.com/@finask", icon: "▶" },
+];
+
+const Footer = () => {
+  const year = new Date().getFullYear();
 
   return (
-    <footer className="relative bg-slate-900 text-white overflow-hidden">
-      {/* Ambient glow blobs — mirrors Hero */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-brand-blue/20 rounded-full blur-[140px] animate-pulse" />
-        <div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] bg-brand-yellow/10 rounded-full blur-[140px] animate-pulse" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-brand-blue/5 rounded-full blur-[100px]" />
+    <footer className="relative mt-20 border-t border-slate-200/60 bg-white/60 backdrop-blur-xl dark:border-white/5 dark:bg-zinc-950/80">
+      {/* subtle ambient blobs */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -left-40 -top-40 h-[400px] w-[400px] rounded-full bg-brand-blue/5 blur-[120px] dark:bg-brand-blue/10" />
+        <div className="absolute -bottom-40 -right-40 h-[400px] w-[400px] rounded-full bg-brand-yellow/5 blur-[120px] dark:bg-brand-yellow/10" />
       </div>
 
-      {/* Animated top border */}
-      <div className="relative h-px w-full overflow-hidden">
-        <motion.div
-          className="absolute inset-0 bg-gradient-to-r from-transparent via-brand-blue to-transparent"
-          animate={{ x: ["-100%", "100%"] }}
-          transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-      </div>
+      <div className="relative z-10 mx-auto max-w-7xl px-6 py-16 lg:px-8">
 
-      {/* CTA Banner */}
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.7 }}
-        className="relative z-10 border-b border-white/5"
-      >
-        <div className="max-w-7xl mx-auto px-6 py-16 flex flex-col lg:flex-row items-center justify-between gap-8">
-          <div>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 text-brand-blue rounded-full text-sm font-bold mb-4 border border-blue-500/20"
-            >
-              <span className="w-2 h-2 bg-brand-blue rounded-full animate-pulse" />
-              <Sparkles size={14} />
-              Your academic journey starts here
-            </motion.div>
-            <h2 className="text-3xl lg:text-4xl font-black tracking-tighter text-white leading-tight">
-              Ready to find your <span className="text-brand-blue">perfect</span> university?
-            </h2>
-            <p className="text-slate-400 mt-2 max-w-md">
-              Join 21,000+ Ethiopian students already navigating smarter with Finask.
-            </p>
-          </div>
-
-          {/* Newsletter strip */}
-          <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-            <input
-              type="email"
-              placeholder="Enter your email"
-              className="px-5 py-3.5 rounded-2xl bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-brand-blue/60 focus:bg-white/10 transition-all w-full sm:w-72"
-            />
-            <button className="px-6 py-3.5 bg-brand-blue text-white rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-blue-700 transition-all shadow-2xl shadow-blue-500/30 hover:-translate-y-0.5 active:scale-95 whitespace-nowrap">
-              Get Started <ArrowRight size={18} />
-            </button>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* Main Footer Grid */}
-      <div className="relative z-10 max-w-7xl mx-auto px-6 pt-16 pb-8">
+        {/* Top row — brand + CTA */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-12 mb-12"
+          transition={{ duration: 0.5 }}
+          className="mb-14 flex flex-col items-start justify-between gap-10 lg:flex-row lg:items-center"
         >
           {/* Brand */}
-          <div className="lg:col-span-4">
-            <Link to="/" className="inline-block mb-6">
-              <img src={finaskLogo} alt="Finask Logo" className="h-10 w-auto object-contain" />
+          <div className="max-w-sm">
+            <Link to="/" className="mb-5 inline-block">
+              <img src={finaskLogo} alt="Finask" className="h-9 w-auto object-contain" />
             </Link>
-            <p className="text-slate-400 mb-6 leading-relaxed max-w-sm text-sm">
-              Empowering Ethiopian students with AI-driven insights to navigate their academic future with confidence. Your trusted guide to higher education.
+            <p className="text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+              Ethiopia's first all-in-one university guide. Empowering students with AI-driven insights to navigate their academic future.
             </p>
-
-            {/* Stats row */}
-            <div className="flex gap-6 mb-6">
+            {/* Stats */}
+            <div className="mt-6 flex gap-8">
               {[
                 { value: "21k+", label: "Students" },
                 { value: "50+", label: "Universities" },
                 { value: "500+", label: "Programs" },
-              ].map((stat) => (
-                <div key={stat.label}>
-                  <p className="font-black text-white text-lg leading-none">{stat.value}</p>
-                  <p className="text-slate-500 text-xs mt-0.5">{stat.label}</p>
+              ].map((s) => (
+                <div key={s.label}>
+                  <p className="text-lg font-black text-slate-900 dark:text-white">{s.value}</p>
+                  <p className="text-xs text-slate-400">{s.label}</p>
                 </div>
               ))}
             </div>
+          </div>
 
-            {/* Social icons */}
-            <div className="flex items-center gap-3">
-              {[
-                { icon: <Facebook size={16} />, href: "https://facebook.com", label: "Facebook" },
-                { icon: <Twitter size={16} />, href: "https://twitter.com", label: "Twitter" },
-                { icon: <Instagram size={16} />, href: "https://instagram.com", label: "Instagram" },
-                { icon: <Linkedin size={16} />, href: "https://linkedin.com", label: "LinkedIn" },
-                { icon: <Youtube size={16} />, href: "https://youtube.com", label: "YouTube" },
-              ].map((s) => (
-                <motion.a
-                  key={s.label}
-                  href={s.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={s.label}
-                  whileHover={{ y: -4, scale: 1.1 }}
-                  className="w-10 h-10 bg-white/5 hover:bg-brand-blue border border-white/10 hover:border-brand-blue rounded-xl flex items-center justify-center transition-colors duration-300 hover:shadow-lg hover:shadow-brand-blue/40"
-                >
-                  {s.icon}
-                </motion.a>
-              ))}
+          {/* CTA card */}
+          <div className="w-full max-w-md rounded-3xl border border-slate-200/80 bg-white/80 p-6 shadow-xl shadow-slate-200/30 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/80 dark:shadow-none">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-blue-200/60 bg-blue-50 px-3 py-1 text-xs font-bold text-brand-blue dark:border-brand-blue/20 dark:bg-brand-blue/10">
+              <Sparkles size={12} className="text-brand-yellow" />
+              Start your journey
             </div>
+            <h3 className="mb-1 text-lg font-black tracking-tight text-slate-900 dark:text-white">
+              Find your perfect university
+            </h3>
+            <p className="mb-4 text-xs text-slate-500 dark:text-slate-400">
+              Join 21,000+ students already navigating smarter with Finask.
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="email"
+                placeholder="Your email address"
+                className="flex-1 rounded-xl border border-slate-200/80 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-brand-blue/40 focus:bg-white dark:border-white/10 dark:bg-zinc-800 dark:text-white dark:placeholder:text-slate-500"
+              />
+              <button
+                type="button"
+                className="flex items-center gap-1.5 rounded-xl bg-brand-blue px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand-blue/20 transition-all hover:bg-blue-700 active:scale-95"
+              >
+                Go <ArrowRight size={14} />
+              </button>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Divider */}
+        <div className="mb-12 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent dark:via-white/10" />
+
+        {/* Links grid */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="mb-12 grid grid-cols-2 gap-10 sm:grid-cols-4"
+        >
+          {/* Navigate */}
+          <div>
+            <p className="mb-4 text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
+              Navigate
+            </p>
+            <ul className="space-y-2.5">
+              {NAV_LINKS.map((l) => (
+                <li key={l.label}>
+                  <Link
+                    to={l.to}
+                    className="text-sm font-medium text-slate-600 transition-colors hover:text-brand-blue dark:text-slate-400 dark:hover:text-blue-400"
+                  >
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </div>
 
           {/* Explore */}
-          <div className="lg:col-span-2">
-            <h4 className="font-black text-sm uppercase tracking-widest mb-6 text-white/60">Explore</h4>
-            <ul className="space-y-3">
+          <div>
+            <p className="mb-4 text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
+              Explore
+            </p>
+            <ul className="space-y-2.5">
               {[
-                { label: "Universities", to: "/universities" },
-                { label: "Programs", to: "/programs" },
-                { label: "Scholarships", to: "#" },
-                { label: "Admissions", to: "#" },
-                { label: "Rankings", to: "#" },
-              ].map((item) => (
-                <li key={item.label}>
-                  <Link to={item.to} className={linkClass}>
-                    {lineSpan}
-                    {item.label}
+                { label: "Top Ranked", to: "/universities?sort=rank" },
+                { label: "Top Rated", to: "/universities?sort=rating" },
+                { label: "Featured", to: "/universities?filter=featured" },
+                { label: "By City", to: "/universities?view=cities" },
+                { label: "Rare Programs", to: "/programs?filter=rare" },
+              ].map((l) => (
+                <li key={l.label}>
+                  <Link
+                    to={l.to}
+                    className="text-sm font-medium text-slate-600 transition-colors hover:text-brand-blue dark:text-slate-400 dark:hover:text-blue-400"
+                  >
+                    {l.label}
                   </Link>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Resources */}
-          <div className="lg:col-span-2">
-            <h4 className="font-black text-sm uppercase tracking-widest mb-6 text-white/60">Resources</h4>
-            <ul className="space-y-3">
+          {/* Fields */}
+          <div>
+            <p className="mb-4 text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
+              Fields
+            </p>
+            <ul className="space-y-2.5">
               {[
-                { label: "About Us", to: "/about" },
-                { label: "Blog", to: "#" },
-                { label: "Career Guide", to: "#" },
-                { label: "FAQs", to: "#" },
-                { label: "Help Center", to: "#" },
-              ].map((item) => (
-                <li key={item.label}>
-                  <Link to={item.to} className={linkClass}>
-                    {lineSpan}
-                    {item.label}
+                { label: "Engineering", to: "/programs?field=engineeringarchitecture" },
+                { label: "Medicine", to: "/programs?field=medicinehealth" },
+                { label: "Business", to: "/programs?field=businesseconomics" },
+                { label: "Technology", to: "/programs?field=technologyit" },
+                { label: "Law", to: "/programs?field=socialscienceslaw" },
+              ].map((l) => (
+                <li key={l.label}>
+                  <Link
+                    to={l.to}
+                    className="text-sm font-medium text-slate-600 transition-colors hover:text-brand-blue dark:text-slate-400 dark:hover:text-blue-400"
+                  >
+                    {l.label}
                   </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Legal */}
-          <div className="lg:col-span-2">
-            <h4 className="font-black text-sm uppercase tracking-widest mb-6 text-white/60">Legal</h4>
-            <ul className="space-y-3">
-              {["Privacy Policy", "Terms of Service", "Cookie Policy", "Disclaimer"].map((item) => (
-                <li key={item}>
-                  <a href="#" className={linkClass}>
-                    {lineSpan}
-                    {item}
-                  </a>
                 </li>
               ))}
             </ul>
           </div>
 
           {/* Contact */}
-          <div className="lg:col-span-2">
-            <h4 className="font-black text-sm uppercase tracking-widest mb-6 text-white/60">Contact</h4>
-            <ul className="space-y-4">
-              <li className="flex items-start gap-3 text-slate-400">
-                <div className="w-8 h-8 bg-brand-blue/10 border border-brand-blue/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <MapPin size={14} className="text-brand-blue" />
-                </div>
-                <span className="text-sm leading-relaxed">Addis Ababa, Ethiopia</span>
+          <div>
+            <p className="mb-4 text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
+              Contact
+            </p>
+            <ul className="space-y-3">
+              <li className="flex items-center gap-2.5 text-sm text-slate-500 dark:text-slate-400">
+                <MapPin size={13} className="shrink-0 text-brand-blue" />
+                Addis Ababa, Ethiopia
               </li>
-              <li className="flex items-start gap-3 text-slate-400">
-                <div className="w-8 h-8 bg-brand-blue/10 border border-brand-blue/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <Mail size={14} className="text-brand-blue" />
-                </div>
-                <a href="mailto:info@finask.com" className="text-sm hover:text-white transition-colors">
+              <li>
+                <a
+                  href="mailto:info@finask.com"
+                  className="flex items-center gap-2.5 text-sm text-slate-500 transition-colors hover:text-brand-blue dark:text-slate-400"
+                >
+                  <Mail size={13} className="shrink-0 text-brand-blue" />
                   info@finask.com
                 </a>
               </li>
-              <li className="flex items-start gap-3 text-slate-400">
-                <div className="w-8 h-8 bg-brand-blue/10 border border-brand-blue/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <Phone size={14} className="text-brand-blue" />
-                </div>
-                <a href="tel:+251911234567" className="text-sm hover:text-white transition-colors">
+              <li>
+                <a
+                  href="tel:+251911234567"
+                  className="flex items-center gap-2.5 text-sm text-slate-500 transition-colors hover:text-brand-blue dark:text-slate-400"
+                >
+                  <Phone size={13} className="shrink-0 text-brand-blue" />
                   +251 911 234 567
                 </a>
               </li>
             </ul>
+
+            {/* Social */}
+            <div className="mt-5 flex gap-2">
+              {SOCIAL_LINKS.map((s) => (
+                <a
+                  key={s.label}
+                  href={s.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={s.label}
+                  className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200/80 bg-white/80 text-xs font-bold text-slate-600 transition-all hover:border-brand-blue/40 hover:text-brand-blue dark:border-white/10 dark:bg-zinc-800 dark:text-slate-400 dark:hover:text-blue-400"
+                >
+                  {s.icon}
+                </a>
+              ))}
+            </div>
           </div>
         </motion.div>
 
         {/* Bottom bar */}
-        <div className="relative pt-8">
-          {/* Gradient divider */}
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-slate-500 text-sm text-center md:text-left">
-              © {currentYear} Finask. All rights reserved. Built with{" "}
-              <span className="text-brand-yellow">♥</span> for Ethiopian students.
-            </p>
-            <div className="flex items-center gap-6 text-sm">
-              {["Sitemap", "Accessibility", "Status"].map((item) => (
-                <a key={item} href="#" className="text-slate-500 hover:text-white transition-colors">
-                  {item}
-                </a>
-              ))}
-            </div>
+        <div className="flex flex-col items-center justify-between gap-4 border-t border-slate-200/60 pt-8 dark:border-white/5 sm:flex-row">
+          <p className="text-xs text-slate-400 dark:text-slate-500">
+            © {year} Finask. Built with{" "}
+            <span className="text-brand-yellow">♥</span> for Ethiopian students.
+          </p>
+          <div className="flex items-center gap-1 rounded-full border border-slate-200/80 bg-white/60 px-4 py-1.5 backdrop-blur-md dark:border-white/10 dark:bg-zinc-900/60">
+            <Building2 size={11} className="text-brand-blue" />
+            <BookOpen size={11} className="text-brand-yellow" />
+            <span className="ml-1.5 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
+              Ethiopia&apos;s University Guide
+            </span>
+          </div>
+          <div className="flex gap-4 text-xs text-slate-400 dark:text-slate-500">
+            {["Privacy", "Terms", "Sitemap"].map((item) => (
+              <a key={item} href="#" className="transition-colors hover:text-brand-blue">
+                {item}
+              </a>
+            ))}
           </div>
         </div>
       </div>

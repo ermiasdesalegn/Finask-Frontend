@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Route, Routes } from "react-router-dom";
 import Footer from "./components/layout/Footer";
 import Navbar from "./components/layout/Navbar";
@@ -8,6 +8,7 @@ import ScrollToTop from "./components/utils/ScrollToTop";
 import { setApiToastNotifier } from "./lib/api";
 import { cn } from "./lib/utils";
 import AboutPage from "./pages/AboutPage";
+import DiscoverPage from "./pages/DiscoverPage";
 import FavoritesPage from "./pages/FavoritesPage";
 import HomePage from "./pages/HomePage";
 import ProgramsPage from "./pages/ProgramsPage";
@@ -93,6 +94,15 @@ function AppShell() {
         <main>
           <Routes>
             <Route path="/" element={<HomePage />} />
+
+            <Route
+              path="/discover"
+              element={
+                <div className="min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]">
+                  <DiscoverPage />
+                </div>
+              }
+            />
 
             <Route
               path="/universities"

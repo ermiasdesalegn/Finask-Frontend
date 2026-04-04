@@ -1,15 +1,18 @@
-import type { University } from "../../types";
-import { apiGet } from "../api";
+﻿import { apiGet } from "../api";
 
-/** Minimal shape returned by Atlas Search projection for universities */
-export type SearchUniversity = Pick<University, "name" | "slug" | "coverImage"> & {
-  "address.city"?: string;
+export type SearchUniversity = {
+  _id: string;
+  name: string;
+  slug: string;
+  coverImage?: string;
+  address?: { city?: string };
+  score?: number;
 };
 
 export type SearchResults = {
   universities: SearchUniversity[];
   programs: { _id: string; name: string; slug: string; field: string }[];
-  cities: { _id: string; name: string; slug: string; coverImage?: string }[];
+  cities: { _id: string; name: string; slug: string; coverImage?: string; score?: number }[];
 };
 
 export async function fetchSearchResults(

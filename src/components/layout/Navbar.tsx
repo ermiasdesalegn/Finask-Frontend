@@ -1,4 +1,4 @@
-import { Heart, LogOut, Menu, Moon, Sun, X } from "lucide-react";
+﻿import { Heart, LogOut, Menu, Moon, Sun, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -79,6 +79,7 @@ const Navbar = ({
             <div className="hidden items-center gap-8 text-sm font-normal md:flex">
               {[
                 { name: "Home", path: "/" },
+                { name: "Discover", path: "/discover" },
                 { name: "Universities", path: "/universities" },
                 { name: "Programs", path: "/programs" },
                 { name: "About", path: "/about" },
@@ -170,6 +171,7 @@ const Navbar = ({
               {[
                 { name: "Home", path: "/" },
                 { name: "Universities", path: "/universities" },
+                { name: "Discover", path: "/discover" },
                 { name: "Programs", path: "/programs" },
                 { name: "About", path: "/about" },
               ].map((link) => (

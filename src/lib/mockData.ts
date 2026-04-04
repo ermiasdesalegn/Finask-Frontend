@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Static mock data — used when VITE_USE_MOCK=true.
  * Mirrors the exact response shapes the real API returns.
  */

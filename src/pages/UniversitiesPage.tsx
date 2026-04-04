@@ -1,4 +1,4 @@
-import {
+﻿import {
     ArrowUpDown,
     Building2,
     Check,
@@ -462,6 +462,7 @@ const UniversitiesPage: React.FC = () => {
               </div>
             </div>
           </motion.div>
+
 
           <AnimatePresence>
             {showFilters && (
