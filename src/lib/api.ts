@@ -1,10 +1,36 @@
 import { emitAuthInvalid } from "./authEvents";
+import * as mock from "./mockData";
 
 const TOKEN_KEY = "token";
 
 export const API_BASE =
   import.meta.env.VITE_API_URL?.replace(/\/$/, "") ||
-  "http://localhost:8000/api/v1";
+  "http://localhost:3000/api/v1";
+
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
+
+// ── Mock router ────────────────────────────────────────────────────────────
+function resolveMock<T>(path: string): T | null {
+  if (path.startsWith("/home")) return mock.mockHomePage() as T;
+  if (path.match(/\/universities\/slug\/(.+)/)) {
+    const slug = path.split("/universities/slug/")[1].split("?")[0];
+    return mock.mockUniversityBySlug(decodeURIComponent(slug)) as T;
+  }
+  if (path.match(/\/universities\/[^/]+\/campuses/)) return mock.mockUniversityCampuses() as T;
+  if (path.startsWith("/universities")) return mock.mockUniversitiesList() as T;
+  if (path.match(/\/programs\/([^/]+)\/universities/)) {
+    const programId = path.split("/programs/")[1].split("/universities")[0];
+    return mock.mockProgramUniversities(decodeURIComponent(programId)) as T;
+  }
+  if (path.startsWith("/programs")) return mock.mockProgramsList() as T;
+  if (path.startsWith("/cities")) return mock.mockCitiesList() as T;
+  if (path.startsWith("/search")) {
+    const q = new URLSearchParams(path.split("?")[1] ?? "").get("q") ?? "";
+    return mock.mockSearch(q) as T;
+  }
+  return null;
+}
+// ──────────────────────────────────────────────────────────────────────────
 
 let toastNotifier: ((message: string) => void) | null = null;
 
@@ -55,6 +81,11 @@ export async function apiGet<T = unknown>(
   path: string,
   init?: RequestInit
 ): Promise<T> {
+  if (USE_MOCK) {
+    const result = resolveMock<T>(path);
+    if (result !== null) return Promise.resolve(result);
+  }
+
   let res: Response;
   try {
     res = await fetch(joinUrl(path), {

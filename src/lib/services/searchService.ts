@@ -1,10 +1,15 @@
+import type { University } from "../../types";
 import { apiGet } from "../api";
 
-/** GET /api/v1/search?q= — multi-model autocomplete */
+/** Minimal shape returned by Atlas Search projection for universities */
+export type SearchUniversity = Pick<University, "name" | "slug" | "coverImage"> & {
+  "address.city"?: string;
+};
+
 export type SearchResults = {
-  universities: unknown[];
-  programs: unknown[];
-  cities: unknown[];
+  universities: SearchUniversity[];
+  programs: { _id: string; name: string; slug: string; field: string }[];
+  cities: { _id: string; name: string; slug: string; coverImage?: string }[];
 };
 
 export async function fetchSearchResults(

@@ -1,6 +1,7 @@
 import { GraduationCap, Heart, MapPin, Star } from "lucide-react";
 import { motion } from "motion/react";
 import { useNavigate } from "react-router-dom";
+import type { ProgramFieldStyle } from "../../constants/programFieldStyles";
 import { useProgramUniversitiesQuery } from "../../lib/queries/programs";
 import {
   displayRating,
@@ -9,7 +10,6 @@ import {
   universityCover,
   universityPath,
 } from "../../lib/universityUi";
-import type { ProgramFieldStyle } from "../../constants/programFieldStyles";
 import type { Program, University } from "../../types";
 
 const containerVariants = {
@@ -28,19 +28,25 @@ const itemVariants = {
 export function ProgramUniversitiesScroller({
   program,
   cat,
+  enabled = false,
 }: {
   program: Program;
   cat: ProgramFieldStyle;
+  /** Only fetch when the parent field section is in view */
+  enabled?: boolean;
 }) {
   const navigate = useNavigate();
-  const { data, isPending } = useProgramUniversitiesQuery(program._id);
+
+  const { data, isPending } = useProgramUniversitiesQuery(
+    enabled ? program._id : ""
+  );
 
   const rows = data?.data?.universityprograms ?? [];
   const unis: University[] = rows
     .map((r) => r.university)
     .filter((u): u is University => Boolean(u));
 
-  if (isPending) {
+  if (!enabled || isPending) {
     return (
       <div className="flex gap-5 overflow-x-auto pb-3">
         {[1, 2, 3].map((i) => (
@@ -52,15 +58,13 @@ export function ProgramUniversitiesScroller({
       </div>
     );
   }
-
   if (unis.length === 0) return null;
 
   return (
     <motion.div
       variants={containerVariants}
       initial="hidden"
-      whileInView="show"
-      viewport={{ once: true }}
+      animate="show"
       className="-mx-6 flex gap-5 overflow-x-auto px-6 pb-3 [scrollbar-width:none] lg:mx-0 lg:px-0 [&::-webkit-scrollbar]:hidden"
     >
       {unis.map((uni) => (

@@ -5,9 +5,9 @@ import {
   X,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import React, { useMemo, useState } from "react";
-import { AnimatedGridPattern } from "../components/ui/animated-grid-pattern";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ProgramUniversitiesScroller } from "../components/programs/ProgramUniversitiesScroller";
+import { AnimatedGridPattern } from "../components/ui/animated-grid-pattern";
 import {
   DEFAULT_PROGRAM_FIELD_STYLE,
   PROGRAM_FIELD_STYLES,
@@ -55,6 +55,29 @@ const ProgramsPage: React.FC = () => {
       );
     });
   }, [fieldKeys, grouped, search, activeField]);
+
+  // Track which field sections have entered the viewport — only then fetch their programs
+  const [visibleFields, setVisibleFields] = useState<Set<string>>(new Set());
+  const sectionRefs = useRef<Map<string, HTMLElement>>(new Map());
+
+  useEffect(() => {
+    if (sectionRefs.current.size === 0) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const fieldKey = (entry.target as HTMLElement).dataset.fieldKey;
+            if (fieldKey) setVisibleFields((prev) => new Set([...prev, fieldKey]));
+          }
+        });
+      },
+      { rootMargin: "200px" }
+    );
+    sectionRefs.current.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  // Re-run whenever the list of visible field keys changes (new sections rendered)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredFieldKeys.join(","), loading]);
 
   return (
     <div className="relative min-h-screen w-full bg-white pb-24 transition-colors duration-300 dark:bg-[#121212]">
@@ -213,6 +236,14 @@ const ProgramsPage: React.FC = () => {
             return (
               <motion.section
                 key={fieldKey}
+                ref={(el) => {
+                  if (el) {
+                    sectionRefs.current.set(fieldKey, el);
+                  } else {
+                    sectionRefs.current.delete(fieldKey);
+                  }
+                }}
+                data-field-key={fieldKey}
                 initial={{ opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-40px" }}
@@ -252,7 +283,11 @@ const ProgramsPage: React.FC = () => {
                           </span>
                         </div>
                       </div>
-                      <ProgramUniversitiesScroller program={program} cat={cat} />
+                      <ProgramUniversitiesScroller
+                        program={program}
+                        cat={cat}
+                        enabled={visibleFields.has(fieldKey)}
+                      />
                     </div>
                   ))}
                 </div>

@@ -1,6 +1,6 @@
 import { queryOptions, useQuery } from "@tanstack/react-query";
-import { fetchSearchResults } from "../services/searchService";
 import { queryKeys } from "../queryKeys";
+import { fetchSearchResults } from "../services/searchService";
 import { STALE_MS } from "./staleTimes";
 
 export function searchQueryOptions(q: string, limit?: number) {
@@ -8,7 +8,8 @@ export function searchQueryOptions(q: string, limit?: number) {
   return queryOptions({
     queryKey: queryKeys.search(trimmed, limit),
     queryFn: () => fetchSearchResults(trimmed, { limit }),
-    enabled: trimmed.length > 0,
+    // Only fire when at least 2 chars — avoids hammering Atlas Search on every keystroke
+    enabled: trimmed.length >= 2,
     staleTime: STALE_MS.list,
   });
 }

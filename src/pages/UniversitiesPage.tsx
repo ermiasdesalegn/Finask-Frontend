@@ -1,35 +1,37 @@
 import {
-  ArrowUpDown,
-  Building2,
-  Check,
-  ChevronRight,
-  CloudSun,
-  Filter,
-  Heart,
-  Landmark,
-  Map as MapIcon,
-  MapPin,
-  Plane,
-  Search,
-  SlidersHorizontal,
-  Sparkles,
-  Star,
-  Trees,
-  Trophy,
+    ArrowUpDown,
+    Building2,
+    Check,
+    ChevronRight,
+    CloudSun,
+    Filter,
+    Heart,
+    Landmark,
+    Map as MapIcon,
+    MapPin,
+    Plane,
+    Search,
+    SlidersHorizontal,
+    Sparkles,
+    Star,
+    Trees,
+    Trophy,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatedGridPattern } from "../components/ui/animated-grid-pattern";
 import { REGION_FILTERS } from "../constants";
+import { useDebounce } from "../lib/hooks/useDebounce";
 import { useCitiesListQuery, useUniversitiesListQuery } from "../lib/queries";
-import { cn } from "../lib/utils";
+import { useSearchQuery } from "../lib/queries/search";
 import {
-  displayRating,
-  universityCity,
-  universityCover,
-  universityPath,
+    displayRating,
+    universityCity,
+    universityCover,
+    universityPath,
 } from "../lib/universityUi";
+import { cn } from "../lib/utils";
 import type { University } from "../types";
 
 const containerVariants = {
@@ -70,6 +72,9 @@ const UniversitiesPage: React.FC = () => {
   });
   const navigate = useNavigate();
 
+  const debouncedQuery = useDebounce(searchQuery, 300);
+  const isSearching = debouncedQuery.trim().length >= 2;
+
   const activeRegionApi = REGION_FILTERS.find(
     (r) => r.label === activeRegionLabel
   )?.value;
@@ -87,10 +92,13 @@ const UniversitiesPage: React.FC = () => {
 
   const universitiesQuery = useUniversitiesListQuery(listFilters);
   const citiesQuery = useCitiesListQuery();
+  const searchQuery_ = useSearchQuery(debouncedQuery, 20);
 
   const universities = universitiesQuery.data?.data?.universities ?? [];
   const cities = citiesQuery.data?.data?.cities ?? [];
   const listLoading = universitiesQuery.isPending;
+  // Show search spinner only when actively fetching a new search term
+  const searchLoading = isSearching && searchQuery_.isFetching;
   const listError = universitiesQuery.isError
     ? universitiesQuery.error instanceof Error
       ? universitiesQuery.error.message
@@ -109,20 +117,28 @@ const UniversitiesPage: React.FC = () => {
     });
 
   const isBrowsingMode =
-    searchQuery === "" && activeFilterCount === 0 && activeRegionLabel === "All";
+    !isSearching && activeFilterCount === 0 && activeRegionLabel === "All";
 
   const filteredAndSortedUniversities = useMemo(() => {
+    // When the debounced query is active, use Atlas Search results directly
+    if (isSearching) {
+      const apiResults = (searchQuery_.data?.data?.universities ?? []) as University[];
+      return [...apiResults].sort((a, b) => {
+        if (sortBy === "rating-desc")
+          return (b.ratingsAverage ?? 0) - (a.ratingsAverage ?? 0);
+        if (sortBy === "name-asc") return a.name.localeCompare(b.name);
+        if (sortBy === "name-desc") return b.name.localeCompare(a.name);
+        return 0;
+      });
+    }
+
+    // Otherwise filter the already-fetched list (region/rating/featured filters)
     let result = universities.filter((u) => {
-      const cityStr = universityCity(u).toLowerCase();
-      const nameStr = u.name.toLowerCase();
-      const q = searchQuery.toLowerCase();
-      const matchSearch =
-        !q || nameStr.includes(q) || cityStr.includes(q);
       const rating = u.ratingsAverage ?? 0;
       const matchRating =
         filters.minRating === null || rating >= filters.minRating;
       const matchFeatured = !filters.featuredOnly || u.isFeatured;
-      return matchSearch && matchRating && matchFeatured;
+      return matchRating && matchFeatured;
     });
 
     result = [...result].sort((a, b) => {
@@ -133,7 +149,7 @@ const UniversitiesPage: React.FC = () => {
       return 0;
     });
     return result;
-  }, [universities, searchQuery, filters, sortBy]);
+  }, [universities, isSearching, searchQuery_.data, filters, sortBy]);
 
   const researchUnis = useMemo(
     () => universities.filter((u) => (u.tags ?? []).includes("research")),
@@ -338,11 +354,35 @@ const UniversitiesPage: React.FC = () => {
               <Search className="absolute left-5 h-5 w-5 text-slate-400 transition-colors group-focus-within:text-brand-blue" />
               <input
                 type="text"
-                className="h-full w-full bg-transparent pl-12 pr-6 text-base font-medium text-slate-900 outline-none placeholder:text-slate-400 dark:text-white"
+                className="h-full w-full bg-transparent pl-12 pr-12 text-base font-medium text-slate-900 outline-none placeholder:text-slate-400 dark:text-white"
                 placeholder="Search by university or city..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
+              <AnimatePresence>
+                {searchLoading && (
+                  <motion.div
+                    key="spinner"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute right-4 h-4 w-4 animate-spin rounded-full border-2 border-brand-blue border-t-transparent"
+                  />
+                )}
+                {!searchLoading && searchQuery && (
+                  <motion.button
+                    key="clear"
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-4 rounded-full bg-slate-100 p-1 text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-900 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:hover:text-white"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </motion.button>
+                )}
+              </AnimatePresence>
             </div>
 
             <div className="hidden items-center gap-1.5 pr-2 md:flex">
@@ -653,56 +693,62 @@ const UniversitiesPage: React.FC = () => {
               <div className="flex items-center gap-3">
                 <div className="h-6 w-1.5 rounded-full bg-brand-blue shadow-[0_0_12px_rgba(37,99,235,0.6)]" />
                 <h2 className="text-xl font-black tracking-tight text-slate-900 dark:text-white md:text-2xl">
-                  Campus Directory
+                  {isSearching ? `Results for "${debouncedQuery}"` : "Campus Directory"}
                 </h2>
               </div>
               <div className="flex items-center gap-2 rounded-lg border border-slate-200/60 bg-white px-3 py-1.5 shadow-sm dark:border-white/5 dark:bg-zinc-900">
                 <span className="h-2 w-2 animate-pulse rounded-full bg-brand-yellow shadow-[0_0_8px_rgba(250,204,21,0.6)]" />
                 <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
                   {filteredAndSortedUniversities.length}{" "}
-                  {filteredAndSortedUniversities.length === 1
-                    ? "Result"
-                    : "Results"}
+                  {filteredAndSortedUniversities.length === 1 ? "Result" : "Results"}
                 </span>
               </div>
             </div>
 
-            <AnimatePresence mode="popLayout">
-              <motion.div
-                variants={containerVariants}
-                initial="hidden"
-                animate="show"
-                key="directory-grid"
-                className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-              >
-                {filteredAndSortedUniversities.map((u) => renderUniCard(u))}
+            {searchLoading ? (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="h-64 animate-pulse rounded-[1.5rem] bg-slate-100 dark:bg-zinc-800" />
+                ))}
+              </div>
+            ) : (
+              <AnimatePresence mode="popLayout">
+                <motion.div
+                  variants={containerVariants}
+                  initial="hidden"
+                  animate="show"
+                  key="directory-grid"
+                  className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                >
+                  {filteredAndSortedUniversities.map((u) => renderUniCard(u))}
 
-                {filteredAndSortedUniversities.length === 0 && (
-                  <div className="col-span-full py-16 text-center">
-                    <motion.div
-                      initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-2xl border border-slate-200/60 bg-white text-slate-300 shadow-sm dark:border-white/5 dark:bg-zinc-900 dark:text-slate-600"
-                    >
-                      <Search size={24} />
-                    </motion.div>
-                    <h3 className="mb-2 text-xl font-black tracking-tight text-slate-900 dark:text-white">
-                      No campuses found
-                    </h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">
-                      Try tweaking your search terms or clearing the filters.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={clearFilters}
-                      className="mt-4 text-sm font-bold text-brand-blue hover:underline"
-                    >
-                      Clear all filters
-                    </button>
-                  </div>
-                )}
-              </motion.div>
-            </AnimatePresence>
+                  {filteredAndSortedUniversities.length === 0 && (
+                    <div className="col-span-full py-16 text-center">
+                      <motion.div
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-2xl border border-slate-200/60 bg-white text-slate-300 shadow-sm dark:border-white/5 dark:bg-zinc-900 dark:text-slate-600"
+                      >
+                        <Search size={24} />
+                      </motion.div>
+                      <h3 className="mb-2 text-xl font-black tracking-tight text-slate-900 dark:text-white">
+                        No campuses found
+                      </h3>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                        Try tweaking your search terms or clearing the filters.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={clearFilters}
+                        className="mt-4 text-sm font-bold text-brand-blue hover:underline"
+                      >
+                        Clear all filters
+                      </button>
+                    </div>
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            )}
           </section>
         )}
       </div>
