@@ -1,10 +1,10 @@
-import { LogOut, Menu, Moon, Sun, X } from "lucide-react";
+import { Heart, LogOut, Menu, Moon, Sun, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import React, { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import finaskLogo from "../../assets/finask-logo.png";
 import { useAuth } from "../../context/AuthContext";
 import { cn } from "../../lib/utils";
-import finaskLogo from "../../assets/finask-logo.png";
 import LoginModal from "./LoginModal";
 
 const Navbar = ({
@@ -19,6 +19,7 @@ const Navbar = ({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuth();
 
   useEffect(() => {
@@ -107,6 +108,16 @@ const Navbar = ({
             </div>
 
             <div className="flex items-center gap-4">
+              {/* Favorites */}
+              <button
+                type="button"
+                onClick={() => navigate("/favorites")}
+                title="Your Favorites"
+                className="rounded-full p-2 transition-colors hover:bg-slate-100 dark:hover:bg-white/10"
+              >
+                <Heart size={20} className="fill-brand-blue text-brand-blue" />
+              </button>
+
               <button
                 type="button"
                 onClick={toggleDarkMode}

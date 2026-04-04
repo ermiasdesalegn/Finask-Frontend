@@ -8,6 +8,7 @@ import ScrollToTop from "./components/utils/ScrollToTop";
 import { setApiToastNotifier } from "./lib/api";
 import { cn } from "./lib/utils";
 import AboutPage from "./pages/AboutPage";
+import FavoritesPage from "./pages/FavoritesPage";
 import HomePage from "./pages/HomePage";
 import ProgramsPage from "./pages/ProgramsPage";
 import UniversitiesPage from "./pages/UniversitiesPage";
@@ -116,6 +117,15 @@ function AppShell() {
               element={
                 <div className="min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]">
                   <ProgramsPage />
+                </div>
+              }
+            />
+
+            <Route
+              path="/favorites"
+              element={
+                <div className="min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]">
+                  <FavoritesPage />
                 </div>
               }
             />

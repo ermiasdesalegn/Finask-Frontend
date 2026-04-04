@@ -73,8 +73,16 @@ const LoginModal = ({
 
   // ── Sign in ──────────────────────────────────────────────────────────────
   const loginMutation = useMutation({
-    mutationFn: (body: { email: string; password: string }) =>
-      apiPost<AuthResponse>("/users/login", body, { skipAuth: true }),
+    mutationFn: (body: { email: string; password: string }) => {
+      if (import.meta.env.VITE_USE_MOCK === "true") {
+        return Promise.resolve({
+          status: "success",
+          token: "mock-token-static",
+          data: { user: { _id: "mock-user-001", email: body.email, firstName: "Demo", lastName: "User", role: "user" } },
+        } as AuthResponse);
+      }
+      return apiPost<AuthResponse>("/users/login", body, { skipAuth: true });
+    },
     onSuccess: (res) => {
       if (res.token && res.data?.user) {
         login(res.token, res.data.user);

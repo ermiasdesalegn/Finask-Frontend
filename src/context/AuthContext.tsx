@@ -1,17 +1,28 @@
 import { useQueryClient } from "@tanstack/react-query";
 import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useMemo,
+    useState,
 } from "react";
 import { apiPost } from "../lib/api";
 import { subscribeAuthInvalid } from "../lib/authEvents";
 import { queryKeys } from "../lib/queryKeys";
 
 const TOKEN_KEY = "token";
+
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
+
+const MOCK_USER: AuthUser = {
+  _id: "mock-user-001",
+  email: "demo@finask.et",
+  firstName: "Demo",
+  lastName: "User",
+  role: "user",
+};
+const MOCK_TOKEN = "mock-token-static";
 
 export interface AuthUser {
   _id: string;
@@ -34,10 +45,12 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
-  const [token, setToken] = useState<string | null>(() =>
-    localStorage.getItem(TOKEN_KEY)
-  );
+  const [token, setToken] = useState<string | null>(() => {
+    if (USE_MOCK) return MOCK_TOKEN;
+    return localStorage.getItem(TOKEN_KEY);
+  });
   const [user, setUser] = useState<AuthUser | null>(() => {
+    if (USE_MOCK) return MOCK_USER;
     const raw = localStorage.getItem("user");
     if (!raw) return null;
     try {
