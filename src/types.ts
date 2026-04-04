@@ -69,6 +69,36 @@ export interface University {
   socialLinks?: Record<string, string | undefined>;
   reviews?: Review[];
   questions?: Question[];
+  /** GET university by id/slug — virtual `programOfferings` (preview, backend limit 5) */
+  programOfferings?: UniversityProgramOffering[];
+}
+
+/** GET /favorites — `item` populated when using list endpoint */
+export type FavoriteOnModel =
+  | "University"
+  | "Program"
+  | "City"
+  | "Campus"
+  | string;
+
+export interface Favorite {
+  _id: string;
+  user?: string;
+  item: University | Program | City | Campus | string;
+  onModel: FavoriteOnModel;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface FavoritesListResponse {
+  status: string;
+  results?: number;
+  data?: {
+    favorites?: Favorite[];
+    docs?: Favorite[];
+    /** Alternate nesting from some handlers */
+    data?: Favorite[];
+  };
 }
 
 /** Program document from API */

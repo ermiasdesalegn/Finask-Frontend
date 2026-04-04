@@ -67,6 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setToken(newToken);
       setUser(newUser);
       void queryClient.invalidateQueries({ queryKey: queryKeys.homeRoot });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.favorites() });
     },
     [queryClient]
   );
@@ -84,6 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(null);
     setUser(null);
     void queryClient.invalidateQueries({ queryKey: queryKeys.homeRoot });
+    void queryClient.removeQueries({ queryKey: queryKeys.favorites() });
   }, [queryClient]);
 
   useEffect(() => {
@@ -93,6 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setToken(null);
       setUser(null);
       void queryClient.invalidateQueries({ queryKey: queryKeys.homeRoot });
+      void queryClient.removeQueries({ queryKey: queryKeys.favorites() });
     });
   }, [queryClient]);
 

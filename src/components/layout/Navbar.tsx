@@ -1,4 +1,4 @@
-﻿import { Heart, LogOut, Menu, Moon, Sun, X } from "lucide-react";
+import { Heart, LogOut, Menu, Moon, Sun, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -48,6 +48,8 @@ const Navbar = ({
     if (path === "/") return location.pathname === "/";
     return location.pathname.startsWith(path);
   };
+
+  const onFavoritesPage = location.pathname === "/favorites";
 
   const closeMenu = () => setIsMobileMenuOpen(false);
 
@@ -116,7 +118,14 @@ const Navbar = ({
                 title="Your Favorites"
                 className="rounded-full p-2 transition-colors hover:bg-slate-100 dark:hover:bg-white/10"
               >
-                <Heart size={20} className="fill-brand-blue text-brand-blue" />
+                <Heart
+                  size={20}
+                  className={
+                    onFavoritesPage
+                      ? "fill-brand-blue text-brand-blue"
+                      : "fill-none text-slate-600 dark:text-slate-400"
+                  }
+                />
               </button>
 
               <button

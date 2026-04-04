@@ -9,5 +9,7 @@ export const STALE_MS = {
   programUniversities: 5 * 60_000,
   universityDetail: 60_000,
   universityCampuses: 5 * 60_000,
+  universityPrograms: 5 * 60_000,
   campusesList: 5 * 60_000,
+  favorites: 30_000,
 } as const;

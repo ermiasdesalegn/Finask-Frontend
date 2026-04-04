@@ -5,6 +5,9 @@ export const queryKeys = {
   homeRoot: ["home"] as const,
   home: (tokenFingerprint: string) => ["home", tokenFingerprint] as const,
 
+  /** Authenticated user's saved favorites (GET /favorites) */
+  favorites: () => ["favorites"] as const,
+
   universitiesList: (filters: UniversitiesListFilters) =>
     [
       "universities",
@@ -64,6 +67,9 @@ export const queryKeys = {
 
   universityCampuses: (universityId: string) =>
     ["universities", universityId, "campuses"] as const,
+
+  universityPrograms: (universityId: string) =>
+    ["universities", universityId, "programs"] as const,
 
   search: (q: string, limit?: number) =>
     ["search", q, limit ?? "default"] as const,

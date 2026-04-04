@@ -18,11 +18,15 @@ import {
 } from "lucide-react";
 import { motion } from "motion/react";
 import React, { useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import {
+  PROGRAM_FIELD_LABELS,
+} from "../constants/programFieldStyles";
 import { staggerBlurContainer, staggerBlurItem } from "../lib/motion/pageMotion";
 import {
   useUniversityBySlugQuery,
   useUniversityCampusesQuery,
+  useUniversityProgramsQuery,
 } from "../lib/queries/universities";
 import { trackUniversityClick } from "../lib/services/interactionService";
 import {
@@ -32,7 +36,10 @@ import {
   universityCityId,
   universityCover,
 } from "../lib/universityUi";
-import type { University } from "../types";
+import type { Program, University } from "../types";
+
+const PROGRAM_IMG_FALLBACK =
+  "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&q=80&w=400";
 
 const containerVariants = staggerBlurContainer;
 const itemVariants = staggerBlurItem;
@@ -56,6 +63,19 @@ const UniversityPage: React.FC = () => {
 
   const campusesQuery = useUniversityCampusesQuery(uniId || undefined);
   const campuses = campusesQuery.data?.data?.campuses ?? [];
+
+  const programsQuery = useUniversityProgramsQuery(uniId || undefined);
+  const programRows = programsQuery.data?.data?.universityprograms ?? [];
+  const programCards = useMemo(
+    () =>
+      programRows.filter(
+        (row) =>
+          typeof row.program === "object" &&
+          row.program != null &&
+          typeof (row.program as Program).name === "string"
+      ),
+    [programRows]
+  );
 
   const loading = universityQuery.isPending;
   const error = universityQuery.isError
@@ -121,7 +141,13 @@ const UniversityPage: React.FC = () => {
           </div>
           <button type="button" onClick={() => setIsFavorite(!isFavorite)}
             className="rounded-full bg-slate-100 p-2.5 transition-all hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700">
-            <Heart className={`h-5 w-5 transition-colors ${isFavorite ? "fill-brand-blue text-brand-blue" : "text-slate-700 dark:text-slate-300"}`} />
+            <Heart
+              className={`h-5 w-5 transition-colors ${
+                isFavorite
+                  ? "fill-brand-blue text-brand-blue"
+                  : "fill-none text-slate-700 dark:text-slate-300"
+              }`}
+            />
           </button>
         </div>
       </header>
@@ -225,6 +251,95 @@ const UniversityPage: React.FC = () => {
                     )}
                   </div>
                 )}
+              </motion.div>
+
+              {/* Programs offered at this university */}
+              <motion.div variants={itemVariants}>
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="h-6 w-1.5 rounded-full bg-violet-500" />
+                    <h2 className="text-xl font-black text-slate-900 dark:text-white">
+                      Programs offered
+                    </h2>
+                  </div>
+                  {!programsQuery.isPending && programCards.length > 0 ? (
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600 dark:bg-zinc-800 dark:text-slate-400">
+                      {programCards.length}{" "}
+                      {programCards.length === 1 ? "program" : "programs"}
+                    </span>
+                  ) : null}
+                </div>
+                {programsQuery.isPending ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {[1, 2, 3, 4].map((i) => (
+                      <div
+                        key={i}
+                        className="h-24 animate-pulse rounded-2xl bg-slate-100 dark:bg-zinc-800"
+                      />
+                    ))}
+                  </div>
+                ) : programsQuery.isError ? (
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Could not load programs. Try again later.
+                  </p>
+                ) : programCards.length === 0 ? (
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    No programs are linked to this university in the directory yet.
+                  </p>
+                ) : (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {programCards.map((row) => {
+                      const prog = row.program as Program;
+                      const slug = prog.slug?.trim() || prog._id?.trim() || prog.id?.trim();
+                      const href = slug
+                        ? `/programs/${encodeURIComponent(slug)}`
+                        : "/programs";
+                      const fieldLabel =
+                        PROGRAM_FIELD_LABELS[prog.field] ?? prog.fieldDisplayName ?? prog.field;
+                      const thumb =
+                        prog.coverImage?.trim() || PROGRAM_IMG_FALLBACK;
+                      return (
+                        <Link
+                          key={row._id}
+                          to={href}
+                          className="group flex gap-3 rounded-2xl border border-slate-200/70 bg-white/90 p-3 transition-all hover:border-brand-blue/35 hover:shadow-md dark:border-white/10 dark:bg-zinc-900/80"
+                        >
+                          <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-slate-100 dark:bg-zinc-800">
+                            <img
+                              src={thumb}
+                              alt=""
+                              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="line-clamp-2 font-black text-slate-900 transition-colors group-hover:text-brand-blue dark:text-white">
+                              {prog.name}
+                            </p>
+                            <p className="mt-0.5 line-clamp-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                              {fieldLabel}
+                            </p>
+                            {row.yearOffered != null ? (
+                              <p className="mt-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                                Since {row.yearOffered}
+                                {row.graduatesCount != null
+                                  ? ` · ${row.graduatesCount.toLocaleString()} grads`
+                                  : ""}
+                              </p>
+                            ) : null}
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+                <div className="mt-4">
+                  <Link
+                    to="/programs"
+                    className="text-sm font-bold text-brand-blue hover:underline"
+                  >
+                    Browse all programs →
+                  </Link>
+                </div>
               </motion.div>
 
               {/* Rankings */}

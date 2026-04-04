@@ -9,6 +9,7 @@ import {
   fetchUniversitiesList,
   fetchUniversityCampuses,
   fetchUniversityDetail,
+  fetchUniversityPrograms,
 } from "../services/universityService";
 import { queryKeys } from "../queryKeys";
 import { STALE_MS } from "./staleTimes";
@@ -103,4 +104,19 @@ export function universityCampusesQueryOptions(universityId: string) {
 export function useUniversityCampusesQuery(universityId: string | undefined) {
   const id = universityId ?? "";
   return useQuery(universityCampusesQueryOptions(id));
+}
+
+export function universityProgramsQueryOptions(universityId: string) {
+  const keyId = universityId || PENDING_KEY;
+  return queryOptions({
+    queryKey: queryKeys.universityPrograms(keyId),
+    queryFn: () => fetchUniversityPrograms(universityId, { limit: 120, sort: "-yearOffered" }),
+    enabled: Boolean(universityId),
+    staleTime: STALE_MS.universityPrograms,
+  });
+}
+
+export function useUniversityProgramsQuery(universityId: string | undefined) {
+  const id = universityId ?? "";
+  return useQuery(universityProgramsQueryOptions(id));
 }

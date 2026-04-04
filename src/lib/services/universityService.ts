@@ -1,9 +1,13 @@
 import { apiGet } from "../api";
+import { unwrapMarkdownLink } from "../unwrapMarkdownLink";
 import type {
   CampusesListResponse,
+  Program,
   UniversitiesListResponse,
   University,
   UniversityByIdResponse,
+  UniversityProgramOffering,
+  UniversityProgramsForProgramResponse,
   UniversitySlugResponse,
 } from "../../types";
 
@@ -153,4 +157,34 @@ export async function fetchUniversityCampuses(
   return apiGet<CampusesListResponse>(
     `/universities/${encodeURIComponent(universityId)}/campuses?${params.toString()}`
   );
+}
+
+/** GET /api/v1/universities/:universityId/programs — same envelope as program-side universities list */
+export async function fetchUniversityPrograms(
+  universityId: string,
+  options?: { limit?: number; sort?: string }
+): Promise<UniversityProgramsForProgramResponse> {
+  const params = new URLSearchParams();
+  params.set("limit", String(options?.limit ?? 120));
+  params.set("sort", options?.sort ?? "yearOffered");
+  const raw = await apiGet<UniversityProgramsForProgramResponse>(
+    `/universities/${encodeURIComponent(universityId)}/programs?${params.toString()}`
+  );
+  const rows = raw.data?.universityprograms ?? [];
+  const universityprograms: UniversityProgramOffering[] = rows.map((row) => {
+    const p = row.program;
+    if (typeof p !== "object" || p == null) return row;
+    const prog = p as Program;
+    const coverImage =
+      unwrapMarkdownLink(prog.coverImage) || prog.coverImage || undefined;
+    return {
+      ...row,
+      program: { ...prog, ...(coverImage ? { coverImage } : {}) },
+    };
+  });
+  return {
+    ...raw,
+    results: raw.results ?? universityprograms.length,
+    data: { universityprograms },
+  };
 }

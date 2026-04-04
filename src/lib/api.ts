@@ -75,6 +75,13 @@ function resolveMock<T>(path: string): T | null {
     const q = new URLSearchParams(path.split("?")[1] ?? "").get("q") ?? "";
     return mock.mockSearch(q) as T;
   }
+  if (path.split("?")[0] === "/favorites") {
+    return {
+      status: "success",
+      results: 0,
+      data: { favorites: [] },
+    } as T;
+  }
   return null;
 }
 // ──────────────────────────────────────────────────────────────────────────
@@ -209,4 +216,46 @@ export async function apiPost<T = unknown>(
   }
 
   return parsed as T;
+}
+
+export async function apiDelete<T = unknown>(
+  path: string,
+  init?: RequestInit
+): Promise<T> {
+  if (USE_MOCK && /^\/favorites\//.test(path.split("?")[0] ?? "")) {
+    return {} as T;
+  }
+
+  let res: Response;
+  try {
+    res = await fetch(joinUrl(path), {
+      ...init,
+      method: "DELETE",
+      headers: {
+        Accept: "application/json",
+        ...authHeader(),
+        ...(init?.headers as Record<string, string>),
+      },
+    });
+  } catch {
+    notifyNetwork("Network error. Check your connection and try again.");
+    throw new ApiError("Network error", 0, null);
+  }
+
+  const body = await parseJsonSafe(res);
+
+  if (res.status === 401) {
+    localStorage.removeItem(TOKEN_KEY);
+    emitAuthInvalid();
+  }
+
+  if (!res.ok) {
+    const msg =
+      typeof body === "object" && body !== null && "message" in body
+        ? String((body as { message: string }).message)
+        : res.statusText;
+    throw new ApiError(msg || "Request failed", res.status, body);
+  }
+
+  return (body ?? {}) as T;
 }
