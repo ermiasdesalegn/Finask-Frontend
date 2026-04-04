@@ -1,21 +1,22 @@
-﻿import {
+﻿import { motion } from "framer-motion"; // Changed to framer-motion
+import {
   BookOpen,
   Building2,
   GraduationCap,
   Heart,
   MapPin,
+  Search,
   Sparkles,
   Star,
   Thermometer,
   Trophy,
   Users,
 } from "lucide-react";
-import { motion } from "motion/react";
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PROGRAM_FIELD_STYLES } from "../constants/programFieldStyles";
-import heroGif from "../assets/hero-gif.gif";
 
+// --- TYPES & DATA ---
 type BrowseCategory = {
   label: string;
   icon: React.ReactNode;
@@ -25,26 +26,10 @@ type BrowseCategory = {
 };
 
 const DISCOVER_CHIPS = [
-  {
-    label: "#Trending",
-    href: "/universities?filter=trending",
-    img: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=300",
-  },
-  {
-    label: "#Featured",
-    href: "/universities?filter=featured",
-    img: "https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?auto=format&fit=crop&q=80&w=300",
-  },
-  {
-    label: "#Top Ranked",
-    href: "/universities?sort=rank",
-    img: "https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&q=80&w=300",
-  },
-  {
-    label: "#Autonomous",
-    href: "/universities?filter=research",
-    img: "https://images.unsplash.com/photo-1535905557558-afc4877a26fc?auto=format&fit=crop&q=80&w=300",
-  },
+  { label: "#Trending", href: "/universities?filter=trending", img: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=300" },
+  { label: "#Featured", href: "/universities?filter=featured", img: "https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?auto=format&fit=crop&q=80&w=300" },
+  { label: "#Top Ranked", href: "/universities?sort=rank", img: "https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&q=80&w=300" },
+  { label: "#Autonomous", href: "/universities?filter=research", img: "https://images.unsplash.com/photo-1535905557558-afc4877a26fc?auto=format&fit=crop&q=80&w=300" },
 ];
 
 const BROWSE_CATEGORIES: BrowseCategory[] = [
@@ -56,11 +41,6 @@ const BROWSE_CATEGORIES: BrowseCategory[] = [
   { label: "Top Rated", icon: <Star size={16} />, href: "/universities?sort=rating", img: "https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&q=80&w=400", accent: "from-blue-900/90" },
   { label: "Climate", icon: <Thermometer size={16} />, href: "/universities?view=climate", img: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&q=80&w=400", accent: "from-teal-900/90" },
   { label: "Rare Programs", icon: <BookOpen size={16} />, href: "/programs?filter=rare", img: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=400", accent: "from-purple-900/90" },
-  { label: "Nearby", icon: <MapPin size={16} />, href: "/universities?filter=nearby", img: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&q=80&w=400", accent: "from-teal-900/90" },
-  { label: "Discover", icon: <Sparkles size={16} />, href: "/universities", img: "https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?auto=format&fit=crop&q=80&w=400", accent: "from-indigo-900/90" },
-  { label: "Institutional Excellence", icon: <GraduationCap size={16} />, href: "/universities?filter=research", img: "https://images.unsplash.com/photo-1607013407627-8ea69cad1dd3?auto=format&fit=crop&q=80&w=400", accent: "from-slate-900/90" },
-  { label: "Generation", icon: <Users size={16} />, href: "/universities?filter=trending", img: "https://images.unsplash.com/photo-1529390079861-591de354faf5?auto=format&fit=crop&q=80&w=400", accent: "from-rose-900/90" },
-  { label: "All Programs", icon: <BookOpen size={16} />, href: "/programs", img: "https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&q=80&w=400", accent: "from-blue-900/90" },
 ];
 
 const FIELD_LABELS: Record<string, string> = {
@@ -81,112 +61,174 @@ const FIELD_CATEGORIES = Object.entries(PROGRAM_FIELD_STYLES).map(([key, style])
   href: `/programs?field=${key}`,
 }));
 
+// --- ANIMATION VARIANTS ---
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.05 } },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 15 },
+  show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 300, damping: 24 } },
+};
+
 const DiscoverPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState("");
 
   return (
-    <div className="mx-auto max-w-3xl px-4 pb-24 pt-24">
+    <div className="w-full min-h-screen pb-24 bg-[#FAFAFA] dark:bg-[#050505] transition-colors duration-300 relative overflow-hidden">
+      
+      {/* --- PREMIUM AURORA GRID BACKGROUND --- */}
+      <div className="fixed inset-0 z-0 pointer-events-none flex justify-center">
+        {/* Dynamic Linear Grid */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
+        
+        {/* Soft Top Glows (Aurora Effect) */}
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand-blue/20 blur-[120px] rounded-full mix-blend-multiply dark:mix-blend-screen opacity-70" />
+        <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-brand-yellow/15 blur-[120px] rounded-full mix-blend-multiply dark:mix-blend-screen opacity-70" />
+      </div>
 
-      {/* Hero gif banner */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="mb-8 overflow-hidden rounded-3xl"
-      >
-        <img
-          src={heroGif}
-          alt="Discover"
-          className="h-40 w-full object-cover"
-        />
-      </motion.div>
+      <div className="mx-auto max-w-7xl px-6 pt-24 md:pt-32 relative z-10">
 
-      {/* Discover something new */}
-      <section className="mb-8">
-        <div className="mb-4 flex items-center gap-2">
-          <div className="h-5 w-1 rounded-full bg-brand-blue" />
-          <h2 className="text-base font-black tracking-tight text-slate-900 dark:text-white">
-            Discover something new
-          </h2>
-        </div>
-        <div className="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {DISCOVER_CHIPS.map((chip) => (
-            <button
-              key={chip.label}
-              type="button"
-              onClick={() => navigate(chip.href)}
-              className="group relative h-28 w-28 shrink-0 overflow-hidden rounded-2xl"
-            >
-              <img
-                src={chip.img}
-                alt={chip.label}
-                className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+        {/* --- TYPOGRAPHIC HERO WITH SEARCH --- */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, type: "spring", bounce: 0.4 }}
+          className="mb-24 text-center max-w-4xl mx-auto flex flex-col items-center"
+        >
+          {/* Subtle Badge */}
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-brand-blue/20 bg-brand-blue/5 text-brand-blue dark:text-blue-400 font-black text-xs uppercase tracking-widest mb-8 backdrop-blur-md">
+            <Sparkles size={14} className="text-brand-yellow" />
+            Exploration Hub
+          </div>
+          
+          {/* Massive Hero Title */}
+          <h1 className="text-5xl md:text-7xl font-black text-slate-900 dark:text-white tracking-tighter leading-[1.1] mb-6">
+            Find Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-blue to-indigo-500">Perfect Fit</span>
+          </h1>
+          
+          {/* Subtitle */}
+          <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 font-medium mb-12 max-w-2xl">
+            Dive into thousands of programs, discover top-rated campuses, and map out your academic future across Ethiopia.
+          </p>
+
+          {/* Glowing Search Bar */}
+          <div className="w-full max-w-2xl relative z-20">
+            <div className="flex items-center gap-3 rounded-full border border-slate-200/80 bg-white/90 px-6 py-4 md:py-5 shadow-2xl shadow-brand-blue/10 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/90 transition-all focus-within:border-brand-blue/50 focus-within:ring-4 focus-within:ring-brand-blue/10 hover:shadow-brand-blue/20">
+              <Search size={24} className="shrink-0 text-brand-blue" />
+              <input
+                type="text"
+                placeholder="Search universities, programs, cities..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1 bg-transparent text-base md:text-lg font-bold text-slate-900 outline-none placeholder:text-slate-400 dark:text-white"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-              <span className="absolute bottom-2 left-2 right-2 text-left text-[11px] font-black text-white drop-shadow">
-                {chip.label}
-              </span>
-            </button>
-          ))}
-        </div>
-      </section>
+            </div>
+          </div>
+        </motion.div>
 
-      {/* Browse all */}
-      <section className="mb-8">
-        <div className="mb-4 flex items-center gap-2">
-          <div className="h-5 w-1 rounded-full bg-brand-yellow" />
-          <h2 className="text-base font-black tracking-tight text-slate-900 dark:text-white">
-            Browse all
-          </h2>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          {BROWSE_CATEGORIES.map((cat) => (
-            <motion.button
-              key={cat.label}
-              type="button"
-              whileTap={{ scale: 0.97 }}
-              onClick={() => navigate(cat.href)}
-              className="group relative flex h-24 items-end overflow-hidden rounded-2xl border border-slate-200/60 text-left shadow-sm transition-all hover:shadow-md dark:border-white/5"
-            >
-              <img
-                src={cat.img}
-                alt={cat.label}
-                className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-              />
-              <div className={`absolute inset-0 bg-gradient-to-t ${cat.accent} to-transparent`} />
-              <div className="relative z-10 p-3">
-                <span className="text-xs font-black text-white drop-shadow">{cat.label}</span>
-              </div>
-            </motion.button>
-          ))}
-        </div>
-      </section>
+        <motion.div variants={containerVariants} initial="hidden" animate="show" className="pt-4">
 
-      {/* Browse by field */}
-      <section>
-        <div className="mb-4 flex items-center gap-2">
-          <div className="h-5 w-1 rounded-full bg-green-500" />
-          <h2 className="text-base font-black tracking-tight text-slate-900 dark:text-white">
-            Browse by field
-          </h2>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          {FIELD_CATEGORIES.map((cat) => (
-            <motion.button
-              key={cat.key}
-              type="button"
-              whileTap={{ scale: 0.97 }}
-              onClick={() => navigate(cat.href)}
-              className={`flex items-center gap-3 rounded-2xl border p-4 text-left transition-all hover:shadow-md ${cat.style.bg} ${cat.style.border}`}
-            >
-              <span className="text-2xl">{cat.style.icon}</span>
-              <span className={`text-xs font-black leading-tight ${cat.style.accent}`}>
-                {cat.label}
-              </span>
-            </motion.button>
-          ))}
-        </div>
-      </section>
+          {/* --- DISCOVER SOMETHING NEW --- */}
+          <section className="mb-20">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="h-6 w-1.5 rounded-full bg-brand-blue shadow-[0_0_8px_rgba(37,99,235,0.5)]" />
+              <h2 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900 dark:text-white">
+                Trending Highlights
+              </h2>
+            </div>
+            <div className="flex gap-4 overflow-x-auto pb-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-6 px-6 lg:mx-0 lg:px-0">
+              {DISCOVER_CHIPS.map((chip) => (
+                <motion.button
+                  variants={itemVariants}
+                  key={chip.label}
+                  type="button"
+                  onClick={() => navigate(chip.href)}
+                  className="group relative h-36 w-44 md:h-44 md:w-60 shrink-0 overflow-hidden rounded-[1.5rem] shadow-sm hover:shadow-2xl hover:shadow-brand-blue/20 hover:-translate-y-1.5 transition-all duration-400 border border-slate-200/50 dark:border-white/5"
+                >
+                  <img src={chip.img} alt={chip.label} className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/20 to-transparent group-hover:from-brand-blue/90 transition-colors duration-500" />
+                  <span className="absolute bottom-5 left-5 right-5 text-left text-sm md:text-base font-black text-white drop-shadow-md">
+                    {chip.label}
+                  </span>
+                </motion.button>
+              ))}
+            </div>
+          </section>
+
+          {/* --- BROWSE ALL --- */}
+          <section className="mb-20">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="h-6 w-1.5 rounded-full bg-brand-yellow shadow-[0_0_8px_rgba(250,204,21,0.5)]" />
+              <h2 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900 dark:text-white">
+                Browse Directory
+              </h2>
+            </div>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-5">
+              {BROWSE_CATEGORIES.map((cat) => (
+                <motion.button
+                  variants={itemVariants}
+                  key={cat.label}
+                  type="button"
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => navigate(cat.href)}
+                  className="group relative bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl rounded-[1.5rem] p-4 md:p-5 h-36 md:h-44 overflow-hidden shadow-sm border border-slate-200/60 dark:border-white/5 hover:shadow-xl hover:shadow-brand-blue/10 hover:border-brand-blue/40 hover:-translate-y-1 transition-all duration-400 text-left"
+                >
+                  {/* Subtle Top Gradient for text readability */}
+                  <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-white/50 dark:from-black/20 to-transparent z-0" />
+
+                  {/* Text positioned top-left */}
+                  <span className="relative z-10 text-sm md:text-base font-black text-slate-800 dark:text-slate-100 group-hover:text-brand-blue transition-colors max-w-[75%] block leading-tight drop-shadow-sm">
+                    {cat.label}
+                  </span>
+                  
+                  {/* Angled Image Slice positioned bottom-right */}
+                  <div className="absolute -bottom-6 -right-6 w-24 h-24 md:w-32 md:h-32 rotate-[-12deg] overflow-hidden rounded-2xl group-hover:rotate-[-4deg] group-hover:scale-110 transition-all duration-500 shadow-2xl border-4 border-white dark:border-zinc-800 z-10">
+                    <img
+                      src={cat.img}
+                      alt={cat.label}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </motion.button>
+              ))}
+            </div>
+          </section>
+
+          {/* --- BROWSE BY FIELD --- */}
+          <section>
+            <div className="mb-6 flex items-center gap-3">
+              <div className="h-6 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+              <h2 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900 dark:text-white">
+                Fields of Study
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {FIELD_CATEGORIES.map((cat) => (
+                <motion.button
+                  variants={itemVariants}
+                  key={cat.key}
+                  type="button"
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => navigate(cat.href)}
+                  className={`flex items-center gap-4 rounded-[1.5rem] border p-4 md:p-5 text-left transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${cat.style.bg} ${cat.style.border}`}
+                >
+                  <div className="w-14 h-14 shrink-0 rounded-[1.2rem] bg-white/60 dark:bg-black/20 flex items-center justify-center shadow-inner backdrop-blur-sm">
+                    <span className="text-3xl">{cat.style.icon}</span>
+                  </div>
+                  <span className={`text-sm md:text-base font-black leading-tight ${cat.style.accent}`}>
+                    {cat.label}
+                  </span>
+                </motion.button>
+              ))}
+            </div>
+          </section>
+
+        </motion.div>
+      </div>
     </div>
   );
 };
