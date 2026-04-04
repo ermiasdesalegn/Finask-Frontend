@@ -9,6 +9,8 @@ import { setApiToastNotifier } from "./lib/api";
 import { cn } from "./lib/utils";
 import AboutPage from "./pages/AboutPage";
 import CampusesPage from "./pages/CampusesPage";
+import CelebritiesPage from "./pages/CelebritiesPage";
+import CelebrityPage from "./pages/CelebrityPage";
 import CitiesPage from "./pages/CitiesPage";
 import CityPage from "./pages/CityPage";
 import DiscoverPage from "./pages/DiscoverPage";
@@ -167,6 +169,24 @@ function AppShell() {
               element={
                 <div className="min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]">
                   <ProgramsPage />
+                </div>
+              }
+            />
+
+            <Route
+              path="/celebrities"
+              element={
+                <div className="min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]">
+                  <CelebritiesPage />
+                </div>
+              }
+            />
+
+            <Route
+              path="/celebrities/:slugOrId"
+              element={
+                <div className="min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]">
+                  <CelebrityPage />
                 </div>
               }
             />

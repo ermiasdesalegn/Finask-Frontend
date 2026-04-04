@@ -1,4 +1,5 @@
 export * from "./campuses";
+export * from "./celebrities";
 export * from "./cities";
 export * from "./favorites";
 export * from "./home";

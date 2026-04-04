@@ -84,6 +84,7 @@ const Navbar = ({
                 { name: "Discover", path: "/discover" },
                 { name: "Universities", path: "/universities" },
                 { name: "Programs", path: "/programs" },
+                { name: "Great Minds", path: "/celebrities" },
                 { name: "About", path: "/about" },
               ].map((link) => {
                 const active = isActive(link.path);
@@ -182,6 +183,7 @@ const Navbar = ({
                 { name: "Universities", path: "/universities" },
                 { name: "Discover", path: "/discover" },
                 { name: "Programs", path: "/programs" },
+                { name: "Great Minds", path: "/celebrities" },
                 { name: "About", path: "/about" },
               ].map((link) => (
                 <Link

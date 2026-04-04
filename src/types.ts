@@ -129,6 +129,50 @@ export interface Program {
   universityOfferings?: UniversityProgramOffering[];
 }
 
+/** GET /celebrities — notable figures (Great Minds) */
+export interface Celebrity {
+  _id: string;
+  name: string;
+  slug?: string;
+  profileImage?: string | null;
+  coverImage?: string | null;
+  birthday?: string;
+  birthplace?: string;
+  deathday?: string | null;
+  deathplace?: string | null;
+  nationality?: string;
+  notablePosition?: string;
+  tags?: string[];
+  bio?: string;
+  wikipediaLink?: string;
+  education?: string[];
+  careerHighlights?: string[];
+  legacyImpact?: string[];
+  family?: string | null;
+  /** ObjectIds when not populated */
+  recommendedPrograms?: (Program | string)[];
+  /** Populated on GET by id/slug (virtual, limited) */
+  questions?: Question[];
+  questionCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CelebritiesListResponse {
+  status: string;
+  results?: number;
+  data?: {
+    celebrities?: Celebrity[];
+  };
+}
+
+export interface CelebrityDetailResponse {
+  status: string;
+  data: {
+    celebrity: Celebrity;
+  };
+}
+
 export interface UniversityProgramOffering {
   _id: string;
   /** Populated `University` or raw ObjectId string */

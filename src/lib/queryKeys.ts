@@ -1,3 +1,4 @@
+import type { CelebritiesListFilters } from "./services/celebrityService";
 import type { ProgramsListFilters } from "./services/programService";
 import type { UniversitiesListFilters } from "./services/universityService";
 
@@ -73,4 +74,15 @@ export const queryKeys = {
 
   search: (q: string, limit?: number) =>
     ["search", q, limit ?? "default"] as const,
+
+  celebritiesList: (filters: CelebritiesListFilters) =>
+    [
+      "celebrities",
+      "list",
+      filters.limit ?? 200,
+      filters.sort ?? "name",
+    ] as const,
+
+  celebrityDetail: (slugOrId: string) =>
+    ["celebrities", "detail", slugOrId] as const,
 };

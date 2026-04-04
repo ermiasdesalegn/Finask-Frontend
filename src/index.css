@@ -49,6 +49,44 @@
   }
 }
 
+/* Favorites — very subtle monochrome / pale-blue heart grid */
+@keyframes heart-flicker {
+  0%,
+  100% {
+    opacity: 0.02;
+    transform: scale(0.97);
+  }
+  18% {
+    opacity: 0.14;
+    transform: scale(1.02);
+  }
+  35% {
+    opacity: 0.04;
+    transform: scale(0.98);
+  }
+  52% {
+    opacity: 0.11;
+    transform: scale(1.01);
+  }
+  68% {
+    opacity: 0.06;
+    transform: scale(0.99);
+  }
+  82% {
+    opacity: 0.12;
+    transform: scale(1.02);
+  }
+}
+
+@layer utilities {
+  .heart-flicker-cell {
+    animation-name: heart-flicker;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+    text-shadow: none;
+  }
+}
+
 @layer components {
   .glass {
     @apply bg-white/10 backdrop-blur-md border border-white/20 shadow-xl;

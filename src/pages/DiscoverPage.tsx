@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import {
   BookOpen,
+  Brain,
   Building2,
   Heart,
   MapPin,
@@ -54,6 +55,7 @@ const BROWSE_CATEGORIES: BrowseCategory[] = [
   { label: "Top Rated", icon: <Star size={16} />, href: "/universities?sort=rating", img: "https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&q=80&w=400", accent: "from-blue-900/90" },
   { label: "Climate", icon: <Thermometer size={16} />, href: "/universities?view=climate", img: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&q=80&w=400", accent: "from-teal-900/90" },
   { label: "Rare Programs", icon: <BookOpen size={16} />, href: "/programs?filter=rare", img: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=400", accent: "from-purple-900/90" },
+  { label: "Great Minds", icon: <Brain size={16} />, href: "/celebrities", img: "https://images.unsplash.com/photo-1457369804613-52c61a468e7d?auto=format&fit=crop&q=80&w=400", accent: "from-amber-900/90" },
 ];
 
 const FIELD_CATEGORIES = Object.entries(PROGRAM_FIELD_STYLES).map(([key, style]) => ({

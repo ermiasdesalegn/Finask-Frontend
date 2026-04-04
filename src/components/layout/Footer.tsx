@@ -8,6 +8,7 @@ const NAV_LINKS = [
   { label: "Discover", to: "/discover" },
   { label: "Universities", to: "/universities" },
   { label: "Programs", to: "/programs" },
+  { label: "Great Minds", to: "/celebrities" },
   { label: "About", to: "/about" },
   { label: "Favorites", to: "/favorites" },
 ];

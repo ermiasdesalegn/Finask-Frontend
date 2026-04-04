@@ -12,4 +12,6 @@ export const STALE_MS = {
   universityPrograms: 5 * 60_000,
   campusesList: 5 * 60_000,
   favorites: 30_000,
+  celebritiesList: 5 * 60_000,
+  celebrityDetail: 5 * 60_000,
 } as const;
