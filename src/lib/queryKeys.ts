@@ -16,7 +16,14 @@ export const queryKeys = {
       filters.isFeatured ?? null,
     ] as const,
 
-  citiesList: () => ["cities", "list"] as const,
+  citiesList: (opts?: { limit?: number; sort?: string; fields?: string }) =>
+    [
+      "cities",
+      "list",
+      opts?.limit ?? 40,
+      opts?.sort ?? "default",
+      opts?.fields ?? "all",
+    ] as const,
 
   programsList: (filters: ProgramsListFilters) =>
     [

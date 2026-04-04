@@ -4,10 +4,13 @@ import { apiGet } from "../api";
 export async function fetchCitiesList(options?: {
   limit?: number;
   sort?: string;
+  /** Comma-separated projection, e.g. `name` — matches API `fields` query */
+  fields?: string;
 }): Promise<CitiesListResponse> {
   const params = new URLSearchParams();
   params.set("limit", String(options?.limit ?? 40));
   if (options?.sort) params.set("sort", options.sort);
+  if (options?.fields) params.set("fields", options.fields);
   return apiGet<CitiesListResponse>(`/cities?${params.toString()}`);
 }
 

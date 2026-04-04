@@ -3,16 +3,27 @@ import { queryKeys } from "../queryKeys";
 import { fetchCitiesList, fetchCityDetail, fetchCityDetailBySlug } from "../services/cityService";
 import { STALE_MS } from "./staleTimes";
 
-export function citiesListQueryOptions() {
+export type CitiesListQueryOpts = {
+  limit?: number;
+  sort?: string;
+  fields?: string;
+};
+
+export function citiesListQueryOptions(opts?: CitiesListQueryOpts) {
   return queryOptions({
-    queryKey: queryKeys.citiesList(),
-    queryFn: () => fetchCitiesList(),
+    queryKey: queryKeys.citiesList(opts),
+    queryFn: () =>
+      fetchCitiesList({
+        limit: opts?.limit,
+        sort: opts?.sort,
+        fields: opts?.fields,
+      }),
     staleTime: STALE_MS.cities,
   });
 }
 
-export function useCitiesListQuery() {
-  return useQuery(citiesListQueryOptions());
+export function useCitiesListQuery(opts?: CitiesListQueryOpts) {
+  return useQuery(citiesListQueryOptions(opts));
 }
 
 export function useCityByIdQuery(id: string | undefined) {

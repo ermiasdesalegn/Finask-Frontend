@@ -29,6 +29,7 @@ import {
   displayRating,
   formatRatingsQuantityCompact,
   universityCity,
+  universityCityId,
   universityCover,
 } from "../lib/universityUi";
 import type { University } from "../types";
@@ -97,6 +98,8 @@ const UniversityPage: React.FC = () => {
       </div>
     );
   }
+
+  const cityNavId = universityCityId(uni);
 
   return (
     <div className="min-h-screen bg-slate-50/50 pb-20 transition-colors dark:bg-[#0a0a0a]">
@@ -391,8 +394,8 @@ const UniversityPage: React.FC = () => {
 
                 {/* Actions */}
                 <div className="space-y-3 border-t border-slate-100 pt-4 dark:border-zinc-800">
-                  {uni.city && typeof uni.city === "string" && (
-                    <button type="button" onClick={() => navigate(`/cities/${uni.city}`)}
+                  {cityNavId && (
+                    <button type="button" onClick={() => navigate(`/cities/${cityNavId}`)}
                       className="flex w-full items-center justify-center gap-2 rounded-[1.5rem] border-2 border-brand-blue bg-white py-3 font-bold text-brand-blue transition-colors hover:bg-brand-blue hover:text-white dark:bg-transparent dark:hover:bg-brand-blue">
                       <MapPin size={15} /> View City
                     </button>

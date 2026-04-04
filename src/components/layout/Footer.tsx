@@ -1,4 +1,4 @@
-﻿import { ArrowRight, BookOpen, Building2, Mail, MapPin, Phone, Sparkles } from "lucide-react";
+import { ArrowRight, BookOpen, Building2, Mail, MapPin, Phone, Sparkles } from "lucide-react";
 import { motion } from "motion/react";
 import { Link } from "react-router-dom";
 import finaskLogo from "../../assets/finask-logo.png";
@@ -131,7 +131,7 @@ const Footer = () => {
                 { label: "Top Ranked", to: "/universities?sort=rank" },
                 { label: "Top Rated", to: "/universities?sort=rating" },
                 { label: "Featured", to: "/universities?filter=featured" },
-                { label: "By City", to: "/universities?view=cities" },
+                { label: "By City", to: "/cities" },
                 { label: "Rare Programs", to: "/programs?filter=rare" },
               ].map((l) => (
                 <li key={l.label}>

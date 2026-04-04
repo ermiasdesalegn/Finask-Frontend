@@ -20,6 +20,19 @@ export function universityCity(uni: University): string {
   return "";
 }
 
+/** Mongo id for `/cities/:id` — works for string ref or populated city doc. */
+export function universityCityId(uni: University): string | null {
+  const c = uni.city;
+  if (!c) return null;
+  if (typeof c === "string") return c;
+  if (typeof c === "object") {
+    const o = c as { _id?: string; id?: string };
+    if (typeof o._id === "string") return o._id;
+    if (typeof o.id === "string") return o.id;
+  }
+  return null;
+}
+
 export function universityRank(uni: University): number | string {
   const r = uni.rank?.eduRank?.ethiopiaRank;
   return r != null ? r : "—";

@@ -45,7 +45,7 @@ const DISCOVER_CHIPS = [
 const BROWSE_CATEGORIES: BrowseCategory[] = [
   { label: "All Universities", icon: <Building2 size={16} />, href: "/universities", img: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=400", accent: "from-blue-900/90" },
   { label: "Just for You", icon: <Sparkles size={16} />, href: "/universities?filter=featured", img: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=400", accent: "from-amber-900/90" },
-  { label: "Cities", icon: <MapPin size={16} />, href: "/universities?view=cities", img: "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?auto=format&fit=crop&q=80&w=400", accent: "from-green-900/90" },
+  { label: "Cities", icon: <MapPin size={16} />, href: "/cities", img: "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?auto=format&fit=crop&q=80&w=400", accent: "from-green-900/90" },
   { label: "Campus Gallery", icon: <Heart size={16} />, href: "/universities?view=gallery", img: "https://images.unsplash.com/photo-1535905557558-afc4877a26fc?auto=format&fit=crop&q=80&w=400", accent: "from-pink-900/90" },
   { label: "Top Ranked", icon: <Trophy size={16} />, href: "/universities?sort=rank", img: "https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&q=80&w=400", accent: "from-amber-900/90" },
   { label: "Top Rated", icon: <Star size={16} />, href: "/universities?sort=rating", img: "https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&q=80&w=400", accent: "from-blue-900/90" },
