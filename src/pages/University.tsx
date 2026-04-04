@@ -1,4 +1,4 @@
-﻿import {
+import {
   ArrowLeft,
   Award,
   BookOpen,
@@ -19,6 +19,7 @@
 import { motion } from "motion/react";
 import React, { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { staggerBlurContainer, staggerBlurItem } from "../lib/motion/pageMotion";
 import {
   useUniversityBySlugQuery,
   useUniversityCampusesQuery,
@@ -32,14 +33,8 @@ import {
 } from "../lib/universityUi";
 import type { University } from "../types";
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.08 } },
-};
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 300, damping: 24 } },
-};
+const containerVariants = staggerBlurContainer;
+const itemVariants = staggerBlurItem;
 
 const StarRow = ({ rating }: { rating: number }) => (
   <div className="flex items-center gap-0.5">
@@ -55,7 +50,7 @@ const UniversityPage: React.FC = () => {
   const [isFavorite, setIsFavorite] = useState(false);
 
   const universityQuery = useUniversityBySlugQuery(slug);
-  const uni = (universityQuery.data?.data?.data as any) ?? null;
+  const uni = (universityQuery.data as University | undefined) ?? null;
   const uniId = uni?._id ?? "";
 
   const campusesQuery = useUniversityCampusesQuery(uniId || undefined);

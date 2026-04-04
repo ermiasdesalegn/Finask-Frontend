@@ -12,6 +12,7 @@ import {
   DEFAULT_PROGRAM_FIELD_STYLE,
   PROGRAM_FIELD_STYLES,
 } from "../constants/programFieldStyles";
+import { blurReveal, springPop } from "../lib/motion/pageMotion";
 import { useProgramsListQuery } from "../lib/queries";
 import { cn } from "../lib/utils";
 import type { Program } from "../types";
@@ -101,8 +102,9 @@ const ProgramsPage: React.FC = () => {
       <section className="relative z-10 mb-8 overflow-hidden px-6 pb-16 pt-16">
         <div className="relative mx-auto max-w-5xl">
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial="hidden"
+            animate="show"
+            variants={springPop}
             className="mb-6 flex justify-center"
           >
             <span className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50/80 px-4 py-2 text-sm font-bold text-brand-blue backdrop-blur-md dark:border-blue-500/20 dark:bg-blue-500/10">
@@ -112,9 +114,10 @@ const ProgramsPage: React.FC = () => {
           </motion.div>
 
           <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.05 }}
+            initial="hidden"
+            animate="show"
+            variants={blurReveal}
+            transition={{ delay: 0.06 }}
             className="mb-4 text-center text-5xl font-black leading-[0.92] tracking-tighter text-slate-900 dark:text-white md:text-7xl"
           >
             Find Your
@@ -123,9 +126,10 @@ const ProgramsPage: React.FC = () => {
           </motion.h1>
 
           <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.1 }}
+            initial="hidden"
+            animate="show"
+            variants={springPop}
+            transition={{ delay: 0.12 }}
             className="mx-auto mb-10 max-w-xl text-center text-lg font-medium text-slate-500 dark:text-slate-400"
           >
             Explore fields of study across Ethiopia&apos;s top universities and
@@ -133,9 +137,10 @@ const ProgramsPage: React.FC = () => {
           </motion.p>
 
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
+            initial="hidden"
+            animate="show"
+            variants={blurReveal}
+            transition={{ delay: 0.18 }}
             className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white/80 shadow-[0_20px_60px_-15px_rgba(37,99,235,0.12)] backdrop-blur-2xl dark:border-white/10 dark:bg-zinc-900/80 dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)]"
           >
             <div className="flex items-center gap-3 border-b border-slate-100 px-6 py-4 dark:border-white/10">
@@ -244,10 +249,11 @@ const ProgramsPage: React.FC = () => {
                   }
                 }}
                 data-field-key={fieldKey}
-                initial={{ opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-40px" }}
-                transition={{ delay: catIndex * 0.04 }}
+                initial="hidden"
+                whileInView="show"
+                viewport={{ once: true, margin: "-48px", amount: 0.08 }}
+                variants={blurReveal}
+                transition={{ delay: Math.min(catIndex * 0.05, 0.35) }}
               >
                 <div className="mb-8 flex items-center justify-between">
                   <div className="flex items-center gap-4">

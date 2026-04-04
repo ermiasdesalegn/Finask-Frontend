@@ -5,6 +5,18 @@ export interface Region {
   coordinates: { x: number; y: number };
 }
 
+/** Snapshot used in `rank.eduRank`, `rank.uniRank`, and `primaryRank`. */
+export interface UniversityRankSnapshot {
+  ethiopiaRank?: number | null;
+  ethiopiaTotal?: number;
+  africaRank?: number;
+  africaTotal?: number;
+  worldRank?: number;
+  worldTotal?: number;
+  year?: number;
+  sourceUrl?: string;
+}
+
 /** Backend-aligned university (documents and card projections). */
 export interface University {
   _id?: string;
@@ -15,6 +27,7 @@ export interface University {
   images?: string[];
   overview?: string;
   bestKnownFor?: string[];
+  wikipediaLink?: string;
   isFeatured?: boolean;
   address?: {
     city?: string;
@@ -32,12 +45,10 @@ export interface University {
     numberOfCampuses?: number;
   };
   rank?: {
-    eduRank?: {
-      ethiopiaRank?: number | null;
-      ethiopiaTotal?: number;
-      year?: number;
-    };
+    eduRank?: UniversityRankSnapshot;
+    uniRank?: UniversityRankSnapshot;
   };
+  primaryRank?: UniversityRankSnapshot;
   ratingsAverage?: number;
   ratingsQuantity?: number;
   questionCount?: number;
@@ -134,6 +145,46 @@ export interface Campus {
   university?: string;
 }
 
+export interface CityClimateMonth {
+  month?: string;
+  value?: number;
+}
+
+export interface CityClimate {
+  elevationZone?: string;
+  climateTag?: string;
+  summary?: string;
+  detail?: string;
+  hottestMonth?: CityClimateMonth;
+  coldestMonth?: CityClimateMonth;
+  wettestMonth?: CityClimateMonth;
+  windiestMonth?: CityClimateMonth;
+  annualPrecipitation?: number;
+  /** Some API payloads use this spelling */
+  annualPercipitation?: number;
+  minTemperature?: number;
+  maxTemperature?: number;
+  climateWebLinks?: { name?: string; url?: string }[];
+}
+
+export interface CityTouristAttraction {
+  name: string;
+  detail?: string;
+  image?: string;
+}
+
+export interface CityProfile {
+  hasAirport?: boolean;
+  population?: number;
+  distanceFromCapital?: number;
+  elevation?: number;
+  language?: string;
+  transportOptions?: string[];
+  postCode?: string;
+  area?: number;
+}
+
+/** List + detail document from GET /cities and GET /cities/:id */
 export interface City {
   _id: string;
   name: string;
@@ -142,15 +193,24 @@ export interface City {
   regionDisplayName?: string;
   coverImage?: string;
   overview?: string;
-  cityProfile?: {
-    hasAirport?: boolean;
-    population?: number;
-    distanceFromCapital?: number;
-  };
-  climate?: {
-    summary?: string;
-    climateTag?: string;
-  };
+  wikipediaLink?: string;
+  tags?: string[];
+  tagsDisplayNames?: string[];
+  cityProfile?: CityProfile;
+  climate?: CityClimate;
+  touristAttractions?: CityTouristAttraction[];
+  universities?: unknown[];
+  reviews?: Review[];
+  ratingsAverage?: number;
+  ratingsQuantity?: number;
+  questionCount?: number;
+  location?: { type?: string; coordinates?: number[] };
+}
+
+/** GET /cities/:id — handlerFactory uses model name → `city`; some stacks use `data` */
+export interface CityDetailResponse {
+  status: string;
+  data: { city?: City; data?: City };
 }
 
 /** Homepage GET /home */
@@ -196,9 +256,16 @@ export interface UniversityProgramsForProgramResponse {
   data: { universityprograms: UniversityProgramOffering[] };
 }
 
+/** Slug detail: some deployments use `data.data`, others `data.university` (same as by-id). */
 export interface UniversitySlugResponse {
   status: string;
-  data: { data: University };
+  data: { data?: University; university?: University };
+}
+
+/** GET /universities/:id — Express returns `data.university` (not nested `data.data`) */
+export interface UniversityByIdResponse {
+  status: string;
+  data: { university: University };
 }
 
 export interface CampusesListResponse {

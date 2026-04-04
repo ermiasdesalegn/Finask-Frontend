@@ -1,8 +1,10 @@
-﻿import ComparisonEngine from "../components/home/ComparisonEngine";
+import { motion } from "motion/react";
+import ComparisonEngine from "../components/home/ComparisonEngine";
 import EthiopiaMap from "../components/home/EthiopiaMap";
 import Hero from "../components/home/Hero";
 import HomeHighlights from "../components/home/HomeHighlights";
 import { useAuth } from "../context/AuthContext";
+import { blurReveal, viewportOnce } from "../lib/motion/pageMotion";
 import { useHomePageQuery, useUniversitiesListQuery } from "../lib/queries";
 
 function SectionSkeleton({ className }: { className?: string }) {
@@ -47,12 +49,33 @@ const HomePage = () => {
         </div>
       ) : (
         <>
-          <EthiopiaMap universities={mapUniversities} loading={mapQuery.isPending} />
-          <HomeHighlights home={home} loading={loading} />
-          <ComparisonEngine
-            universities={(home?.topRated ?? []).slice(0, 3)}
-            loading={loading}
-          />
+          <motion.div
+            initial="hidden"
+            whileInView="show"
+            viewport={viewportOnce}
+            variants={blurReveal}
+          >
+            <EthiopiaMap universities={mapUniversities} loading={mapQuery.isPending} />
+          </motion.div>
+          <motion.div
+            initial="hidden"
+            whileInView="show"
+            viewport={viewportOnce}
+            variants={blurReveal}
+          >
+            <HomeHighlights home={home} loading={loading} />
+          </motion.div>
+          <motion.div
+            initial="hidden"
+            whileInView="show"
+            viewport={viewportOnce}
+            variants={blurReveal}
+          >
+            <ComparisonEngine
+              universities={(home?.topRated ?? []).slice(0, 3)}
+              loading={loading}
+            />
+          </motion.div>
         </>
       )}
     </>

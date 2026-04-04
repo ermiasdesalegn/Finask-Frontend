@@ -11,6 +11,7 @@ import {
     universityCover,
     universityPath,
 } from "../lib/universityUi";
+import { blurReveal, springPop } from "../lib/motion/pageMotion";
 import { cn } from "../lib/utils";
 
 // ── Static mock favorites (replace with real API data when backend is ready) ──
@@ -67,8 +68,9 @@ export default function FavoritesPage() {
       <div className="relative z-10 mx-auto max-w-7xl px-6 pt-10 lg:px-8">
         {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial="hidden"
+          animate="show"
+          variants={springPop}
           className="mb-10"
         >
           <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-slate-200/60 bg-white/80 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-brand-blue shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-white/5 dark:text-blue-400">
@@ -87,9 +89,10 @@ export default function FavoritesPage() {
 
         {/* Tabs */}
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
+          initial="hidden"
+          animate="show"
+          variants={blurReveal}
+          transition={{ delay: 0.06 }}
           className="mb-8 flex flex-wrap gap-2"
         >
           {TABS.map((tab) => {
@@ -118,10 +121,10 @@ export default function FavoritesPage() {
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.18 }}
+            variants={blurReveal}
+            initial="hidden"
+            animate="show"
+            exit="hidden"
             className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
           >
             {activeTab === "universities" && (

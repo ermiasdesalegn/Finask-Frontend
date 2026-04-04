@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Route, Routes } from "react-router-dom";
 import Footer from "./components/layout/Footer";
 import Navbar from "./components/layout/Navbar";
@@ -126,7 +126,7 @@ function AppShell() {
             <Route
               path="/cities/:id"
               element={
-                <div className="min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]">
+                <div className="min-h-screen bg-transparent pt-20 transition-colors duration-300">
                   <CityPage />
                 </div>
               }

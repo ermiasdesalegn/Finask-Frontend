@@ -1,15 +1,24 @@
-﻿import { BookOpen, Building2, MapPin } from "lucide-react";
+import { BookOpen, Building2, MapPin } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useNavigate } from "react-router-dom";
 
 type UniResult = {
   _id: string;
   name: string;
-  slug: string;
+  slug?: string;
   coverImage?: string;
   address?: { city?: string };
   score?: number;
 };
+
+const OBJECT_ID_RE = /^[a-f0-9]{24}$/i;
+
+function universityPathSegment(u: UniResult): string | null {
+  const s = u.slug?.trim();
+  if (s) return s;
+  if (OBJECT_ID_RE.test(u._id)) return u._id;
+  return null;
+}
 
 type ProgramResult = {
   _id: string;
@@ -89,16 +98,25 @@ export function SearchDropdown({ open, results, loading, query, onClose }: Props
   return (
     <AnimatePresence>
       {open && (
-        <motion.div
-          key="search-dropdown"
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 6 }}
-          transition={{ duration: 0.15, ease: "easeOut" }}
-          className="absolute left-0 right-0 top-full z-50 mt-2 max-h-[420px] overflow-y-auto rounded-2xl border border-slate-200/80 bg-white p-2 shadow-2xl dark:border-white/10 dark:bg-zinc-900"
-        >
-          <div className="fixed inset-0 z-40" onClick={onClose} />
-
+        <>
+          <motion.div
+            key="search-dropdown-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.12, ease: "easeOut" }}
+            className="fixed inset-0 z-40"
+            aria-hidden
+            onClick={onClose}
+          />
+          <motion.div
+            key="search-dropdown-panel"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 6 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            className="absolute left-0 right-0 top-full z-50 mt-2 max-h-[420px] overflow-y-auto rounded-2xl border border-slate-200/80 bg-white p-2 shadow-2xl dark:border-white/10 dark:bg-zinc-900"
+          >
           {loading && (
             <div className="flex items-center justify-center py-8">
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-brand-blue border-t-transparent" />
@@ -115,8 +133,14 @@ export function SearchDropdown({ open, results, loading, query, onClose }: Props
             <Section icon={<Building2 size={10} />} label="Universities">
               {unis.slice(0, 5).map((u) => (
                 <Row
-                  key={u.slug}
-                  onClick={() => { navigate(`/universities/${u.slug}`); onClose(); }}
+                  key={u._id}
+                  onClick={() => {
+                    const seg = universityPathSegment(u);
+                    if (seg) {
+                      navigate(`/universities/${encodeURIComponent(seg)}`);
+                      onClose();
+                    }
+                  }}
                 >
                   {u.coverImage ? (
                     <img src={u.coverImage} alt={u.name} className="h-8 w-8 shrink-0 rounded-lg object-cover" />
@@ -176,7 +200,8 @@ export function SearchDropdown({ open, results, loading, query, onClose }: Props
               ))}
             </Section>
           )}
-        </motion.div>
+          </motion.div>
+        </>
       )}
     </AnimatePresence>
   );

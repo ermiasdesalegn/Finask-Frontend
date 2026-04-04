@@ -23,6 +23,14 @@ function resolveMock<T>(path: string): T | null {
     return mock.mockProgramUniversities(decodeURIComponent(programId)) as T;
   }
   if (path.startsWith("/programs")) return mock.mockProgramsList() as T;
+  if (path.match(/\/cities\/slug\/(.+)/)) {
+    const slug = path.split("/cities/slug/")[1].split("?")[0];
+    return mock.mockCityByIdentifier(decodeURIComponent(slug)) as T;
+  }
+  const cityOne = path.match(/^\/cities\/([^/?]+)$/);
+  if (cityOne) {
+    return mock.mockCityByIdentifier(decodeURIComponent(cityOne[1])) as T;
+  }
   if (path.startsWith("/cities")) return mock.mockCitiesList() as T;
   if (path.startsWith("/search")) {
     const q = new URLSearchParams(path.split("?")[1] ?? "").get("q") ?? "";

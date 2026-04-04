@@ -1,8 +1,16 @@
-import { motion } from 'framer-motion';
+import { motion } from "motion/react";
 import { ArrowRight, BookOpen, Brain, Compass, GraduationCap, Heart, Mail, MapPin, Sparkles, Star, Users, Zap } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FlickeringGrid } from '../components/ui/flickering-grid'; // Ensure this path is correct!
+import { FlickeringGrid } from "../components/ui/flickering-grid";
+import {
+  blurReveal,
+  slideInLeft,
+  slideInRight,
+  springPop,
+  staggerBlurContainer,
+  staggerBlurItem,
+} from "../lib/motion/pageMotion";
 
 // --- Data ---
 const STATS = [
@@ -48,15 +56,8 @@ const VALUES = [
   },
 ];
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.1 } },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 300, damping: 24 } },
-};
+const containerVariants = staggerBlurContainer;
+const itemVariants = staggerBlurItem;
 
 const AboutPage = () => {
   // Automatically detect dark mode for the grid color
@@ -93,8 +94,9 @@ const AboutPage = () => {
         <div className="w-full max-w-4xl mx-auto text-center flex flex-col items-center">
           
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial="hidden"
+            animate="show"
+            variants={springPop}
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/80 dark:bg-white/5 backdrop-blur-md text-brand-blue dark:text-blue-400 rounded-full text-xs font-black uppercase tracking-widest mb-8 border border-slate-200 dark:border-white/10 shadow-sm"
           >
             <Compass size={14} className="text-brand-yellow animate-pulse" />
@@ -102,18 +104,20 @@ const AboutPage = () => {
           </motion.div>
 
           <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.05 }}
+            initial="hidden"
+            animate="show"
+            variants={blurReveal}
+            transition={{ delay: 0.06 }}
             className="text-5xl md:text-7xl lg:text-[5.5rem] font-black tracking-tighter text-slate-900 dark:text-white mb-6 leading-[0.95]"
           >
             Built for <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-blue to-indigo-500 pb-2">Ethiopian</span> <br className="hidden md:block"/> Students
           </motion.h1>
 
           <motion.p
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
+            initial="hidden"
+            animate="show"
+            variants={springPop}
+            transition={{ delay: 0.12 }}
             className="text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed mb-12 font-medium"
           >
             Finding the right university used to be a guessing game. We built Finask to be the ultimate compass for your academic journey.
@@ -123,9 +127,10 @@ const AboutPage = () => {
 
       {/* ── THE STATS DOCK (Sleek Glassmorphic Belt) ── */}
       <section className="px-6 pb-32 relative z-20 -mt-16">
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
+        <motion.div
+          initial="hidden"
+          animate="show"
+          variants={blurReveal}
           transition={{ delay: 0.2 }}
           className="max-w-5xl mx-auto bg-white/60 dark:bg-zinc-900/60 backdrop-blur-3xl border border-white dark:border-white/10 rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(37,99,235,0.15)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8)] p-2 md:p-3"
         >
@@ -153,9 +158,10 @@ const AboutPage = () => {
             
             {/* Text Side */}
             <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, margin: "-40px" }}
+              variants={slideInLeft}
               className="lg:col-span-5"
             >
               <div className="flex items-center gap-3 mb-8">
@@ -183,10 +189,11 @@ const AboutPage = () => {
 
             {/* Dynamic Image Composition Side */}
             <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              className="lg:col-span-7 relative h-[450px] md:h-[600px] w-full mt-10 lg:mt-0"
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, margin: "-40px" }}
+              variants={slideInRight}
+              className="relative mt-10 h-[450px] w-full md:h-[600px] lg:col-span-7 lg:mt-0"
             >
               {/* Back Image */}
               <div className="absolute top-0 right-0 w-[75%] h-[70%] rounded-[2.5rem] overflow-hidden bg-slate-100 dark:bg-zinc-800 shadow-2xl border border-white/20 z-0">
@@ -222,10 +229,11 @@ const AboutPage = () => {
             {VALUES.map((v, i) => (
               <motion.div
                 key={v.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
+                initial="hidden"
+                whileInView="show"
+                viewport={{ once: true, margin: "-30px", amount: 0.2 }}
+                variants={blurReveal}
+                transition={{ delay: i * 0.09 }}
                 className={`${v.span} bg-white/60 dark:bg-zinc-900/60 backdrop-blur-2xl border border-slate-200/60 dark:border-white/5 rounded-[2.5rem] p-8 md:p-10 hover:shadow-2xl hover:border-brand-blue/30 transition-all duration-500 group flex flex-col justify-between`}
               >
                 <div>

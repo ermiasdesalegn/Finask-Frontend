@@ -2,7 +2,7 @@ import { queryOptions, useQuery } from "@tanstack/react-query";
 import type { UniversitiesListFilters } from "../services/universityService";
 import {
   fetchUniversitiesList,
-  fetchUniversityBySlug,
+  fetchUniversityDetail,
   fetchUniversityCampuses,
 } from "../services/universityService";
 import { queryKeys } from "../queryKeys";
@@ -26,7 +26,7 @@ export function universityBySlugQueryOptions(slug: string) {
   const keySlug = slug.trim() || PENDING_KEY;
   return queryOptions({
     queryKey: queryKeys.universityBySlug(keySlug),
-    queryFn: () => fetchUniversityBySlug(slug),
+    queryFn: () => fetchUniversityDetail(slug),
     enabled: Boolean(slug?.trim()),
     staleTime: STALE_MS.universityDetail,
   });

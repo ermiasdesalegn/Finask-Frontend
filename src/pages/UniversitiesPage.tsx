@@ -1,4 +1,4 @@
-﻿import {
+import {
     ArrowUpDown,
     Building2,
     Check,
@@ -24,6 +24,7 @@ import EthiopiaMap from "../components/home/EthiopiaMap";
 import { AnimatedGridPattern } from "../components/ui/animated-grid-pattern";
 import { REGION_FILTERS } from "../constants";
 import { useDebounce } from "../lib/hooks/useDebounce";
+import { staggerBlurContainer, staggerBlurItem } from "../lib/motion/pageMotion";
 import { useCitiesListQuery, useUniversitiesListQuery } from "../lib/queries";
 import { useSearchQuery } from "../lib/queries/search";
 import {
@@ -35,21 +36,8 @@ import {
 import { cn } from "../lib/utils";
 import type { University } from "../types";
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.05 },
-  },
-};
-const itemVariants = {
-  hidden: { opacity: 0, y: 15 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: { type: "spring" as const, stiffness: 300, damping: 24 },
-  },
-};
+const containerVariants = staggerBlurContainer;
+const itemVariants = staggerBlurItem;
 
 type FilterState = {
   minRating: number | null;

@@ -1,8 +1,7 @@
-﻿import { motion } from "framer-motion"; // Changed to framer-motion
+import { AnimatePresence, motion } from "motion/react";
 import {
   BookOpen,
   Building2,
-  GraduationCap,
   Heart,
   MapPin,
   Search,
@@ -10,11 +9,20 @@ import {
   Star,
   Thermometer,
   Trophy,
-  Users,
 } from "lucide-react";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { SearchDropdown } from "../components/ui/SearchDropdown";
 import { PROGRAM_FIELD_STYLES } from "../constants/programFieldStyles";
+import { useDebounce } from "../lib/hooks/useDebounce";
+import {
+  blurReveal,
+  slideInRight,
+  springPop,
+  staggerBlurContainer,
+  staggerBlurItem,
+} from "../lib/motion/pageMotion";
+import { useSearchQuery } from "../lib/queries/search";
 
 // --- TYPES & DATA ---
 type BrowseCategory = {
@@ -61,42 +69,34 @@ const FIELD_CATEGORIES = Object.entries(PROGRAM_FIELD_STYLES).map(([key, style])
   href: `/programs?field=${key}`,
 }));
 
-// --- ANIMATION VARIANTS ---
-const containerVariants = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.05 } },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 15 },
-  show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 300, damping: 24 } },
-};
+// --- ANIMATION VARIANTS (blur + stagger) ---
+const containerVariants = staggerBlurContainer;
+const itemVariants = staggerBlurItem;
 
 const DiscoverPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedQuery = useDebounce(searchQuery, 300);
+  const isSearching = debouncedQuery.trim().length >= 2;
+  const searchResults = useSearchQuery(debouncedQuery, 10);
+  const searchLoading = isSearching && searchResults.isFetching;
 
   return (
-    <div className="w-full min-h-screen pb-24 bg-[#FAFAFA] dark:bg-[#050505] transition-colors duration-300 relative overflow-hidden">
-      
-      {/* --- PREMIUM AURORA GRID BACKGROUND --- */}
-      <div className="fixed inset-0 z-0 pointer-events-none flex justify-center">
-        {/* Dynamic Linear Grid */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
-        
-        {/* Soft Top Glows (Aurora Effect) */}
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand-blue/20 blur-[120px] rounded-full mix-blend-multiply dark:mix-blend-screen opacity-70" />
-        <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-brand-yellow/15 blur-[120px] rounded-full mix-blend-multiply dark:mix-blend-screen opacity-70" />
+    <div className="relative min-h-screen w-full overflow-x-hidden bg-[#FAFAFA]/90 pb-24 transition-colors duration-300 dark:bg-[#050505]/90">
+      <div className="pointer-events-none fixed inset-0 z-0">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:28px_28px] [mask-image:radial-gradient(ellipse_85%_55%_at_50%_0%,#000_55%,transparent_100%)]" />
+        <div className="absolute top-[-10%] left-[-10%] h-[38%] w-[38%] rounded-full bg-brand-blue/15 blur-[110px] mix-blend-multiply dark:mix-blend-screen dark:bg-brand-blue/25" />
+        <div className="absolute top-[-5%] right-[-15%] h-[42%] w-[42%] rounded-full bg-violet-400/10 blur-[120px] mix-blend-multiply dark:mix-blend-screen dark:bg-violet-500/20" />
       </div>
 
-      <div className="mx-auto max-w-7xl px-6 pt-24 md:pt-32 relative z-10">
+      <div className="relative z-10 mx-auto max-w-7xl px-6 pt-24 md:pt-32">
 
         {/* --- TYPOGRAPHIC HERO WITH SEARCH --- */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, type: "spring", bounce: 0.4 }}
-          className="mb-24 text-center max-w-4xl mx-auto flex flex-col items-center"
+          initial="hidden"
+          animate="show"
+          variants={blurReveal}
+          className="mx-auto mb-24 flex max-w-4xl flex-col items-center text-center"
         >
           {/* Subtle Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-brand-blue/20 bg-brand-blue/5 text-brand-blue dark:text-blue-400 font-black text-xs uppercase tracking-widest mb-8 backdrop-blur-md">
@@ -114,31 +114,88 @@ const DiscoverPage: React.FC = () => {
             Dive into thousands of programs, discover top-rated campuses, and map out your academic future across Ethiopia.
           </p>
 
-          {/* Glowing Search Bar */}
-          <div className="w-full max-w-2xl relative z-20">
-            <div className="flex items-center gap-3 rounded-full border border-slate-200/80 bg-white/90 px-6 py-4 md:py-5 shadow-2xl shadow-brand-blue/10 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/90 transition-all focus-within:border-brand-blue/50 focus-within:ring-4 focus-within:ring-brand-blue/10 hover:shadow-brand-blue/20">
+          {/* Search — same behavior as Home hero (debounced GET /search + dropdown) */}
+          <div className="relative z-30 w-full max-w-2xl">
+            <div className="flex items-center gap-3 rounded-full border border-slate-200/80 bg-white/90 px-6 py-4 shadow-2xl shadow-brand-blue/10 backdrop-blur-xl transition-all focus-within:border-brand-blue/50 focus-within:ring-4 focus-within:ring-brand-blue/10 hover:shadow-brand-blue/20 dark:border-white/10 dark:bg-zinc-900/90 md:py-5">
               <Search size={24} className="shrink-0 text-brand-blue" />
               <input
                 type="text"
                 placeholder="Search universities, programs, cities..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 bg-transparent text-base md:text-lg font-bold text-slate-900 outline-none placeholder:text-slate-400 dark:text-white"
+                className="flex-1 bg-transparent text-base font-bold text-slate-900 outline-none placeholder:text-slate-400 dark:text-white md:text-lg"
               />
+              <AnimatePresence mode="wait">
+                {searchLoading && (
+                  <motion.div
+                    key="spin"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-brand-blue border-t-transparent"
+                  />
+                )}
+                {!searchLoading && searchQuery && (
+                  <motion.button
+                    key="clear"
+                    type="button"
+                    initial={{ opacity: 0, scale: 0.85 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.85 }}
+                    onClick={() => setSearchQuery("")}
+                    className="shrink-0 rounded-full bg-slate-100 p-2 text-slate-500 transition-colors hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700"
+                    aria-label="Clear search"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </motion.button>
+                )}
+              </AnimatePresence>
             </div>
+            <SearchDropdown
+              open={isSearching}
+              results={searchResults.data?.data ?? null}
+              loading={searchLoading}
+              query={debouncedQuery}
+              onClose={() => setSearchQuery("")}
+            />
           </div>
         </motion.div>
 
-        <motion.div variants={containerVariants} initial="hidden" animate="show" className="pt-4">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: "-40px", amount: 0.08 }}
+          className="pt-4"
+        >
 
           {/* --- DISCOVER SOMETHING NEW --- */}
           <section className="mb-20">
-            <div className="mb-6 flex items-center gap-3">
+            <motion.div
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, margin: "-60px" }}
+              variants={slideInRight}
+              className="mb-6 flex items-center gap-3"
+            >
               <div className="h-6 w-1.5 rounded-full bg-brand-blue shadow-[0_0_8px_rgba(37,99,235,0.5)]" />
               <h2 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900 dark:text-white">
                 Trending Highlights
               </h2>
-            </div>
+            </motion.div>
             <div className="flex gap-4 overflow-x-auto pb-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-6 px-6 lg:mx-0 lg:px-0">
               {DISCOVER_CHIPS.map((chip) => (
                 <motion.button
@@ -160,12 +217,18 @@ const DiscoverPage: React.FC = () => {
 
           {/* --- BROWSE ALL --- */}
           <section className="mb-20">
-            <div className="mb-6 flex items-center gap-3">
+            <motion.div
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, margin: "-60px" }}
+              variants={springPop}
+              className="mb-6 flex items-center gap-3"
+            >
               <div className="h-6 w-1.5 rounded-full bg-brand-yellow shadow-[0_0_8px_rgba(250,204,21,0.5)]" />
               <h2 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900 dark:text-white">
                 Browse Directory
               </h2>
-            </div>
+            </motion.div>
             
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-5">
               {BROWSE_CATEGORIES.map((cat) => (
@@ -200,12 +263,18 @@ const DiscoverPage: React.FC = () => {
 
           {/* --- BROWSE BY FIELD --- */}
           <section>
-            <div className="mb-6 flex items-center gap-3">
+            <motion.div
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, margin: "-60px" }}
+              variants={blurReveal}
+              className="mb-6 flex items-center gap-3"
+            >
               <div className="h-6 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
               <h2 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900 dark:text-white">
                 Fields of Study
               </h2>
-            </div>
+            </motion.div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {FIELD_CATEGORIES.map((cat) => (
                 <motion.button

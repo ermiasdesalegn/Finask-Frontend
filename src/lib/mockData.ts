@@ -1,10 +1,11 @@
-﻿/**
+/**
  * Static mock data — used when VITE_USE_MOCK=true.
  * Mirrors the exact response shapes the real API returns.
  */
 import type {
     CampusesListResponse,
     CitiesListResponse,
+    CityDetailResponse,
     HomeApiResponse,
     ProgramsListResponse,
     UniversitiesListResponse,
@@ -271,6 +272,19 @@ export function mockUniversitiesList(): UniversitiesListResponse {
 
 export function mockCitiesList(): CitiesListResponse {
   return { status: "success", results: CITIES.length, data: { cities: CITIES as any } };
+}
+
+/** GET /cities/:id or /cities/slug/:slug — shape matches handlerFactory + getCityBySlug */
+export function mockCityByIdentifier(idOrSlug: string): CityDetailResponse {
+  const row =
+    CITIES.find((c) => c._id === idOrSlug || c.slug === idOrSlug) ?? CITIES[0];
+  const city = {
+    ...row,
+    overview: `${row.name} — overview (mock data).`,
+    universities: [] as unknown[],
+    reviews: [] as unknown[],
+  };
+  return { status: "success", data: { city: city as any } };
 }
 
 export function mockProgramsList(): ProgramsListResponse {

@@ -1,10 +1,5 @@
-import type { CitiesListResponse } from "../../types";
+import type { CitiesListResponse, City, CityDetailResponse } from "../../types";
 import { apiGet } from "../api";
-
-export type CityDetailResponse = {
-  status: string;
-  data: { data: any };
-};
 
 export async function fetchCitiesList(options?: {
   limit?: number;
@@ -16,10 +11,22 @@ export async function fetchCitiesList(options?: {
   return apiGet<CitiesListResponse>(`/cities?${params.toString()}`);
 }
 
-export async function fetchCityById(id: string): Promise<CityDetailResponse> {
-  return apiGet<CityDetailResponse>(`/cities/${encodeURIComponent(id)}`);
+function cityFromDetailResponse(res: CityDetailResponse): City {
+  const c = res.data.city ?? res.data.data;
+  if (!c) throw new Error("City not found.");
+  return c;
 }
 
-export async function fetchCityBySlug(slug: string): Promise<CityDetailResponse> {
-  return apiGet<CityDetailResponse>(`/cities/slug/${encodeURIComponent(slug)}`);
+export async function fetchCityDetail(id: string): Promise<City> {
+  const res = await apiGet<CityDetailResponse>(
+    `/cities/${encodeURIComponent(id)}`
+  );
+  return cityFromDetailResponse(res);
+}
+
+export async function fetchCityDetailBySlug(slug: string): Promise<City> {
+  const res = await apiGet<CityDetailResponse>(
+    `/cities/slug/${encodeURIComponent(slug)}`
+  );
+  return cityFromDetailResponse(res);
 }
