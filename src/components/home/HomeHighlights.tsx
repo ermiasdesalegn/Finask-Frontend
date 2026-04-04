@@ -167,6 +167,9 @@ const HomeHighlights = ({ home, loading }: Props) => {
   const nearBy = home.nearBy ?? [];
   const suggestedByLocation = home.suggestedByLocation ?? [];
   const suggestedByProgram = home.suggestedByProgram ?? [];
+  const topRanked = home.topRanked ?? [];
+  const topRated = home.topRated ?? [];
+  const topReviewed = home.topReviewed ?? [];
 
   return (
     <div className="mx-auto max-w-7xl px-6 lg:px-8">
@@ -249,6 +252,53 @@ const HomeHighlights = ({ home, loading }: Props) => {
           viewAllHref="/universities"
         >
           {suggestedByProgram.map((u) => (
+            <UniCard key={u.slug} uni={u} />
+          ))}
+        </Row>
+      )}
+
+      {topRanked.length > 0 && (
+        <Row
+          icon={<Trophy size={16} />}
+          title="Top Ranked"
+          subtitle="Ethiopia's highest ranked universities"
+          viewAllHref="/universities?sort=rank"
+        >
+          {topRanked.map((u, i) => (
+            <UniCard
+              key={u.slug}
+              uni={u}
+              badge={
+                <span className="rounded-full bg-brand-blue px-2 py-0.5 text-[9px] font-black text-white">
+                  #{i + 1}
+                </span>
+              }
+            />
+          ))}
+        </Row>
+      )}
+
+      {topRated.length > 0 && (
+        <Row
+          icon={<Star size={16} />}
+          title="Top Rated"
+          subtitle="Highest student satisfaction scores"
+          viewAllHref="/universities?sort=rating"
+        >
+          {topRated.map((u) => (
+            <UniCard key={u.slug} uni={u} />
+          ))}
+        </Row>
+      )}
+
+      {topReviewed.length > 0 && (
+        <Row
+          icon={<TrendingUp size={16} />}
+          title="Most Reviewed"
+          subtitle="Universities with the most student feedback"
+          viewAllHref="/universities"
+        >
+          {topReviewed.map((u) => (
             <UniCard key={u.slug} uni={u} />
           ))}
         </Row>
