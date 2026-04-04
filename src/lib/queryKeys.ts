@@ -49,6 +49,7 @@ export const queryKeys = {
       filters.limit ?? 500,
       filters.sort ?? "name",
       filters.field?.trim() || "all",
+      filters.fields?.trim() || "all",
     ] as const,
 
   programsRare: (limit: number) => ["programs", "rare", limit] as const,

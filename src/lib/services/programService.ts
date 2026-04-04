@@ -14,7 +14,31 @@ export type ProgramsListFilters = {
   sort?: string;
   /** Backend query filter: `?field=technologyit` */
   field?: string | null;
+  /**
+   * Optional field projection, e.g. `name,slug,field,duration,ratingsAverage`
+   * (see GET /programs docs). Omit for full documents.
+   */
+  fields?: string | null;
 };
+
+type LooseProgramsList = {
+  status: string;
+  results?: number;
+  data?: { programs?: Program[]; docs?: Program[] };
+};
+
+function normalizeProgramsListResponse(
+  res: LooseProgramsList
+): ProgramsListResponse {
+  const programs =
+    res.data?.programs ??
+    (Array.isArray(res.data?.docs) ? res.data!.docs! : []);
+  return {
+    status: res.status,
+    results: res.results ?? programs.length,
+    data: { programs },
+  };
+}
 
 export async function fetchProgramsList(
   filters: ProgramsListFilters = {}
@@ -25,7 +49,13 @@ export async function fetchProgramsList(
   if (filters.field?.trim()) {
     params.set("field", filters.field.trim());
   }
-  return apiGet<ProgramsListResponse>(`/programs?${params.toString()}`);
+  if (filters.fields?.trim()) {
+    params.set("fields", filters.fields.trim());
+  }
+  const res = await apiGet<LooseProgramsList>(
+    `/programs?${params.toString()}`
+  );
+  return normalizeProgramsListResponse(res);
 }
 
 /** GET /api/v1/programs/rare — backend returns `data.docs` (optional `?limit=`). */

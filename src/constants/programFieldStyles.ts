@@ -1,3 +1,15 @@
+/** Display names — keep in sync with Discover / programs browse. */
+export const PROGRAM_FIELD_LABELS: Record<string, string> = {
+  engineeringarchitecture: "Engineering and Architecture",
+  medicinehealth: "Medicine and Health",
+  businesseconomics: "Business and Economics",
+  socialscienceslaw: "Social Sciences and Law",
+  naturalappliedsciences: "Natural and Applied Sciences",
+  technologyit: "Technology and IT",
+  humanitiesartslanguages: "Humanities, Arts and Language",
+  educationteaching: "Education and Teaching",
+};
+
 /** Visual tokens per backend `program.field` value */
 export const PROGRAM_FIELD_STYLES: Record<
   string,

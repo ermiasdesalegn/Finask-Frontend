@@ -74,6 +74,8 @@ export interface University {
 /** Program document from API */
 export interface Program {
   _id: string;
+  /** Some list endpoints mirror Mongo id as `id` */
+  id?: string;
   name: string;
   slug: string;
   field: string;

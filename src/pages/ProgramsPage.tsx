@@ -1,16 +1,19 @@
 import {
   Clock,
+  Gem,
+  LayoutGrid,
   Search,
   Sparkles,
   X,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
-import { ProgramUniversitiesScroller } from "../components/programs/ProgramUniversitiesScroller";
+import { useSearchParams } from "react-router-dom";
+import { ProgramBrowseCard } from "../components/programs/ProgramBrowseCard";
 import { AnimatedGridPattern } from "../components/ui/animated-grid-pattern";
 import {
   DEFAULT_PROGRAM_FIELD_STYLE,
+  PROGRAM_FIELD_LABELS,
   PROGRAM_FIELD_STYLES,
 } from "../constants/programFieldStyles";
 import { blurReveal, springPop } from "../lib/motion/pageMotion";
@@ -18,10 +21,34 @@ import { useProgramsListQuery, useRareProgramsQuery } from "../lib/queries";
 import { cn } from "../lib/utils";
 import type { Program } from "../types";
 
+const EMPTY_PROGRAMS: Program[] = [];
+
+function programListKey(p: Program): string {
+  const id = p._id?.trim() || p.id?.trim();
+  if (id) return id;
+  return p.slug;
+}
+
+function fieldLabelForProgram(p: Program): string {
+  const fd = p.fieldDisplayName?.trim();
+  if (fd) return fd;
+  const k = p.field || "";
+  return PROGRAM_FIELD_LABELS[k] ?? "";
+}
+
+/** Stable field order for filter chips (matches Discover). */
+const ALL_FIELD_KEYS = (Object.keys(PROGRAM_FIELD_LABELS) as string[]).filter(
+  (k) => k in PROGRAM_FIELD_STYLES
+);
+
 const ProgramsPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const filterRare = searchParams.get("filter") === "rare";
-  const fieldParam = searchParams.get("field");
+  const fieldParamRaw = searchParams.get("field");
+  const fieldParam =
+    fieldParamRaw && fieldParamRaw in PROGRAM_FIELD_STYLES
+      ? fieldParamRaw
+      : null;
 
   const setFieldParam = (field: string | null) => {
     setSearchParams(
@@ -35,15 +62,39 @@ const ProgramsPage: React.FC = () => {
     );
   };
 
+  const setFilterRare = (rare: boolean) => {
+    setSearchParams(
+      (prev) => {
+        const n = new URLSearchParams(prev);
+        if (rare) n.set("filter", "rare");
+        else n.delete("filter");
+        return n;
+      },
+      { replace: true }
+    );
+  };
+
+  useEffect(() => {
+    if (!fieldParamRaw || fieldParamRaw in PROGRAM_FIELD_STYLES) return;
+    setSearchParams(
+      (prev) => {
+        const n = new URLSearchParams(prev);
+        n.delete("field");
+        return n;
+      },
+      { replace: true }
+    );
+  }, [fieldParamRaw, setSearchParams]);
+
   const [search, setSearch] = useState("");
 
   const listFilters = useMemo(
     () => ({
       limit: 500,
       sort: "name",
-      field: fieldParam,
+      field: filterRare ? null : fieldParam,
     }),
-    [fieldParam]
+    [fieldParam, filterRare]
   );
 
   const programsListQuery = useProgramsListQuery(listFilters, {
@@ -54,9 +105,17 @@ const ProgramsPage: React.FC = () => {
     enabled: filterRare,
   });
 
-  const programs = filterRare
-    ? (rareQuery.data ?? [])
-    : (programsListQuery.data?.data?.programs ?? []);
+  const rawPrograms = useMemo(() => {
+    if (filterRare) return rareQuery.data ?? EMPTY_PROGRAMS;
+    const list = programsListQuery.data?.data?.programs;
+    return list ?? EMPTY_PROGRAMS;
+  }, [filterRare, rareQuery.data, programsListQuery.data?.data?.programs]);
+
+  const programs = useMemo(() => {
+    if (!fieldParam) return rawPrograms;
+    return rawPrograms.filter((p) => (p.field || "other") === fieldParam);
+  }, [rawPrograms, fieldParam]);
+
   const loading = filterRare
     ? rareQuery.isPending
     : programsListQuery.isPending;
@@ -98,19 +157,25 @@ const ProgramsPage: React.FC = () => {
     });
   }, [fieldKeys, grouped, search, fieldParam]);
 
-  // Track which field sections have entered the viewport — only then fetch their programs
   const [visibleFields, setVisibleFields] = useState<Set<string>>(new Set());
   const sectionRefs = useRef<Map<string, HTMLElement>>(new Map());
+
+  useEffect(() => {
+    setVisibleFields(new Set());
+  }, [filterRare, fieldParam]);
 
   useEffect(() => {
     if (sectionRefs.current.size === 0) return;
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const fieldKey = (entry.target as HTMLElement).dataset.fieldKey;
-            if (fieldKey) setVisibleFields((prev) => new Set([...prev, fieldKey]));
-          }
+          if (!entry.isIntersecting) return;
+          const fieldKey = (entry.target as HTMLElement).dataset.fieldKey;
+          if (!fieldKey) return;
+          setVisibleFields((prev) => {
+            if (prev.has(fieldKey)) return prev;
+            return new Set([...prev, fieldKey]);
+          });
         });
       },
       { rootMargin: "200px" }
@@ -152,18 +217,46 @@ const ProgramsPage: React.FC = () => {
               <Sparkles size={15} className="text-brand-yellow" /> Browse
               programs across Ethiopia
             </span>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => setFilterRare(false)}
+                className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-black uppercase tracking-wider transition-all ${
+                  !filterRare
+                    ? "border-brand-blue bg-brand-blue text-white shadow-md shadow-brand-blue/25"
+                    : "border-slate-200 bg-white/80 text-slate-600 hover:border-brand-blue/40 dark:border-white/10 dark:bg-zinc-900 dark:text-slate-300"
+                }`}
+              >
+                <LayoutGrid size={14} /> Full catalog
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterRare(true)}
+                className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-black uppercase tracking-wider transition-all ${
+                  filterRare
+                    ? "border-violet-500 bg-violet-600 text-white shadow-md shadow-violet-500/25 dark:bg-violet-600"
+                    : "border-slate-200 bg-white/80 text-slate-600 hover:border-violet-400/50 dark:border-white/10 dark:bg-zinc-900 dark:text-slate-300"
+                }`}
+              >
+                <Gem size={14} /> Rare programs
+              </button>
+            </div>
             {filterRare && (
-              <div className="flex flex-wrap items-center justify-center gap-2 text-center">
-                <span className="rounded-full border border-violet-200 bg-violet-50 px-4 py-1.5 text-xs font-black uppercase tracking-widest text-violet-700 dark:border-violet-500/30 dark:bg-violet-500/10 dark:text-violet-300">
-                  Rare & specialized programs
-                </span>
-                <Link
-                  to="/programs"
-                  className="text-xs font-bold text-brand-blue underline-offset-2 hover:underline"
+              <p className="max-w-md text-center text-xs font-medium text-slate-500 dark:text-slate-400">
+                From{" "}
+                <code className="rounded bg-slate-100 px-1 py-0.5 text-[10px] dark:bg-zinc-800">
+                  GET /programs/rare
+                </code>
+                . Use field chips to narrow;{" "}
+                <button
+                  type="button"
+                  onClick={() => setFilterRare(false)}
+                  className="font-bold text-brand-blue underline-offset-2 hover:underline"
                 >
-                  View full catalog
-                </Link>
-              </div>
+                  open full catalog
+                </button>{" "}
+                for server-side field filters.
+              </p>
             )}
           </motion.div>
 
@@ -233,11 +326,10 @@ const ProgramsPage: React.FC = () => {
               >
                 All Fields
               </button>
-              {fieldKeys.map((fk) => {
+              {ALL_FIELD_KEYS.map((fk) => {
                 const style = PROGRAM_FIELD_STYLES[fk] ?? DEFAULT_PROGRAM_FIELD_STYLE;
-                const label =
-                  grouped.get(fk)?.[0]?.fieldDisplayName ??
-                  fk.replace(/([A-Z])/g, " $1");
+                const count = (grouped.get(fk) ?? []).length;
+                const label = PROGRAM_FIELD_LABELS[fk] ?? fk;
                 return (
                   <button
                     key={fk}
@@ -253,6 +345,17 @@ const ProgramsPage: React.FC = () => {
                   >
                     <span>{style.icon}</span>
                     <span className="hidden sm:inline">{label}</span>
+                    {count > 0 && (
+                      <span
+                        className={`ml-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-black ${
+                          fieldParam === fk
+                            ? "bg-white/20 text-white dark:bg-slate-900/20 dark:text-slate-900"
+                            : "bg-slate-200/80 text-slate-600 dark:bg-zinc-700 dark:text-slate-300"
+                        }`}
+                      >
+                        {count}
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -280,17 +383,23 @@ const ProgramsPage: React.FC = () => {
         ) : (
           filteredFieldKeys.map((fieldKey, catIndex) => {
             const cat = PROGRAM_FIELD_STYLES[fieldKey] ?? DEFAULT_PROGRAM_FIELD_STYLE;
+            const prefetchUniversities =
+              visibleFields.has(fieldKey) ||
+              filteredFieldKeys.indexOf(fieldKey) < 3 ||
+              (fieldParam != null && fieldKey === fieldParam);
             const progs = (grouped.get(fieldKey) ?? []).filter(
               (p) =>
                 !search ||
                 p.name.toLowerCase().includes(search.toLowerCase()) ||
-                (p.fieldDisplayName ?? "")
+                fieldLabelForProgram(p)
                   .toLowerCase()
                   .includes(search.toLowerCase())
             );
             if (progs.length === 0) return null;
             const sectionTitle =
-              progs[0]?.fieldDisplayName ?? fieldKey.replace(/([A-Z])/g, " $1");
+              progs[0]?.fieldDisplayName?.trim() ||
+              PROGRAM_FIELD_LABELS[fieldKey] ||
+              fieldKey;
 
             return (
               <motion.section
@@ -331,30 +440,22 @@ const ProgramsPage: React.FC = () => {
                   </span>
                 </div>
 
-                <div className="space-y-10">
-                  {progs.map((program) => (
-                    <div key={program._id}>
-                      <div className="mb-4 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Link
-                            to={
-                              program.slug
-                                ? `/programs/${encodeURIComponent(program.slug)}`
-                                : `/programs/${encodeURIComponent(program._id)}`
-                            }
-                            className={`rounded-full px-3 py-1 text-xs font-black transition-opacity hover:opacity-90 ${cat.pill}`}
-                          >
-                            {program.name}
-                          </Link>
-                        </div>
-                      </div>
-                      <ProgramUniversitiesScroller
+                <div className="space-y-8">
+                  {progs.map((program) => {
+                    const detailPath =
+                      program.slug
+                        ? `/programs/${encodeURIComponent(program.slug)}`
+                        : `/programs/${encodeURIComponent(programListKey(program))}`;
+                    return (
+                      <ProgramBrowseCard
+                        key={programListKey(program)}
                         program={program}
                         cat={cat}
-                        enabled={visibleFields.has(fieldKey)}
+                        detailPath={detailPath}
+                        prefetchUniversities={prefetchUniversities}
                       />
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </motion.section>
             );

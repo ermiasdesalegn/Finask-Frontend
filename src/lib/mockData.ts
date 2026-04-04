@@ -379,8 +379,20 @@ export function mockCityByIdentifier(idOrSlug: string): CityDetailResponse {
   return { status: "success", data: { city: city as any } };
 }
 
-export function mockProgramsList(): ProgramsListResponse {
-  return { status: "success", results: PROGRAMS.length, data: { programs: PROGRAMS as any } };
+export function mockProgramsList(path = "/programs"): ProgramsListResponse {
+  const qs = path.includes("?")
+    ? new URLSearchParams(path.split("?")[1])
+    : new URLSearchParams();
+  const field = qs.get("field");
+  let rows = [...PROGRAMS];
+  if (field) {
+    rows = rows.filter((p) => p.field === field);
+  }
+  return {
+    status: "success",
+    results: rows.length,
+    data: { programs: rows as any },
+  };
 }
 
 export function mockRarePrograms(): RareProgramsResponse {

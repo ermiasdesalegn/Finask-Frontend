@@ -56,7 +56,9 @@ function resolveMock<T>(path: string): T | null {
   if (programOne && programOne[1] !== "rare") {
     return mock.mockProgramDetail(decodeURIComponent(programOne[1])) as T;
   }
-  if (path.startsWith("/programs")) return mock.mockProgramsList() as T;
+  if (path.split("?")[0] === "/programs") {
+    return mock.mockProgramsList(path) as T;
+  }
   if (path.split("?")[0] === "/campuses") {
     return mock.mockCampusesList() as T;
   }

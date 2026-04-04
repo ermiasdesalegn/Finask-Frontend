@@ -14,7 +14,10 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SearchDropdown } from "../components/ui/SearchDropdown";
 import { FlickeringGrid } from "../components/ui/flickering-grid";
-import { PROGRAM_FIELD_STYLES } from "../constants/programFieldStyles";
+import {
+  PROGRAM_FIELD_LABELS,
+  PROGRAM_FIELD_STYLES,
+} from "../constants/programFieldStyles";
 import { useDebounce } from "../lib/hooks/useDebounce";
 import { useDocumentDark } from "../lib/hooks/useDocumentDark";
 import {
@@ -53,20 +56,9 @@ const BROWSE_CATEGORIES: BrowseCategory[] = [
   { label: "Rare Programs", icon: <BookOpen size={16} />, href: "/programs?filter=rare", img: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=400", accent: "from-purple-900/90" },
 ];
 
-const FIELD_LABELS: Record<string, string> = {
-  engineeringarchitecture: "Engineering and Architecture",
-  medicinehealth: "Medicine and Health",
-  businesseconomics: "Business and Economics",
-  socialscienceslaw: "Social Sciences and Law",
-  naturalappliedsciences: "Natural and Applied Sciences",
-  technologyit: "Technology and IT",
-  humanitiesartslanguages: "Humanities, Arts and Language",
-  educationteaching: "Education and Teaching",
-};
-
 const FIELD_CATEGORIES = Object.entries(PROGRAM_FIELD_STYLES).map(([key, style]) => ({
   key,
-  label: FIELD_LABELS[key] ?? key,
+  label: PROGRAM_FIELD_LABELS[key] ?? key,
   style,
   href: `/programs?field=${key}`,
 }));
