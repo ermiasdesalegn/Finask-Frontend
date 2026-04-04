@@ -70,7 +70,7 @@ const Hero = ({
     reviewTotal > 0 ? `+${compactReviews}` : "+21k";
 
   return (
-    <section className="relative overflow-hidden px-6 pb-20 pt-32">
+    <section className="relative px-6 pb-20 pt-32">
       <div className="absolute right-0 top-0 h-[50%] w-[50%] -translate-y-1/2 translate-x-1/4 rounded-full bg-brand-blue/5 blur-[120px]" />
       <div className="absolute bottom-0 left-0 h-[40%] w-[40%] -translate-x-1/4 translate-y-1/4 rounded-full bg-brand-yellow/5 blur-[100px]" />
 
@@ -229,7 +229,7 @@ const Hero = ({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.4 }}
-        className="relative z-10 mx-auto mt-12 max-w-2xl"
+        className="relative z-30 mx-auto mt-12 max-w-2xl"
       >
         <div className="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white/90 px-5 py-4 shadow-xl shadow-slate-200/40 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/90">
           <Search size={20} className="shrink-0 text-slate-400" />

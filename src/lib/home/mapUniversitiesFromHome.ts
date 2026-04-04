@@ -7,8 +7,10 @@ export function pickUniversitiesForMap(
   if (!home) return [];
   const lists = [
     ...(home.topRated ?? []),
+    ...(home.topRanked ?? []),
     ...(home.featured ?? []),
     ...(home.trending ?? []),
+    ...(home.nearBy ?? []),
   ];
   const bySlug = new Map<string, University>();
   for (const u of lists) {

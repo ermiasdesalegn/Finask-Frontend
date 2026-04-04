@@ -20,6 +20,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import EthiopiaMap from "../components/home/EthiopiaMap";
 import { AnimatedGridPattern } from "../components/ui/animated-grid-pattern";
 import { REGION_FILTERS } from "../constants";
 import { useDebounce } from "../lib/hooks/useDebounce";
@@ -660,6 +661,7 @@ const UniversitiesPage: React.FC = () => {
             initial="hidden"
             animate="show"
           >
+            <EthiopiaMap universities={universities} loading={listLoading} />
             <HorizontalRow
               title="Universities Near You"
               subtitle="Popular picks from our directory"

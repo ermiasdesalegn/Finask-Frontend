@@ -1,5 +1,5 @@
-﻿import { AnimatePresence, motion } from "motion/react";
-import { BookOpen, Building2, MapPin } from "lucide-react";
+﻿import { BookOpen, Building2, MapPin } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { useNavigate } from "react-router-dom";
 
 type UniResult = {
@@ -95,9 +95,9 @@ export function SearchDropdown({ open, results, loading, query, onClose }: Props
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 6 }}
           transition={{ duration: 0.15, ease: "easeOut" }}
-          className="absolute left-0 right-0 top-full z-50 mt-2 max-h-[420px] overflow-y-auto rounded-2xl border border-slate-200/80 bg-white/95 p-2 shadow-2xl shadow-slate-200/60 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/95 dark:shadow-none"
+          className="absolute left-0 right-0 top-full z-50 mt-2 max-h-[420px] overflow-y-auto rounded-2xl border border-slate-200/80 bg-white p-2 shadow-2xl dark:border-white/10 dark:bg-zinc-900"
         >
-          <div className="fixed inset-0 -z-10" onClick={onClose} />
+          <div className="fixed inset-0 z-40" onClick={onClose} />
 
           {loading && (
             <div className="flex items-center justify-center py-8">

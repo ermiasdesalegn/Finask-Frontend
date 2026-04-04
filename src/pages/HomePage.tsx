@@ -3,8 +3,7 @@ import EthiopiaMap from "../components/home/EthiopiaMap";
 import Hero from "../components/home/Hero";
 import HomeHighlights from "../components/home/HomeHighlights";
 import { useAuth } from "../context/AuthContext";
-import { pickUniversitiesForMap } from "../lib/home/mapUniversitiesFromHome";
-import { useHomePageQuery } from "../lib/queries";
+import { useHomePageQuery, useUniversitiesListQuery } from "../lib/queries";
 
 function SectionSkeleton({ className }: { className?: string }) {
   return (
@@ -21,12 +20,16 @@ const HomePage = () => {
   const { data, isPending, isError, error } = useHomePageQuery(tokenFp);
   const home = data?.data ?? null;
   const loading = isPending;
+
+  // Dedicated universities query for the map — needs location coordinates
+  const mapQuery = useUniversitiesListQuery({ limit: 60, sort: "-ratingsAverage" });
+  const mapUniversities = mapQuery.data?.data?.universities ?? [];
+
   const errorMessage = isError
     ? error instanceof Error
       ? error.message
       : "Failed to load"
     : null;
-  const mapUniversities = pickUniversitiesForMap(home);
 
   return (
     <>
@@ -44,7 +47,7 @@ const HomePage = () => {
         </div>
       ) : (
         <>
-          <EthiopiaMap universities={mapUniversities} loading={loading} />
+          <EthiopiaMap universities={mapUniversities} loading={mapQuery.isPending} />
           <HomeHighlights home={home} loading={loading} />
           <ComparisonEngine
             universities={(home?.topRated ?? []).slice(0, 3)}
