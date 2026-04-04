@@ -1,3 +1,4 @@
+import type { ProgramsListFilters } from "./services/programService";
 import type { UniversitiesListFilters } from "./services/universityService";
 
 export const queryKeys = {
@@ -17,7 +18,19 @@ export const queryKeys = {
 
   citiesList: () => ["cities", "list"] as const,
 
-  programsList: () => ["programs", "list"] as const,
+  programsList: (filters: ProgramsListFilters) =>
+    [
+      "programs",
+      "list",
+      filters.limit ?? 500,
+      filters.sort ?? "name",
+      filters.field?.trim() || "all",
+    ] as const,
+
+  programsRare: (limit: number) => ["programs", "rare", limit] as const,
+
+  programDetail: (slugOrId: string) =>
+    ["programs", "detail", slugOrId] as const,
 
   programUniversities: (programId: string) =>
     ["programs", programId, "universities"] as const,

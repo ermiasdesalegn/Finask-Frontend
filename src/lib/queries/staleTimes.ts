@@ -4,6 +4,8 @@ export const STALE_MS = {
   list: 60_000,
   cities: 5 * 60_000,
   programs: 5 * 60_000,
+  programsRare: 5 * 60_000,
+  programDetail: 5 * 60_000,
   programUniversities: 5 * 60_000,
   universityDetail: 60_000,
   universityCampuses: 5 * 60_000,

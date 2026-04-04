@@ -78,15 +78,21 @@ export interface Program {
   fieldDisplayName?: string;
   duration?: number;
   overview?: string;
+  wikipediaLink?: string;
   coverImage?: string;
   images?: string[];
   tags?: string[];
+  tagsDisplayNames?: string[];
   ratingsAverage?: number;
   ratingsQuantity?: number;
   questionCount?: number;
   careerPaths?: string[];
   courses?: string[];
   skills?: string[];
+  reviews?: Review[];
+  questions?: Question[];
+  /** Populated on detail endpoints */
+  universityOfferings?: UniversityProgramOffering[];
 }
 
 export interface UniversityProgramOffering {
@@ -248,6 +254,19 @@ export interface ProgramsListResponse {
   status: string;
   results: number;
   data: { programs: Program[] };
+}
+
+/** GET /programs/rare */
+export interface RareProgramsResponse {
+  status: string;
+  results: number;
+  data: { docs: Program[] };
+}
+
+/** GET /programs/:id or GET /programs/slug/:slug */
+export interface ProgramDetailResponse {
+  status: string;
+  data: { program: Program };
 }
 
 export interface UniversityProgramsForProgramResponse {

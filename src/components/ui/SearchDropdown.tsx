@@ -23,9 +23,16 @@ function universityPathSegment(u: UniResult): string | null {
 type ProgramResult = {
   _id: string;
   name: string;
-  slug: string;
+  slug?: string;
   field: string;
 };
+
+function programPathSegment(p: ProgramResult): string | null {
+  const s = p.slug?.trim();
+  if (s && s !== "rare") return s;
+  if (OBJECT_ID_RE.test(p._id)) return p._id;
+  return null;
+}
 
 type CityResult = {
   _id: string;
@@ -164,8 +171,14 @@ export function SearchDropdown({ open, results, loading, query, onClose }: Props
             <Section icon={<BookOpen size={10} />} label="Programs">
               {programs.slice(0, 5).map((p) => (
                 <Row
-                  key={p.slug}
-                  onClick={() => { navigate(`/programs/${p.slug}`); onClose(); }}
+                  key={p._id}
+                  onClick={() => {
+                    const seg = programPathSegment(p);
+                    if (seg) {
+                      navigate(`/programs/${encodeURIComponent(seg)}`);
+                      onClose();
+                    }
+                  }}
                 >
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-50 dark:bg-brand-yellow/10">
                     <BookOpen size={14} className="text-brand-yellow" />

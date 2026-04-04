@@ -18,9 +18,20 @@ function resolveMock<T>(path: string): T | null {
   }
   if (path.match(/\/universities\/[^/]+\/campuses/)) return mock.mockUniversityCampuses() as T;
   if (path.startsWith("/universities")) return mock.mockUniversitiesList() as T;
+  if (path.match(/^\/programs\/rare(\?|$)/)) {
+    return mock.mockRarePrograms() as T;
+  }
+  if (path.match(/\/programs\/slug\/([^/?]+)/)) {
+    const slug = path.split("/programs/slug/")[1].split("?")[0];
+    return mock.mockProgramDetail(decodeURIComponent(slug)) as T;
+  }
   if (path.match(/\/programs\/([^/]+)\/universities/)) {
     const programId = path.split("/programs/")[1].split("/universities")[0];
     return mock.mockProgramUniversities(decodeURIComponent(programId)) as T;
+  }
+  const programOne = path.match(/^\/programs\/([^/?]+)(\?|$)/);
+  if (programOne && programOne[1] !== "rare") {
+    return mock.mockProgramDetail(decodeURIComponent(programOne[1])) as T;
   }
   if (path.startsWith("/programs")) return mock.mockProgramsList() as T;
   if (path.match(/\/cities\/slug\/(.+)/)) {

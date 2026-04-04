@@ -13,8 +13,10 @@ import {
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SearchDropdown } from "../components/ui/SearchDropdown";
+import { FlickeringGrid } from "../components/ui/flickering-grid";
 import { PROGRAM_FIELD_STYLES } from "../constants/programFieldStyles";
 import { useDebounce } from "../lib/hooks/useDebounce";
+import { useDocumentDark } from "../lib/hooks/useDocumentDark";
 import {
   blurReveal,
   slideInRight,
@@ -74,6 +76,7 @@ const containerVariants = staggerBlurContainer;
 const itemVariants = staggerBlurItem;
 
 const DiscoverPage: React.FC = () => {
+  const isDark = useDocumentDark();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedQuery = useDebounce(searchQuery, 300);
@@ -82,11 +85,23 @@ const DiscoverPage: React.FC = () => {
   const searchLoading = isSearching && searchResults.isFetching;
 
   return (
-    <div className="relative min-h-screen w-full overflow-x-hidden bg-[#FAFAFA]/90 pb-24 transition-colors duration-300 dark:bg-[#050505]/90">
+    <div className="relative min-h-screen w-full overflow-x-hidden bg-[#FAFAFA]/80 pb-24 transition-colors duration-300 dark:bg-[#050505]/80">
       <div className="pointer-events-none fixed inset-0 z-0">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:28px_28px] [mask-image:radial-gradient(ellipse_85%_55%_at_50%_0%,#000_55%,transparent_100%)]" />
-        <div className="absolute top-[-10%] left-[-10%] h-[38%] w-[38%] rounded-full bg-brand-blue/15 blur-[110px] mix-blend-multiply dark:mix-blend-screen dark:bg-brand-blue/25" />
-        <div className="absolute top-[-5%] right-[-15%] h-[42%] w-[42%] rounded-full bg-violet-400/10 blur-[120px] mix-blend-multiply dark:mix-blend-screen dark:bg-violet-500/20" />
+        <FlickeringGrid
+          className="absolute inset-0 h-full w-full [mask-image:radial-gradient(ellipse_100%_65%_at_50%_0%,white,transparent)]"
+          squareSize={5}
+          gridGap={7}
+          color={isDark ? "#818cf8" : "#4f46e5"}
+          maxOpacity={isDark ? 0.2 : 0.16}
+          flickerChance={0.18}
+        />
+        <div
+          className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:28px_28px] [mask-image:radial-gradient(ellipse_90%_58%_at_50%_0%,#000_50%,transparent_100%)]"
+          aria-hidden
+        />
+        <div className="absolute top-[-10%] left-[-10%] h-[40%] w-[40%] rounded-full bg-brand-blue/12 blur-[115px] mix-blend-multiply dark:mix-blend-screen dark:bg-brand-blue/22" />
+        <div className="absolute top-[-8%] right-[-12%] h-[44%] w-[44%] rounded-full bg-violet-400/12 blur-[125px] mix-blend-multiply dark:mix-blend-screen dark:bg-violet-500/18" />
+        <div className="absolute bottom-[-15%] left-1/2 h-[35%] w-[70%] -translate-x-1/2 rounded-full bg-brand-yellow/6 blur-[100px] mix-blend-multiply dark:mix-blend-screen dark:bg-brand-yellow/10" />
       </div>
 
       <div className="relative z-10 mx-auto max-w-7xl px-6 pt-24 md:pt-32">

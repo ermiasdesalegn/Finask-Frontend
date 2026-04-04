@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { ProgramUniversitiesScroller } from "../components/programs/ProgramUniversitiesScroller";
 import { AnimatedGridPattern } from "../components/ui/animated-grid-pattern";
 import {
@@ -13,23 +14,63 @@ import {
   PROGRAM_FIELD_STYLES,
 } from "../constants/programFieldStyles";
 import { blurReveal, springPop } from "../lib/motion/pageMotion";
-import { useProgramsListQuery } from "../lib/queries";
+import { useProgramsListQuery, useRareProgramsQuery } from "../lib/queries";
 import { cn } from "../lib/utils";
 import type { Program } from "../types";
 
 const ProgramsPage: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const filterRare = searchParams.get("filter") === "rare";
+  const fieldParam = searchParams.get("field");
+
+  const setFieldParam = (field: string | null) => {
+    setSearchParams(
+      (prev) => {
+        const n = new URLSearchParams(prev);
+        if (field) n.set("field", field);
+        else n.delete("field");
+        return n;
+      },
+      { replace: true }
+    );
+  };
+
   const [search, setSearch] = useState("");
-  const [activeField, setActiveField] = useState<string | null>(null);
 
-  const programsQuery = useProgramsListQuery();
+  const listFilters = useMemo(
+    () => ({
+      limit: 500,
+      sort: "name",
+      field: fieldParam,
+    }),
+    [fieldParam]
+  );
 
-  const programs = programsQuery.data?.data?.programs ?? [];
-  const loading = programsQuery.isPending;
-  const error = programsQuery.isError
-    ? programsQuery.error instanceof Error
-      ? programsQuery.error.message
-      : "Failed to load"
-    : null;
+  const programsListQuery = useProgramsListQuery(listFilters, {
+    enabled: !filterRare,
+  });
+  const rareQuery = useRareProgramsQuery({
+    limit: 100,
+    enabled: filterRare,
+  });
+
+  const programs = filterRare
+    ? (rareQuery.data ?? [])
+    : (programsListQuery.data?.data?.programs ?? []);
+  const loading = filterRare
+    ? rareQuery.isPending
+    : programsListQuery.isPending;
+  const error = filterRare
+    ? rareQuery.isError
+      ? rareQuery.error instanceof Error
+        ? rareQuery.error.message
+        : "Failed to load"
+      : null
+    : programsListQuery.isError
+      ? programsListQuery.error instanceof Error
+        ? programsListQuery.error.message
+        : "Failed to load"
+      : null;
 
   const grouped = useMemo(() => {
     const g = new Map<string, Program[]>();
@@ -46,7 +87,7 @@ const ProgramsPage: React.FC = () => {
   const filteredFieldKeys = useMemo(() => {
     const q = search.toLowerCase();
     return fieldKeys.filter((fieldKey) => {
-      if (activeField && fieldKey !== activeField) return false;
+      if (fieldParam && fieldKey !== fieldParam) return false;
       const progs = grouped.get(fieldKey) ?? [];
       if (!q) return true;
       return progs.some(
@@ -55,7 +96,7 @@ const ProgramsPage: React.FC = () => {
           (p.fieldDisplayName ?? "").toLowerCase().includes(q)
       );
     });
-  }, [fieldKeys, grouped, search, activeField]);
+  }, [fieldKeys, grouped, search, fieldParam]);
 
   // Track which field sections have entered the viewport — only then fetch their programs
   const [visibleFields, setVisibleFields] = useState<Set<string>>(new Set());
@@ -105,12 +146,25 @@ const ProgramsPage: React.FC = () => {
             initial="hidden"
             animate="show"
             variants={springPop}
-            className="mb-6 flex justify-center"
+            className="mb-6 flex flex-col items-center gap-3"
           >
             <span className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50/80 px-4 py-2 text-sm font-bold text-brand-blue backdrop-blur-md dark:border-blue-500/20 dark:bg-blue-500/10">
               <Sparkles size={15} className="text-brand-yellow" /> Browse
               programs across Ethiopia
             </span>
+            {filterRare && (
+              <div className="flex flex-wrap items-center justify-center gap-2 text-center">
+                <span className="rounded-full border border-violet-200 bg-violet-50 px-4 py-1.5 text-xs font-black uppercase tracking-widest text-violet-700 dark:border-violet-500/30 dark:bg-violet-500/10 dark:text-violet-300">
+                  Rare & specialized programs
+                </span>
+                <Link
+                  to="/programs"
+                  className="text-xs font-bold text-brand-blue underline-offset-2 hover:underline"
+                >
+                  View full catalog
+                </Link>
+              </div>
+            )}
           </motion.div>
 
           <motion.h1
@@ -170,9 +224,9 @@ const ProgramsPage: React.FC = () => {
             <div className="flex flex-wrap gap-2 px-5 py-4">
               <button
                 type="button"
-                onClick={() => setActiveField(null)}
+                onClick={() => setFieldParam(null)}
                 className={`rounded-[2rem] px-4 py-2 text-sm font-bold transition-all duration-200 ${
-                  activeField === null
+                  !fieldParam
                     ? "scale-105 bg-brand-blue text-white shadow-lg shadow-brand-blue/30"
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-zinc-800 dark:text-slate-300 dark:hover:bg-zinc-700"
                 }`}
@@ -189,10 +243,10 @@ const ProgramsPage: React.FC = () => {
                     key={fk}
                     type="button"
                     onClick={() =>
-                      setActiveField(activeField === fk ? null : fk)
+                      setFieldParam(fieldParam === fk ? null : fk)
                     }
                     className={`flex items-center gap-1.5 rounded-[2rem] px-4 py-2 text-sm font-bold transition-all duration-200 ${
-                      activeField === fk
+                      fieldParam === fk
                         ? "scale-105 bg-slate-900 text-white shadow-md dark:bg-white dark:text-slate-900"
                         : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-zinc-800 dark:text-slate-300 dark:hover:bg-zinc-700"
                     }`}
@@ -282,11 +336,16 @@ const ProgramsPage: React.FC = () => {
                     <div key={program._id}>
                       <div className="mb-4 flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <span
-                            className={`rounded-full px-3 py-1 text-xs font-black ${cat.pill}`}
+                          <Link
+                            to={
+                              program.slug
+                                ? `/programs/${encodeURIComponent(program.slug)}`
+                                : `/programs/${encodeURIComponent(program._id)}`
+                            }
+                            className={`rounded-full px-3 py-1 text-xs font-black transition-opacity hover:opacity-90 ${cat.pill}`}
                           >
                             {program.name}
-                          </span>
+                          </Link>
                         </div>
                       </div>
                       <ProgramUniversitiesScroller
@@ -321,7 +380,7 @@ const ProgramsPage: React.FC = () => {
               type="button"
               onClick={() => {
                 setSearch("");
-                setActiveField(null);
+                setSearchParams({}, { replace: true });
               }}
               className="rounded-2xl bg-brand-blue px-6 py-3 text-sm font-bold text-white shadow-lg shadow-brand-blue/30 transition-colors hover:bg-blue-700"
             >

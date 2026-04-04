@@ -7,7 +7,9 @@ import type {
     CitiesListResponse,
     CityDetailResponse,
     HomeApiResponse,
+    ProgramDetailResponse,
     ProgramsListResponse,
+    RareProgramsResponse,
     UniversitiesListResponse,
     UniversityProgramsForProgramResponse,
     UniversitySlugResponse,
@@ -289,6 +291,18 @@ export function mockCityByIdentifier(idOrSlug: string): CityDetailResponse {
 
 export function mockProgramsList(): ProgramsListResponse {
   return { status: "success", results: PROGRAMS.length, data: { programs: PROGRAMS as any } };
+}
+
+export function mockRarePrograms(): RareProgramsResponse {
+  const docs = PROGRAMS.slice(0, 6) as any;
+  return { status: "success", results: docs.length, data: { docs } };
+}
+
+export function mockProgramDetail(idOrSlug: string): ProgramDetailResponse {
+  const program =
+    PROGRAMS.find((p) => p.slug === idOrSlug || p._id === idOrSlug) ??
+    PROGRAMS[0];
+  return { status: "success", data: { program: { ...program } as any } };
 }
 
 export function mockHomePage(): HomeApiResponse {
