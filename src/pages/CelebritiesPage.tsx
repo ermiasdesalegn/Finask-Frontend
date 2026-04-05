@@ -67,8 +67,9 @@ const CelebritiesPage: React.FC = () => {
   };
 
   return (
-    <div className="relative min-h-screen w-full overflow-x-hidden bg-[#05060c] pb-24 pt-4 md:pt-8">
-      <div className="pointer-events-none fixed inset-0 z-0">
+    <div className="relative min-h-screen w-full overflow-x-hidden bg-slate-50 pb-24 pt-4 transition-colors dark:bg-[#05060c] md:pt-8">
+      {/* Hearts + vignette are dark-mode-only; light mode matches other listing pages (slate-50). */}
+      <div className="pointer-events-none fixed inset-0 z-0 hidden dark:block">
         <FlickeringHeartsBackground className="h-full w-full" />
       </div>
 
