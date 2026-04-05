@@ -2,6 +2,32 @@ export const MAX_COMPARE_UNIVERSITIES = 3;
 
 const STORAGE_KEY = "finask_compare_university_ids";
 
+/** True when this document load is a full reload (F5, Ctrl+Shift+R, etc.), not first visit or back/forward. */
+export function isBrowserReloadNavigation(): boolean {
+  if (typeof performance === "undefined") return false;
+  const entry = performance.getEntriesByType(
+    "navigation"
+  )[0] as PerformanceNavigationTiming | undefined;
+  if (entry?.type === "reload") return true;
+  const legacy = performance as Performance & {
+    navigation?: { type?: number };
+  };
+  // performance.navigation.TYPE_RELOAD === 1 (deprecated but still present in some browsers)
+  return legacy.navigation?.type === 1;
+}
+
+/**
+ * Queue to hydrate on app startup. After a reload, clears persistence so the compare
+ * list does not survive intentional refresh / hard reload.
+ */
+export function getCompareQueueAfterNavigation(): string[] {
+  if (isBrowserReloadNavigation()) {
+    setCompareQueue([]);
+    return [];
+  }
+  return getCompareQueue();
+}
+
 export function getCompareQueue(): string[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);

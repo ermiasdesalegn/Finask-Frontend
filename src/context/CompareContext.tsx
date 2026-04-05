@@ -8,6 +8,7 @@ import {
 } from "react";
 import {
   getCompareQueue,
+  getCompareQueueAfterNavigation,
   MAX_COMPARE_UNIVERSITIES,
   setCompareQueue as persistCompareQueue,
 } from "../lib/compareQueue";
@@ -26,7 +27,7 @@ type CompareContextValue = {
 const CompareContext = createContext<CompareContextValue | null>(null);
 
 export function CompareProvider({ children }: { children: ReactNode }) {
-  const [ids, setIds] = useState<string[]>(() => getCompareQueue());
+  const [ids, setIds] = useState<string[]>(() => getCompareQueueAfterNavigation());
 
   const sync = useCallback((next: string[]) => {
     persistCompareQueue(next);
