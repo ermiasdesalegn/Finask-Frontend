@@ -7,17 +7,18 @@ import {
   Globe,
   Heart,
   LayoutGrid,
-  User,
 } from "lucide-react";
 import { motion } from "motion/react";
 import React, { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { CELEBRITY_PROFILE_FALLBACK } from "../constants/celebrityFallback";
+import { PROGRAM_IMAGE_FALLBACK } from "../constants/defaultMediaFallbacks";
 import {
   DEFAULT_PROGRAM_FIELD_STYLE,
   PROGRAM_FIELD_LABELS,
   PROGRAM_FIELD_STYLES,
 } from "../constants/programFieldStyles";
-import { blurReveal, springPop } from "../lib/motion/pageMotion";
+import { springPop } from "../lib/motion/pageMotion";
 import {
   useCelebritiesListQuery,
   useCelebrityDetailQuery,
@@ -31,16 +32,6 @@ const HERO_FALLBACK =
   "https://images.unsplash.com/photo-1457369804613-52c61a468e7d?auto=format&fit=crop&q=80&w=1200";
 
 const BIO_PREVIEW_CHARS = 280;
-
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) {
-    return (
-      parts[0].charAt(0) + parts[parts.length - 1].charAt(0)
-    ).toUpperCase();
-  }
-  return name.slice(0, 2).toUpperCase();
-}
 
 function formatBirthLine(
   birthday?: string,
@@ -101,6 +92,48 @@ function fieldStyleForProgram(p: Program) {
   return PROGRAM_FIELD_STYLES[k] ?? DEFAULT_PROGRAM_FIELD_STYLE;
 }
 
+/** When GET /celebrities/:slug returns a thin document, fill gaps from the list payload. */
+function mergeCelebrityFromList(
+  detail: Celebrity,
+  list: Celebrity[]
+): Celebrity {
+  const m = list.find(
+    (c) =>
+      (detail._id && c._id === detail._id) ||
+      (detail.slug && c.slug === detail.slug)
+  );
+  if (!m) return detail;
+
+  const out: Celebrity = { ...m, ...detail };
+
+  if (!(detail.bio && detail.bio.trim()) && m.bio?.trim()) out.bio = m.bio;
+  if (!detail.education?.length && m.education?.length)
+    out.education = m.education;
+  if (!detail.careerHighlights?.length && m.careerHighlights?.length)
+    out.careerHighlights = m.careerHighlights;
+  if (!detail.legacyImpact?.length && m.legacyImpact?.length)
+    out.legacyImpact = m.legacyImpact;
+  if (!detail.wikipediaLink && m.wikipediaLink)
+    out.wikipediaLink = m.wikipediaLink;
+  if (!detail.tags?.length && m.tags?.length) out.tags = m.tags;
+  if (detail.family == null && m.family != null) out.family = m.family;
+
+  const dProg = detail.recommendedPrograms;
+  const hasPopulatedPrograms =
+    Array.isArray(dProg) &&
+    dProg.some(
+      (x) => typeof x === "object" && x != null && "name" in x
+    );
+  if (!hasPopulatedPrograms && m.recommendedPrograms?.length) {
+    out.recommendedPrograms = m.recommendedPrograms;
+  }
+
+  if (!detail.questions?.length && m.questions?.length)
+    out.questions = m.questions;
+
+  return out;
+}
+
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <h2 className="mb-4 flex items-center gap-3 text-lg font-black tracking-tight text-slate-900 dark:text-white">
@@ -120,10 +153,16 @@ const CelebrityPage: React.FC = () => {
   const [bioExpanded, setBioExpanded] = useState(false);
 
   const detailQuery = useCelebrityDetailQuery(slugOrId);
-  const celeb = detailQuery.data?.data?.celebrity ?? null;
+  const rawCeleb = detailQuery.data?.data?.celebrity ?? null;
 
   const listQuery = useCelebritiesListQuery({ limit: 250, sort: "name" });
   const allCelebrities = listQuery.data?.data?.celebrities ?? [];
+
+  const celeb = useMemo(
+    () =>
+      rawCeleb ? mergeCelebrityFromList(rawCeleb, allCelebrities) : null,
+    [rawCeleb, allCelebrities]
+  );
 
   const related = useMemo(() => {
     if (!celeb) return [];
@@ -148,7 +187,9 @@ const CelebrityPage: React.FC = () => {
     unwrapMarkdownLink(celeb?.coverImage ?? undefined) ||
     unwrapMarkdownLink(celeb?.profileImage ?? undefined) ||
     HERO_FALLBACK;
-  const profileSrc = unwrapMarkdownLink(celeb?.profileImage ?? undefined);
+  const profileSrc =
+    unwrapMarkdownLink(celeb?.profileImage ?? undefined) ||
+    CELEBRITY_PROFILE_FALLBACK;
 
   const birthLine = formatBirthLine(celeb?.birthday, celeb?.birthplace);
   const deathLine = formatDeathLine(celeb?.deathday, celeb?.deathplace);
@@ -240,17 +281,11 @@ const CelebrityPage: React.FC = () => {
         <div className="relative mx-auto max-w-3xl px-4">
           <div className="absolute -top-14 left-4 z-10 sm:-top-16">
             <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border-4 border-white bg-slate-200 shadow-xl dark:border-zinc-900 dark:bg-zinc-800 sm:h-32 sm:w-32">
-              {profileSrc ? (
-                <img
-                  src={profileSrc}
-                  alt=""
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <span className="text-2xl font-black text-slate-600 dark:text-slate-300">
-                  {initials(celeb.name)}
-                </span>
-              )}
+              <img
+                src={profileSrc}
+                alt=""
+                className="h-full w-full object-cover"
+              />
             </div>
           </div>
         </div>
@@ -287,7 +322,7 @@ const CelebrityPage: React.FC = () => {
           ) : null}
           {celeb.nationality ? (
             <li className="flex gap-3">
-              <User
+              <Globe
                 className="mt-0.5 h-4 w-4 shrink-0 text-slate-400"
                 aria-hidden
               />
@@ -317,12 +352,19 @@ const CelebrityPage: React.FC = () => {
             ))}
           </div>
         ) : null}
+        {celeb.questionCount != null ? (
+          <p className="mt-4 text-xs font-medium text-slate-500 dark:text-slate-500">
+            {celeb.questionCount === 0
+              ? "No community questions yet."
+              : `${celeb.questionCount} community question${celeb.questionCount === 1 ? "" : "s"}.`}
+          </p>
+        ) : null}
       </motion.div>
 
       <motion.div
-        variants={blurReveal}
-        initial="hidden"
-        animate="show"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
         className="mx-auto mt-10 max-w-3xl space-y-12 px-4"
       >
         {bio ? (
@@ -351,6 +393,22 @@ const CelebrityPage: React.FC = () => {
                   <ExternalLink className="h-3.5 w-3.5 opacity-70" />
                 </a>
               ) : null}
+            </div>
+          </section>
+        ) : celeb.wikipediaLink ? (
+          <section>
+            <SectionTitle>Learn more</SectionTitle>
+            <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-zinc-900">
+              <a
+                href={celeb.wikipediaLink}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 text-sm font-bold text-brand-blue hover:underline"
+              >
+                <Globe className="h-4 w-4" />
+                Full article on Wikipedia
+                <ExternalLink className="h-3.5 w-3.5 opacity-70" />
+              </a>
             </div>
           </section>
         ) : null}
@@ -424,14 +482,15 @@ const CelebrityPage: React.FC = () => {
                 const slug = p.slug?.trim() || p._id;
                 const cover =
                   unwrapMarkdownLink(p.coverImage) ||
-                  p.images?.map((x) => unwrapMarkdownLink(x)).find(Boolean);
+                  p.images?.map((x) => unwrapMarkdownLink(x)).find(Boolean) ||
+                  PROGRAM_IMAGE_FALLBACK;
                 const fieldLabel =
                   p.fieldDisplayName?.trim() ||
                   PROGRAM_FIELD_LABELS[p.field || ""] ||
                   p.field;
                 return (
                   <Link
-                    key={p._id}
+                    key={p._id || p.id || slug}
                     to={`/programs/${encodeURIComponent(slug)}`}
                     className="group flex w-[200px] shrink-0 flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm transition-all hover:border-brand-blue/30 hover:shadow-md dark:border-white/10 dark:bg-zinc-900"
                   >
@@ -441,17 +500,11 @@ const CelebrityPage: React.FC = () => {
                         cat.bg
                       )}
                     >
-                      {cover ? (
-                        <img
-                          src={cover}
-                          alt=""
-                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        />
-                      ) : (
-                        <div className="flex h-full items-center justify-center text-3xl">
-                          {cat.icon}
-                        </div>
-                      )}
+                      <img
+                        src={cover}
+                        alt=""
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
                       <span className="absolute right-2 top-2 rounded-full bg-black/35 p-1 backdrop-blur-sm">
                         <Heart className="h-3.5 w-3.5 fill-none text-white" />
                       </span>
@@ -512,9 +565,10 @@ const CelebrityPage: React.FC = () => {
             <SectionTitle>You might also like</SectionTitle>
             <div className="flex gap-4 overflow-x-auto pb-2 pt-1 [scrollbar-width:thin]">
               {related.map((c) => {
-                const thumb =
-                  unwrapMarkdownLink(c.profileImage ?? undefined) ||
-                  unwrapMarkdownLink(c.coverImage ?? undefined);
+                const profileU = unwrapMarkdownLink(c.profileImage ?? undefined);
+                const coverU = unwrapMarkdownLink(c.coverImage ?? undefined);
+                const stripSrc = profileU || coverU || CELEBRITY_PROFILE_FALLBACK;
+                const avatarSrc = profileU || CELEBRITY_PROFILE_FALLBACK;
                 return (
                   <Link
                     key={c._id ?? c.slug ?? c.name}
@@ -522,29 +576,17 @@ const CelebrityPage: React.FC = () => {
                     className="group flex w-[160px] shrink-0 flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm transition-all hover:border-brand-blue/25 dark:border-white/10 dark:bg-zinc-900"
                   >
                     <div className="relative h-24 overflow-hidden bg-slate-200 dark:bg-zinc-800">
-                      {thumb ? (
-                        <img
-                          src={thumb}
-                          alt=""
-                          className="h-full w-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105"
-                        />
-                      ) : (
-                        <div className="h-full w-full bg-gradient-to-br from-slate-300 to-slate-400 dark:from-zinc-700 dark:to-zinc-600" />
-                      )}
+                      <img
+                        src={stripSrc}
+                        alt=""
+                        className="h-full w-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105"
+                      />
                       <div className="absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-white shadow-md dark:border-zinc-900 dark:bg-zinc-800">
-                        {unwrapMarkdownLink(c.profileImage ?? undefined) ? (
-                          <img
-                            src={
-                              unwrapMarkdownLink(c.profileImage ?? undefined)!
-                            }
-                            alt=""
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-xs font-black text-slate-600">
-                            {initials(c.name)}
-                          </span>
-                        )}
+                        <img
+                          src={avatarSrc}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
                       </div>
                     </div>
                     <div className="p-3 text-center">

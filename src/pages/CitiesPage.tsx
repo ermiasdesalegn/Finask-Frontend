@@ -13,11 +13,9 @@ import { useNavigate } from "react-router-dom";
 import { AnimatedGridPattern } from "../components/ui/animated-grid-pattern";
 import { staggerBlurContainer, staggerBlurItem } from "../lib/motion/pageMotion";
 import { useCitiesListQuery } from "../lib/queries";
+import { CITY_IMAGE_FALLBACK } from "../constants/defaultMediaFallbacks";
 import { cn } from "../lib/utils";
 import type { City } from "../types";
-
-const FALLBACK_COVER =
-  "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?auto=format&fit=crop&q=80&w=800";
 
 const CitiesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -207,7 +205,7 @@ function CityCard({
     >
       <div className="relative h-44 overflow-hidden bg-slate-100 dark:bg-zinc-800 md:h-48">
         <img
-          src={city.coverImage || FALLBACK_COVER}
+          src={city.coverImage || CITY_IMAGE_FALLBACK}
           alt=""
           className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
         />

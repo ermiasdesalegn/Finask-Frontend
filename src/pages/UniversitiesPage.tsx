@@ -25,6 +25,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import EthiopiaMap from "../components/home/EthiopiaMap";
 import { AnimatedGridPattern } from "../components/ui/animated-grid-pattern";
 import { REGION_FILTERS } from "../constants";
+import { CITY_IMAGE_FALLBACK } from "../constants/defaultMediaFallbacks";
 import { useDebounce } from "../lib/hooks/useDebounce";
 import { staggerBlurContainer, staggerBlurItem } from "../lib/motion/pageMotion";
 import {
@@ -475,8 +476,7 @@ const UniversitiesPage: React.FC = () => {
       <div className="relative h-48 overflow-hidden bg-slate-100 dark:bg-zinc-800">
         <img
           src={
-            city.coverImage ||
-            "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=600"
+            city.coverImage || CITY_IMAGE_FALLBACK
           }
           alt={city.name}
           className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"

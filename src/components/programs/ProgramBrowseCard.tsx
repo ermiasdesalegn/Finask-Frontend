@@ -1,6 +1,7 @@
 import { BookOpen, ChevronDown, Clock, ExternalLink, Star } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { PROGRAM_IMAGE_FALLBACK } from "../../constants/defaultMediaFallbacks";
 import type { ProgramFieldStyle } from "../../constants/programFieldStyles";
 import { unwrapMarkdownLink } from "../../lib/unwrapMarkdownLink";
 import { formatRatingsQuantityCompact } from "../../lib/universityUi";
@@ -15,11 +16,11 @@ function tagLabels(program: Program): string[] {
   );
 }
 
-function programCover(program: Program): string | undefined {
+function programCover(program: Program): string {
   const c = unwrapMarkdownLink(program.coverImage);
   if (c) return c;
   const first = program.images?.map((u) => unwrapMarkdownLink(u)).find(Boolean);
-  return first;
+  return first || PROGRAM_IMAGE_FALLBACK;
 }
 
 export function ProgramBrowseCard({
@@ -46,22 +47,11 @@ export function ProgramBrowseCard({
     >
       <div className="flex flex-col gap-0 md:flex-row">
         <div className="relative h-44 w-full shrink-0 overflow-hidden bg-slate-100 dark:bg-zinc-800 md:h-auto md:min-h-[200px] md:w-56 lg:w-64">
-          {cover ? (
-            <img
-              src={cover}
-              alt=""
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="flex h-full min-h-[11rem] flex-col items-center justify-center gap-2 bg-slate-100 px-4 dark:bg-zinc-800">
-              <span className="text-5xl drop-shadow-sm">{cat.icon}</span>
-              <BookOpen
-                size={22}
-                className={`opacity-50 ${cat.accent}`}
-                strokeWidth={2}
-              />
-            </div>
-          )}
+          <img
+            src={cover}
+            alt=""
+            className="h-full w-full object-cover"
+          />
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent md:bg-gradient-to-r" />
         </div>
 

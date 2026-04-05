@@ -17,6 +17,10 @@ import {
   useRemoveFavoriteMutation,
 } from "../lib/queries/favorites";
 import {
+  CITY_IMAGE_FALLBACK,
+  UNIVERSITY_IMAGE_FALLBACK,
+} from "../constants/defaultMediaFallbacks";
+import {
   displayRating,
   formatRatingsQuantityCompact,
   universityCity,
@@ -35,9 +39,6 @@ const TABS: { id: Tab; label: string; icon: typeof Building2 }[] = [
   { id: "cities", label: "Cities", icon: MapPin },
   { id: "campuses", label: "Campuses", icon: Users },
 ];
-
-const IMG_FALLBACK =
-  "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=600";
 
 function modelMatches(f: Favorite, tab: Tab): boolean {
   const m = String(f.onModel || "").toLowerCase();
@@ -68,14 +69,14 @@ function cityPath(city: City): string {
 }
 
 function cityCover(city: City): string {
-  return city.coverImage?.trim() || IMG_FALLBACK;
+  return city.coverImage?.trim() || CITY_IMAGE_FALLBACK;
 }
 
 function campusCover(campus: Campus): string {
   return (
     campus.coverImage?.trim() ||
     campus.images?.[0]?.trim() ||
-    IMG_FALLBACK
+    UNIVERSITY_IMAGE_FALLBACK
   );
 }
 

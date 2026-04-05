@@ -15,6 +15,7 @@ import { motion } from "motion/react";
 import React from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import { ProgramUniversitiesScroller } from "../components/programs/ProgramUniversitiesScroller";
+import { PROGRAM_IMAGE_FALLBACK } from "../constants/defaultMediaFallbacks";
 import {
   DEFAULT_PROGRAM_FIELD_STYLE,
   PROGRAM_FIELD_STYLES,
@@ -26,6 +27,7 @@ import {
   universityCover,
   universityPath,
 } from "../lib/universityUi";
+import { unwrapMarkdownLink } from "../lib/unwrapMarkdownLink";
 import type { Review } from "../types";
 
 function reviewAuthorName(r: Review): string {
@@ -89,7 +91,10 @@ const ProgramPage: React.FC = () => {
   const cat =
     PROGRAM_FIELD_STYLES[program.field] ?? DEFAULT_PROGRAM_FIELD_STYLE;
   const tags: string[] = program.tagsDisplayNames ?? program.tags ?? [];
-  const heroImage = program.coverImage || program.images?.[0];
+  const heroImage =
+    unwrapMarkdownLink(program.coverImage) ||
+    program.images?.map((u) => unwrapMarkdownLink(u)).find(Boolean) ||
+    PROGRAM_IMAGE_FALLBACK;
   const reviews = program.reviews ?? [];
   const questions = program.questions ?? [];
   const embeddedOfferingCount =
@@ -128,15 +133,13 @@ const ProgramPage: React.FC = () => {
 
       <main className="mx-auto max-w-5xl px-6 py-8 lg:px-8">
         <motion.div initial="hidden" animate="show" variants={blurReveal} className="space-y-8">
-          {heroImage ? (
-            <div className="overflow-hidden rounded-3xl border border-slate-200/60 dark:border-white/10">
-              <img
-                src={heroImage}
-                alt={program.name}
-                className="h-56 w-full object-cover md:h-72"
-              />
-            </div>
-          ) : null}
+          <div className="overflow-hidden rounded-3xl border border-slate-200/60 dark:border-white/10">
+            <img
+              src={heroImage}
+              alt={program.name}
+              className="h-56 w-full object-cover md:h-72"
+            />
+          </div>
 
           <div className="flex flex-wrap items-center gap-3">
             <span

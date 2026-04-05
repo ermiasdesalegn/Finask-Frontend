@@ -19,11 +19,9 @@ import React from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { staggerBlurContainer, staggerBlurItem } from "../lib/motion/pageMotion";
 import { useCityByIdQuery } from "../lib/queries/cities";
+import { CITY_HERO_IMAGE_FALLBACK } from "../constants/defaultMediaFallbacks";
 import { universityPath } from "../lib/universityUi";
 import type { University } from "../types";
-
-const HERO_FALLBACK =
-  "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?auto=format&fit=crop&q=80&w=1600";
 
 const containerVariants = staggerBlurContainer;
 const itemVariants = staggerBlurItem;
@@ -127,7 +125,7 @@ const CityPage: React.FC = () => {
       : []),
   ] as const;
 
-  const heroSrc = city.coverImage || HERO_FALLBACK;
+  const heroSrc = city.coverImage || CITY_HERO_IMAGE_FALLBACK;
 
   return (
     <div className="min-h-screen bg-slate-50/50 pb-20 transition-colors dark:bg-[#0a0a0a]">

@@ -36,10 +36,8 @@ import {
   universityCityId,
   universityCover,
 } from "../lib/universityUi";
+import { PROGRAM_IMAGE_FALLBACK } from "../constants/defaultMediaFallbacks";
 import type { Program, University } from "../types";
-
-const PROGRAM_IMG_FALLBACK =
-  "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&q=80&w=400";
 
 const containerVariants = staggerBlurContainer;
 const itemVariants = staggerBlurItem;
@@ -297,7 +295,7 @@ const UniversityPage: React.FC = () => {
                       const fieldLabel =
                         PROGRAM_FIELD_LABELS[prog.field] ?? prog.fieldDisplayName ?? prog.field;
                       const thumb =
-                        prog.coverImage?.trim() || PROGRAM_IMG_FALLBACK;
+                        prog.coverImage?.trim() || PROGRAM_IMAGE_FALLBACK;
                       return (
                         <Link
                           key={row._id}

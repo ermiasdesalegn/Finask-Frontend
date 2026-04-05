@@ -1,7 +1,5 @@
+import { UNIVERSITY_IMAGE_FALLBACK } from "../constants/defaultMediaFallbacks";
 import type { University } from "../types";
-
-const FALLBACK_IMG =
-  "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=600";
 
 export function universityPath(uni: University): string {
   const s = uni.slug || uni._id || uni.id;
@@ -9,7 +7,7 @@ export function universityPath(uni: University): string {
 }
 
 export function universityCover(uni: University): string {
-  return uni.coverImage || uni.images?.[0] || FALLBACK_IMG;
+  return uni.coverImage || uni.images?.[0] || UNIVERSITY_IMAGE_FALLBACK;
 }
 
 export function universityCity(uni: University): string {

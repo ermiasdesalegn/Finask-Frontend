@@ -13,11 +13,9 @@ import { useNavigate } from "react-router-dom";
 import { AnimatedGridPattern } from "../components/ui/animated-grid-pattern";
 import { staggerBlurContainer, staggerBlurItem } from "../lib/motion/pageMotion";
 import { useCampusesListQuery } from "../lib/queries";
+import { UNIVERSITY_IMAGE_FALLBACK } from "../constants/defaultMediaFallbacks";
 import { cn } from "../lib/utils";
 import type { Campus } from "../types";
-
-const FALLBACK_COVER =
-  "https://images.unsplash.com/photo-1535905557558-afc4877a26fc?auto=format&fit=crop&q=80&w=800";
 
 function universityHref(c: Campus): string | null {
   const u = c.university;
@@ -222,7 +220,7 @@ function CampusCard({
     >
       <div className="relative h-48 overflow-hidden bg-slate-100 dark:bg-zinc-800">
         <img
-          src={campus.coverImage || campus.images?.[0] || FALLBACK_COVER}
+          src={campus.coverImage || campus.images?.[0] || UNIVERSITY_IMAGE_FALLBACK}
           alt=""
           className="absolute inset-0 h-full w-full object-cover"
         />
