@@ -3,9 +3,13 @@ import * as mock from "./mockData";
 
 const TOKEN_KEY = "token";
 
+/** Local default; production builds fall back to deployed API if VITE_API_URL is unset (e.g. Vercel). */
+const API_FALLBACK_DEV = "http://localhost:3000/api/v1";
+const API_FALLBACK_PROD = "https://finask.onrender.com/app/v1";
+
 export const API_BASE =
   import.meta.env.VITE_API_URL?.replace(/\/$/, "") ||
-  "http://localhost:3000/api/v1";
+  (import.meta.env.DEV ? API_FALLBACK_DEV : API_FALLBACK_PROD);
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
 
