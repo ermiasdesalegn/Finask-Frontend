@@ -1,8 +1,6 @@
 import { emitAuthInvalid } from "./authEvents";
 import * as mock from "./mockData";
 
-const TOKEN_KEY = "token";
-
 /** Strip trailing slash; if the value has no scheme, prepend https:// (avoids relative URLs on the frontend origin). */
 function normalizeApiBase(raw: string | undefined): string {
   const trimmed = raw?.trim().replace(/\/$/, "") ?? "";
@@ -111,12 +109,6 @@ function notifyNetwork(message: string): void {
   toastNotifier?.(message);
 }
 
-function authHeader(): Record<string, string> {
-  const token = localStorage.getItem(TOKEN_KEY);
-  if (!token) return {};
-  return { Authorization: `Bearer ${token}` };
-}
-
 function joinUrl(path: string): string {
   const p = path.startsWith("/") ? path : `/${path}`;
   return `${API_BASE}${p}`;
@@ -157,10 +149,10 @@ export async function apiGet<T = unknown>(
   try {
     res = await fetch(joinUrl(path), {
       ...init,
+      credentials: "include",
       method: "GET",
       headers: {
         Accept: "application/json",
-        ...authHeader(),
         ...(init?.headers as Record<string, string>),
       },
     });
@@ -172,7 +164,6 @@ export async function apiGet<T = unknown>(
   const body = await parseJsonSafe(res);
 
   if (res.status === 401) {
-    localStorage.removeItem(TOKEN_KEY);
     emitAuthInvalid();
   }
 
@@ -198,12 +189,12 @@ export async function apiPost<T = unknown>(
     "Content-Type": "application/json",
     ...(rest.headers as Record<string, string>),
   };
-  if (!skipAuth) Object.assign(headers, authHeader());
 
   let res: Response;
   try {
     res = await fetch(joinUrl(path), {
       ...rest,
+      credentials: "include",
       method: "POST",
       headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,
@@ -216,7 +207,6 @@ export async function apiPost<T = unknown>(
   const parsed = await parseJsonSafe(res);
 
   if (res.status === 401 && !skipAuth) {
-    localStorage.removeItem(TOKEN_KEY);
     emitAuthInvalid();
   }
 
@@ -243,10 +233,10 @@ export async function apiDelete<T = unknown>(
   try {
     res = await fetch(joinUrl(path), {
       ...init,
+      credentials: "include",
       method: "DELETE",
       headers: {
         Accept: "application/json",
-        ...authHeader(),
         ...(init?.headers as Record<string, string>),
       },
     });
@@ -258,7 +248,6 @@ export async function apiDelete<T = unknown>(
   const body = await parseJsonSafe(res);
 
   if (res.status === 401) {
-    localStorage.removeItem(TOKEN_KEY);
     emitAuthInvalid();
   }
 

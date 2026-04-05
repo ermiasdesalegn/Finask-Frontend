@@ -16,8 +16,13 @@ function SectionSkeleton({ className }: { className?: string }) {
 }
 
 const HomePage = () => {
-  const { token } = useAuth();
-  const tokenFp = token ? "auth" : "guest";
+  const { isAuthenticated, sessionStatus } = useAuth();
+  const tokenFp =
+    sessionStatus === "loading"
+      ? "bootstrapping"
+      : isAuthenticated
+        ? "auth"
+        : "guest";
 
   const { data, isPending, isError, error } = useHomePageQuery(tokenFp);
   const home = data?.data ?? null;
