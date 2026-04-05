@@ -346,7 +346,7 @@ const CelebrityPage: React.FC = () => {
                   rel="noreferrer"
                   className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-brand-blue hover:underline"
                 >
-                  <Glob className="h-4 w-4" />
+                  <Globe className="h-4 w-4" />
                   Full article on Wikipedia
                   <ExternalLink className="h-3.5 w-3.5 opacity-70" />
                 </a>
