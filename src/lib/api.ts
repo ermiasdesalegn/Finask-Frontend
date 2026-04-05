@@ -3,13 +3,22 @@ import * as mock from "./mockData";
 
 const TOKEN_KEY = "token";
 
+/** Strip trailing slash; if the value has no scheme, prepend https:// (avoids relative URLs on the frontend origin). */
+function normalizeApiBase(raw: string | undefined): string {
+  const trimmed = raw?.trim().replace(/\/$/, "") ?? "";
+  if (!trimmed) return "";
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+}
+
 /** Local default; production builds fall back to deployed API if VITE_API_URL is unset (e.g. Vercel). */
 const API_FALLBACK_DEV = "http://localhost:3000/api/v1";
-const API_FALLBACK_PROD = "https://finask.onrender.com/app/v1";
+const API_FALLBACK_PROD = "https://finask.onrender.com/api/v1";
+
+const fromEnv = normalizeApiBase(import.meta.env.VITE_API_URL);
 
 export const API_BASE =
-  import.meta.env.VITE_API_URL?.replace(/\/$/, "") ||
-  (import.meta.env.DEV ? API_FALLBACK_DEV : API_FALLBACK_PROD);
+  fromEnv || (import.meta.env.DEV ? API_FALLBACK_DEV : API_FALLBACK_PROD);
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
 
