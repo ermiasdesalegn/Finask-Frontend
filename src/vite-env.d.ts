@@ -2,6 +2,8 @@
 
 interface ImportMetaEnv {
   readonly VITE_API_URL?: string;
+  /** Set to `"false"` to skip the dev proxy and call `VITE_API_URL` directly (cookies won’t work cross-origin). */
+  readonly VITE_DEV_API_PROXY?: string;
 }
 
 interface ImportMeta {

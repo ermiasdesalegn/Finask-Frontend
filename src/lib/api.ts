@@ -15,8 +15,19 @@ const API_FALLBACK_PROD = "https://finask.onrender.com/api/v1";
 
 const fromEnv = normalizeApiBase(import.meta.env.VITE_API_URL);
 
-export const API_BASE =
-  fromEnv || (import.meta.env.DEV ? API_FALLBACK_DEV : API_FALLBACK_PROD);
+/**
+ * In dev, default to same-origin `/api/v1` so the Vite proxy can forward to
+ * `VITE_API_URL`. Cross-origin calls (e.g. localhost → finask.onrender.com) do
+ * not send `SameSite=Lax` cookies on XHR/fetch, so login JSON succeeds but
+ * `getMe` / `favorites` get 401 and `emitAuthInvalid` clears the session.
+ * Set `VITE_DEV_API_PROXY=false` to call the API URL directly (no cookie auth).
+ */
+const devUseProxy =
+  import.meta.env.DEV && import.meta.env.VITE_DEV_API_PROXY !== "false";
+
+export const API_BASE = devUseProxy
+  ? "/api/v1"
+  : fromEnv || (import.meta.env.DEV ? API_FALLBACK_DEV : API_FALLBACK_PROD);
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
 
