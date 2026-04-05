@@ -1,19 +1,22 @@
 import { emitAuthInvalid } from "./authEvents";
 import * as mock from "./mockData";
 
-/** Strip trailing slash; if the value has no scheme, prepend https:// (avoids relative URLs on the frontend origin). */
-function normalizeApiBase(raw: string | undefined): string {
-  const trimmed = raw?.trim().replace(/\/$/, "") ?? "";
-  if (!trimmed) return "";
-  if (/^https?:\/\//i.test(trimmed)) return trimmed;
-  return `https://${trimmed}`;
-}
-
 /** Local default; production builds fall back to deployed API if VITE_API_URL is unset (e.g. Vercel). */
 const API_FALLBACK_DEV = "http://localhost:3000/api/v1";
 const API_FALLBACK_PROD = "https://finask.onrender.com/api/v1";
 
-const fromEnv = normalizeApiBase(import.meta.env.VITE_API_URL);
+/**
+ * Normalize env API base. Path-only values (e.g. `/api/v1`) are returned as-is for
+ * callers to reject in production — they would otherwise fetch the **page origin**
+ * (e.g. finask-frontend.vercel.app) and 404 on static hosting.
+ */
+function normalizeApiBase(raw: string | undefined): string {
+  const trimmed = raw?.trim().replace(/\/$/, "") ?? "";
+  if (!trimmed) return "";
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (trimmed.startsWith("/")) return trimmed;
+  return `https://${trimmed}`;
+}
 
 /**
  * In dev, default to same-origin `/api/v1` so the Vite proxy can forward to
@@ -21,13 +24,35 @@ const fromEnv = normalizeApiBase(import.meta.env.VITE_API_URL);
  * not send `SameSite=Lax` cookies on XHR/fetch, so login JSON succeeds but
  * `getMe` / `favorites` get 401 and `emitAuthInvalid` clears the session.
  * Set `VITE_DEV_API_PROXY=false` to call the API URL directly (no cookie auth).
+ *
+ * In **production**, only an absolute `http(s)://host/...` base is allowed; anything
+ * else (empty, `/api/v1`, `api/v1`) falls back to `API_FALLBACK_PROD` so Vercel never
+ * calls non-existent `/api/v1` on the static app.
  */
-const devUseProxy =
-  import.meta.env.DEV && import.meta.env.VITE_DEV_API_PROXY !== "false";
+function resolveApiBase(): string {
+  if (import.meta.env.DEV && import.meta.env.VITE_DEV_API_PROXY !== "false") {
+    return "/api/v1";
+  }
 
-export const API_BASE = devUseProxy
-  ? "/api/v1"
-  : fromEnv || (import.meta.env.DEV ? API_FALLBACK_DEV : API_FALLBACK_PROD);
+  const fallback = import.meta.env.DEV ? API_FALLBACK_DEV : API_FALLBACK_PROD;
+  const normalized = normalizeApiBase(import.meta.env.VITE_API_URL);
+  if (!normalized) return fallback;
+
+  if (normalized.startsWith("/")) {
+    return import.meta.env.DEV ? normalized : API_FALLBACK_PROD;
+  }
+
+  try {
+    const u = new URL(normalized);
+    if (!u.hostname) return API_FALLBACK_PROD;
+  } catch {
+    return API_FALLBACK_PROD;
+  }
+
+  return normalized;
+}
+
+export const API_BASE = resolveApiBase();
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
 
