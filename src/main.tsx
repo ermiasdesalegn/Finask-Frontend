@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App.tsx";
 import { AuthProvider } from "./context/AuthContext";
+import { CompareProvider } from "./context/CompareContext";
 import { createQueryClient } from "./lib/queryClient";
 import "./index.css";
 
@@ -13,9 +14,11 @@ function Root() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
+        <CompareProvider>
+          <AuthProvider>
+            <App />
+          </AuthProvider>
+        </CompareProvider>
       </BrowserRouter>
     </QueryClientProvider>
   );

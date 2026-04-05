@@ -85,4 +85,8 @@ export const queryKeys = {
 
   celebrityDetail: (slugOrId: string) =>
     ["celebrities", "detail", slugOrId] as const,
+
+  /** Order of ids matters for column order — use stable joined string from caller */
+  universitiesCompare: (idsKey: string, lat: number | null, lng: number | null) =>
+    ["universities", "compare", idsKey, lat, lng] as const,
 };

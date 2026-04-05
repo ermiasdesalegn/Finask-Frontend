@@ -5,6 +5,7 @@ import {
   Building2,
   Calendar,
   ExternalLink,
+  GitCompare,
   Globe,
   Heart,
   Mail,
@@ -22,6 +23,8 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   PROGRAM_FIELD_LABELS,
 } from "../constants/programFieldStyles";
+import { useCompare } from "../context/CompareContext";
+import { showApiToast } from "../lib/api";
 import { staggerBlurContainer, staggerBlurItem } from "../lib/motion/pageMotion";
 import {
   useUniversityBySlugQuery,
@@ -54,10 +57,12 @@ const UniversityPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const [isFavorite, setIsFavorite] = useState(false);
+  const { add, remove, contains } = useCompare();
 
   const universityQuery = useUniversityBySlugQuery(slug);
   const uni = (universityQuery.data as University | undefined) ?? null;
   const uniId = uni?._id ?? "";
+  const inCompareList = uniId ? contains(uniId) : false;
 
   const campusesQuery = useUniversityCampusesQuery(uniId || undefined);
   const campuses = campusesQuery.data?.data?.campuses ?? [];
@@ -137,6 +142,32 @@ const UniversityPage: React.FC = () => {
             <div className="h-6 w-1.5 rounded-full bg-brand-yellow shadow-[0_0_10px_rgba(250,204,21,0.5)]" />
             <h1 className="line-clamp-1 text-xl font-black tracking-tight text-slate-900 dark:text-white md:text-2xl">{uni.name}</h1>
           </div>
+          <button
+            type="button"
+            title={inCompareList ? "Remove from compare" : "Add to compare"}
+            onClick={() => {
+              if (!uniId) return;
+              if (inCompareList) {
+                remove(uniId);
+                return;
+              }
+              const r = add(uniId);
+              if (r === "max") {
+                showApiToast(
+                  "Compare list is full (max 3). Remove one from the list first."
+                );
+              }
+            }}
+            className="rounded-full bg-slate-100 p-2.5 transition-all hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700"
+          >
+            <GitCompare
+              className={`h-5 w-5 transition-colors ${
+                inCompareList
+                  ? "text-brand-blue"
+                  : "text-slate-700 dark:text-slate-300"
+              }`}
+            />
+          </button>
           <button type="button" onClick={() => setIsFavorite(!isFavorite)}
             className="rounded-full bg-slate-100 p-2.5 transition-all hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700">
             <Heart

@@ -1,9 +1,11 @@
-import { Heart, LogOut, Menu, Moon, Sun, X } from "lucide-react";
+import { GitCompare, Heart, LogOut, Menu, Moon, Sun, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import finaskLogo from "../../assets/finask-logo.png";
 import { useAuth } from "../../context/AuthContext";
+import { useCompare } from "../../context/CompareContext";
+import { comparePathFromUniversityIds } from "../../lib/compareQueue";
 import { cn } from "../../lib/utils";
 import LoginModal from "./LoginModal";
 
@@ -21,6 +23,8 @@ const Navbar = ({
   const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuth();
+  const { ids: compareIds } = useCompare();
+  const compareDest = comparePathFromUniversityIds(compareIds);
 
   useEffect(() => {
     let lastScrollY = window.scrollY;
@@ -50,8 +54,24 @@ const Navbar = ({
   };
 
   const onFavoritesPage = location.pathname === "/favorites";
+  const onComparePage = location.pathname === "/compare";
 
   const closeMenu = () => setIsMobileMenuOpen(false);
+
+  const mainNavLinks = [
+    { name: "Home", path: "/" },
+    { name: "Discover", path: "/discover" },
+    { name: "Universities", path: "/universities" },
+    { name: "Programs", path: "/programs" },
+    { name: "Great Minds", path: "/celebrities" },
+    { name: "About", path: "/about" },
+  ] as const;
+
+  /** Compare lives only as the icon + badge control (right cluster), not as a text nav link. */
+  const condensedHidden = new Set(["Great Minds"]);
+  const visibleNavLinks = isScrolled
+    ? mainNavLinks.filter((l) => !condensedHidden.has(l.name))
+    : mainNavLinks;
 
   return (
     <>
@@ -79,19 +99,13 @@ const Navbar = ({
             </Link>
 
             <div className="hidden items-center gap-8 text-sm font-normal md:flex">
-              {[
-                { name: "Home", path: "/" },
-                { name: "Discover", path: "/discover" },
-                { name: "Universities", path: "/universities" },
-                { name: "Programs", path: "/programs" },
-                { name: "Great Minds", path: "/celebrities" },
-                { name: "About", path: "/about" },
-              ].map((link) => {
+              {visibleNavLinks.map((link) => {
                 const active = isActive(link.path);
+                const dest = "to" in link && link.to ? link.to : link.path;
                 return (
                   <Link
                     key={link.name}
-                    to={link.path}
+                    to={dest}
                     className={cn(
                       "group relative pb-1 transition-colors",
                       active
@@ -112,6 +126,38 @@ const Navbar = ({
             </div>
 
             <div className="flex items-center gap-4">
+              <button
+                type="button"
+                onClick={() => navigate(compareDest)}
+                aria-label={
+                  compareIds.length >= 2
+                    ? `Open comparison (${compareIds.length} in list)`
+                    : "Compare — add 2–3 universities from listings"
+                }
+                title={
+                  compareIds.length >= 2
+                    ? "Open comparison"
+                    : "Compare — add 2–3 universities from listings"
+                }
+                className="rounded-full p-2  h-8 w-8 transition-colors hover:bg-slate-100 dark:hover:bg-white/10"
+              >
+                <span className="relative inline-flex">
+                  <GitCompare
+                    size={20}
+                    className={
+                      onComparePage
+                        ? "text-brand-blue"
+                        : "text-slate-600 dark:text-slate-400"
+                    }
+                  />
+                  {compareIds.length > 0 ? (
+                    <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-blue px-1 text-[10px] font-bold leading-none text-white">
+                      {compareIds.length}
+                    </span>
+                  ) : null}
+                </span>
+              </button>
+
               {/* Favorites */}
               <button
                 type="button"
@@ -178,17 +224,13 @@ const Navbar = ({
               exit={{ opacity: 0, y: -20 }}
               className="absolute left-0 right-0 top-full flex flex-col gap-4 border-t border-slate-100 bg-white/80 p-6 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-[#1e1e1e]/80 md:hidden"
             >
-              {[
-                { name: "Home", path: "/" },
-                { name: "Universities", path: "/universities" },
-                { name: "Discover", path: "/discover" },
-                { name: "Programs", path: "/programs" },
-                { name: "Great Minds", path: "/celebrities" },
-                { name: "About", path: "/about" },
-              ].map((link) => (
+              {(isScrolled
+                ? mainNavLinks.filter((l) => !condensedHidden.has(l.name))
+                : mainNavLinks
+              ).map((link) => (
                 <Link
                   key={link.name}
-                  to={link.path}
+                  to={"to" in link && link.to ? link.to : link.path}
                   onClick={closeMenu}
                   className={cn(
                     "text-left text-lg font-normal transition-colors",

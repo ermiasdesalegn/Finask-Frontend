@@ -1,16 +1,14 @@
-import { Star } from "lucide-react";
+import { ArrowRight, Star } from "lucide-react";
+import { Link } from "react-router-dom";
+import { comparePathFromUniversityIds } from "../../lib/compareQueue";
 import {
   displayRating,
   universityCity,
+  universityClimateFocus,
   universityCover,
   universityRank,
 } from "../../lib/universityUi";
 import type { University } from "../../types";
-
-const climateHint = (uni: University): string => {
-  const tags = uni.tagsDisplayNames ?? uni.tags ?? [];
-  return tags[0] ?? "—";
-};
 
 const ComparisonEngine = ({
   universities,
@@ -39,16 +37,28 @@ const ComparisonEngine = ({
     return null;
   }
 
+  const compareIds = slice
+    .map((u) => u._id)
+    .filter((id): id is string => typeof id === "string" && Boolean(id));
+  const compareHref = comparePathFromUniversityIds(compareIds);
+
   return (
     <section className="px-6 py-20">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-16 text-center">
+        <div className="mb-10 text-center">
           <h2 className="mb-4 text-4xl font-bold dark:text-white">
             Comparison Engine
           </h2>
-          <p className="text-slate-600 dark:text-slate-400">
+          <p className="mx-auto mb-6 max-w-xl text-slate-600 dark:text-slate-400">
             Make data-driven decisions with side-by-side analysis
           </p>
+          <Link
+            to={compareHref}
+            className="inline-flex items-center gap-2 rounded-full bg-brand-blue px-8 py-3.5 text-sm font-bold text-white shadow-lg shadow-blue-500/25 transition-all hover:bg-blue-700"
+          >
+            Open full comparison
+            <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
 
         <div className="overflow-x-auto rounded-[2rem] border border-slate-100 shadow-xl dark:border-white/10">
@@ -105,7 +115,7 @@ const ComparisonEngine = ({
                       ) : row.key === "ranking" ? (
                         universityRank(uni)
                       ) : row.key === "climate" ? (
-                        climateHint(uni)
+                        universityClimateFocus(uni)
                       ) : (
                         universityCity(uni) || "—"
                       )}
@@ -116,6 +126,16 @@ const ComparisonEngine = ({
             </tbody>
           </table>
         </div>
+
+        <p className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
+          <Link
+            to={compareHref}
+            className="font-semibold text-brand-blue underline-offset-4 hover:underline"
+          >
+            Detailed compare page
+          </Link>{" "}
+          — full API rows, your location for distance, AI summary.
+        </p>
       </div>
     </section>
   );

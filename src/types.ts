@@ -384,3 +384,29 @@ export interface CampusesListResponse {
   results: number;
   data: { campuses: Campus[] };
 }
+
+/** POST /universities/compare — see finask/controllers/comparisonController.js */
+export interface ComparisonFactRow {
+  label: string;
+  values: Record<string, string | number>;
+}
+
+export interface CompareUniversityColumn {
+  id: string;
+  name: string;
+  slug?: string;
+  abbreviation: string;
+  coverImage?: string;
+  ratingsAverage?: number;
+  ratingsQuantity?: number;
+  city?: string | null;
+}
+
+export interface CompareUniversitiesApiResponse {
+  status: string;
+  data: {
+    universities: CompareUniversityColumn[];
+    aiSummary: string | null;
+    comparisonFacts: ComparisonFactRow[];
+  };
+}

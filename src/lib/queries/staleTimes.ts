@@ -14,4 +14,6 @@ export const STALE_MS = {
   favorites: 30_000,
   celebritiesList: 5 * 60_000,
   celebrityDetail: 5 * 60_000,
+  /** POST /universities/compare — facts + optional AI summary */
+  universitiesCompare: 60_000,
 } as const;

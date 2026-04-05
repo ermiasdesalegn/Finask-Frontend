@@ -5,6 +5,7 @@ import {
     ChevronRight,
     CloudSun,
     Filter,
+    GitCompare,
     Heart,
     Landmark,
     LayoutGrid,
@@ -21,11 +22,14 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import React, { useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import EthiopiaMap from "../components/home/EthiopiaMap";
 import { AnimatedGridPattern } from "../components/ui/animated-grid-pattern";
 import { REGION_FILTERS } from "../constants";
+import { useCompare } from "../context/CompareContext";
 import { CITY_IMAGE_FALLBACK } from "../constants/defaultMediaFallbacks";
+import { showApiToast } from "../lib/api";
+import { comparePathFromUniversityIds } from "../lib/compareQueue";
 import { useDebounce } from "../lib/hooks/useDebounce";
 import { staggerBlurContainer, staggerBlurItem } from "../lib/motion/pageMotion";
 import {
@@ -83,6 +87,12 @@ const UniversitiesPage: React.FC = () => {
   });
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const {
+    ids: compareIds,
+    add: addToCompare,
+    remove: removeFromCompare,
+    contains: isInCompare,
+  } = useCompare();
 
   const debouncedQuery = useDebounce(searchQuery, 300);
   const isSearching = debouncedQuery.trim().length >= 2;
@@ -429,6 +439,37 @@ const UniversitiesPage: React.FC = () => {
           )}
           <button
             type="button"
+            title={
+              uni._id && isInCompare(uni._id)
+                ? "Remove from compare"
+                : "Add to compare"
+            }
+            className={cn(
+              "absolute right-12 top-3 rounded-full p-1.5 text-white backdrop-blur-md transition-all hover:scale-110 active:scale-95",
+              uni._id && isInCompare(uni._id)
+                ? "bg-brand-blue/90 hover:bg-brand-blue"
+                : "bg-black/40 hover:bg-black/60"
+            )}
+            onClick={(e) => {
+              e.stopPropagation();
+              const id = uni._id;
+              if (!id) return;
+              if (isInCompare(id)) {
+                removeFromCompare(id);
+                return;
+              }
+              const r = addToCompare(id);
+              if (r === "max") {
+                showApiToast(
+                  "Compare list is full (max 3). Remove one to add another."
+                );
+              }
+            }}
+          >
+            <GitCompare size={14} />
+          </button>
+          <button
+            type="button"
             className="absolute right-3 top-3 rounded-full bg-black/40 p-1.5 text-white backdrop-blur-md transition-all hover:scale-110 hover:bg-black/60 active:scale-95"
             onClick={(e) => e.stopPropagation()}
           >
@@ -539,7 +580,7 @@ const UniversitiesPage: React.FC = () => {
       </div>
 
       <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
-        <section className="flex flex-col items-center justify-between gap-6 pb-6 pt-4 text-center md:flex-row md:text-left">
+        <section className="flex flex-col items-center justify-between gap-6 pb-6 pt-4 text-center md:flex-row md:items-end md:text-left">
           <div>
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
@@ -556,6 +597,49 @@ const UniversitiesPage: React.FC = () => {
             >
               Find Your <span className="text-brand-blue">Perfect Fit</span>
             </motion.h1>
+          </div>
+          <div className="flex w-full max-w-xs shrink-0 flex-col items-stretch gap-3 md:max-w-sm md:items-end">
+            {compareIds.length >= 2 ? (
+              <Link
+                to={comparePathFromUniversityIds(compareIds)}
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-blue px-6 py-3 text-sm font-bold text-white shadow-lg shadow-blue-500/25 transition-colors hover:bg-blue-700"
+              >
+                <GitCompare size={18} aria-hidden />
+                See side-by-side comparison
+                <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-semibold tabular-nums">
+                  {compareIds.length}/3
+                </span>
+              </Link>
+            ) : compareIds.length === 1 ? (
+              <Link
+                to="/compare"
+                className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-brand-blue/50 bg-brand-blue/10 px-6 py-3 text-sm font-bold text-brand-blue transition-colors hover:border-brand-blue hover:bg-brand-blue/15 dark:bg-brand-blue/15"
+              >
+                <GitCompare size={18} aria-hidden />
+                Compare list — add one more
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={() =>
+                  document.getElementById("browse-university-cards")?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start",
+                  })
+                }
+                className="inline-flex items-center justify-center gap-2 rounded-full border-2 border-slate-200 bg-white/80 px-6 py-3 text-sm font-bold text-slate-700 transition-colors hover:border-brand-blue/40 hover:text-brand-blue dark:border-white/15 dark:bg-zinc-800/80 dark:text-slate-200 dark:hover:border-brand-blue/50"
+              >
+                <GitCompare size={18} aria-hidden />
+                Browse schools to compare
+              </button>
+            )}
+            <p className="text-center text-sm leading-relaxed text-slate-600 dark:text-slate-400 md:text-right">
+              {compareIds.length === 0
+                ? "Tap the compare icon on a card to start a shortlist. When you’ve picked at least two, you’ll get a full breakdown—rankings, climate, ratings, and more."
+                : compareIds.length === 1
+                  ? "You’ve chosen one. Add another from the cards below, then open the comparison to see them together."
+                  : "Your picks are saved. Open the comparison whenever you’re ready for the full view."}
+            </p>
           </div>
         </section>
 
@@ -868,7 +952,10 @@ const UniversitiesPage: React.FC = () => {
         </section>
 
         {listLoading && rawUniversities.length === 0 ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div
+            id="browse-university-cards"
+            className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+          >
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div
                 key={i}
@@ -878,6 +965,7 @@ const UniversitiesPage: React.FC = () => {
           </div>
         ) : isBrowsingMode ? (
           <motion.div
+            id="browse-university-cards"
             variants={containerVariants}
             initial="hidden"
             animate="show"
@@ -915,7 +1003,7 @@ const UniversitiesPage: React.FC = () => {
             />
           </motion.div>
         ) : (
-          <section className="mb-20">
+          <section id="browse-university-cards" className="mb-20">
             <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
               <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
                 <div className="flex items-center gap-3">

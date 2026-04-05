@@ -13,6 +13,7 @@ import CelebritiesPage from "./pages/CelebritiesPage";
 import CelebrityPage from "./pages/CelebrityPage";
 import CitiesPage from "./pages/CitiesPage";
 import CityPage from "./pages/CityPage";
+import ComparePage from "./pages/ComparePage";
 import DiscoverPage from "./pages/DiscoverPage";
 import FavoritesPage from "./pages/FavoritesPage";
 import HomePage from "./pages/HomePage";
@@ -124,6 +125,15 @@ function AppShell() {
               element={
                 <div className="min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]">
                   <UniversityPage />
+                </div>
+              }
+            />
+
+            <Route
+              path="/compare"
+              element={
+                <div className="min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]">
+                  <ComparePage />
                 </div>
               }
             />

@@ -1,6 +1,7 @@
 export * from "./campuses";
 export * from "./celebrities";
 export * from "./cities";
+export * from "./compare";
 export * from "./favorites";
 export * from "./home";
 export * from "./programs";

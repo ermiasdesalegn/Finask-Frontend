@@ -6,6 +6,7 @@ import type {
     CampusesListResponse,
     CitiesListResponse,
     CityDetailResponse,
+    CompareUniversitiesApiResponse,
     HomeApiResponse,
     ProgramDetailResponse,
     ProgramsListResponse,
@@ -453,6 +454,93 @@ export function mockSearch(q: string) {
       universities: UNIVERSITIES.filter(u => u.name.toLowerCase().includes(lq) || u.address.city.toLowerCase().includes(lq)),
       programs: PROGRAMS.filter(p => p.name.toLowerCase().includes(lq)),
       cities: CITIES.filter(c => c.name.toLowerCase().includes(lq)),
+    },
+  };
+}
+
+export function mockCompareUniversities(body: unknown): CompareUniversitiesApiResponse {
+  const uniIds = (body as { universityIds?: string[] })?.universityIds ?? [];
+  const ordered = uniIds
+    .map((id) => UNIVERSITIES.find((u) => u._id === id))
+    .filter((u): u is (typeof UNIVERSITIES)[number] => Boolean(u))
+    .slice(0, 3);
+
+  if (ordered.length < 2) {
+    return {
+      status: "success",
+      data: {
+        universities: [],
+        aiSummary: null,
+        comparisonFacts: [],
+      },
+    };
+  }
+
+  const abbrs = ordered.map(
+    (u) => u.academicProfile?.abbreviation ?? u.name.slice(0, 3).toUpperCase()
+  );
+
+  const cell = (v: string | number | null | undefined) =>
+    v != null && v !== "" ? v : "—";
+
+  const makeRow = (
+    label: string,
+    getter: (u: (typeof UNIVERSITIES)[number], i: number) => string | number | null | undefined
+  ) => {
+    const values: Record<string, string | number> = {};
+    ordered.forEach((u, i) => {
+      const raw = getter(u, i);
+      values[abbrs[i]] = cell(raw);
+    });
+    return { label, values };
+  };
+
+  const comparisonFacts = [
+    makeRow("University Rank", (u) =>
+      u.rank?.eduRank?.ethiopiaRank != null
+        ? `#${u.rank.eduRank.ethiopiaRank} in Ethiopia`
+        : null
+    ),
+    makeRow("UG Programs", (u) => u.academicProfile?.undergraduateProgramsCount ?? null),
+    makeRow("Avg. Rating (Students)", (u) =>
+      u.ratingsAverage != null
+        ? `${u.ratingsAverage} (${u.ratingsQuantity ?? 0})`
+        : null
+    ),
+    makeRow("Location (Region)", (u) => u.address?.region ?? null),
+    makeRow("Founded", (u) => u.academicProfile?.yearFounded ?? null),
+    makeRow("Institutional Excellence", (u) => {
+      const tags = u.tags ?? [];
+      const ex = ["research", "general", "specialized", "applied"];
+      const labels: Record<string, string> = {
+        research: "Research",
+        general: "General",
+        specialized: "Specialized",
+        applied: "Applied",
+      };
+      const parts = tags.filter((t) => ex.includes(t)).map((t) => labels[t] ?? t);
+      return parts.length ? parts.join(" / ") : null;
+    }),
+  ].filter((row) => !Object.values(row.values).every((v) => v === "—"));
+
+  const universities = ordered.map((u, i) => ({
+    id: u._id,
+    name: u.name,
+    slug: u.slug,
+    abbreviation: abbrs[i],
+    coverImage: u.coverImage,
+    ratingsAverage: u.ratingsAverage,
+    ratingsQuantity: u.ratingsQuantity,
+    city: u.address?.city ?? null,
+  }));
+
+  return {
+    status: "success",
+    data: {
+      universities,
+      aiSummary:
+        "Mock mode: comparison data is static. Use the live API for full rows and AI summaries.",
+      comparisonFacts,
     },
   };
 }

@@ -109,6 +109,10 @@ function notifyNetwork(message: string): void {
   toastNotifier?.(message);
 }
 
+export function showApiToast(message: string): void {
+  toastNotifier?.(message);
+}
+
 function joinUrl(path: string): string {
   const p = path.startsWith("/") ? path : `/${path}`;
   return `${API_BASE}${p}`;
@@ -183,6 +187,13 @@ export async function apiPost<T = unknown>(
   body?: unknown,
   init?: RequestInit & { skipAuth?: boolean }
 ): Promise<T> {
+  if (USE_MOCK) {
+    const base = path.split("?")[0];
+    if (base === "/universities/compare") {
+      return mock.mockCompareUniversities(body) as T;
+    }
+  }
+
   const { skipAuth, ...rest } = init || {};
   const headers: Record<string, string> = {
     Accept: "application/json",
