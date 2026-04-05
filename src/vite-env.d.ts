@@ -2,7 +2,7 @@
 
 interface ImportMetaEnv {
   readonly VITE_API_URL?: string;
-  /** Set to `"false"` to skip the dev proxy and call `VITE_API_URL` directly (cookies won’t work cross-origin). */
+  /** Set to `"true"` to use Vite’s `/api/v1` proxy on :5173 (cookies with remote API). */
   readonly VITE_DEV_API_PROXY?: string;
 }
 

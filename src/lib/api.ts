@@ -19,18 +19,16 @@ function normalizeApiBase(raw: string | undefined): string {
 }
 
 /**
- * In dev, default to same-origin `/api/v1` so the Vite proxy can forward to
- * `VITE_API_URL`. Cross-origin calls (e.g. localhost → finask.onrender.com) do
- * not send `SameSite=Lax` cookies on XHR/fetch, so login JSON succeeds but
- * `getMe` / `favorites` get 401 and `emitAuthInvalid` clears the session.
- * Set `VITE_DEV_API_PROXY=false` to call the API URL directly (no cookie auth).
+ * Dev API target (default): `VITE_API_URL` if set, else `http://localhost:3000/api/v1`.
+ * Optional same-origin proxy: set `VITE_DEV_API_PROXY=true` so requests go to
+ * `http://localhost:5173/api/v1` and Vite forwards to `VITE_API_URL` (helps httpOnly
+ * cookies when the API is on another host).
  *
- * In **production**, only an absolute `http(s)://host/...` base is allowed; anything
- * else (empty, `/api/v1`, `api/v1`) falls back to `API_FALLBACK_PROD` so Vercel never
- * calls non-existent `/api/v1` on the static app.
+ * Production: only an absolute `http(s)://host/...` env base is allowed; bad values
+ * fall back to `API_FALLBACK_PROD`.
  */
 function resolveApiBase(): string {
-  if (import.meta.env.DEV && import.meta.env.VITE_DEV_API_PROXY !== "false") {
+  if (import.meta.env.DEV && import.meta.env.VITE_DEV_API_PROXY === "true") {
     return "/api/v1";
   }
 
