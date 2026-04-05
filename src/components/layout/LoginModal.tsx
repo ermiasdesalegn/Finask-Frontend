@@ -1,20 +1,31 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Eye, EyeOff, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import finaskLogo from "../../assets/finask-logo.png";
 import { useAuth, type AuthUser } from "../../context/AuthContext";
 import { ApiError, apiPost } from "../../lib/api";
+import { queryKeys } from "../../lib/queryKeys";
+import { fetchProgramsList } from "../../lib/services/programService";
+import {
+  VerificationOtpInput,
+  emptyOtpCells,
+} from "./VerificationOtpInput";
 
 type Mode = "signin" | "signup";
+type FlowStep = "form" | "verifyEmail";
 
 interface AuthResponse {
   status: string;
-  token: string;
   data: { user: AuthUser };
 }
 
 interface SignupResponse {
+  status: string;
+  message: string;
+}
+
+interface ResendVerificationResponse {
   status: string;
   message: string;
 }
@@ -38,24 +49,94 @@ const LoginModal = ({
 }) => {
   const { login } = useAuth();
   const [mode, setMode] = useState<Mode>("signin");
+  const [flowStep, setFlowStep] = useState<FlowStep>("form");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [infoMsg, setInfoMsg] = useState<string | null>(null);
 
-  // Sign in fields
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  // Sign up fields
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [selectedProgramIds, setSelectedProgramIds] = useState<string[]>([]);
 
-  const resetState = () => {
+  const [verificationEmail, setVerificationEmail] = useState("");
+  const [otpCells, setOtpCells] = useState<string[]>(() => emptyOtpCells());
+
+  const signupProgramsFilters = useMemo(
+    () =>
+      ({
+        limit: 300,
+        sort: "name" as const,
+        fields: "_id,name",
+      }) as const,
+    []
+  );
+
+  const programsQuery = useQuery({
+    queryKey: queryKeys.programsList(signupProgramsFilters),
+    queryFn: () => fetchProgramsList(signupProgramsFilters),
+    enabled: open && mode === "signup" && flowStep === "form",
+  });
+
+  const programs = programsQuery.data?.data.programs ?? [];
+
+  useEffect(() => {
+    if (!open) return;
+    const scrollY = window.scrollY;
+    const prevOverflow = document.body.style.overflow;
+    const prevPosition = document.body.style.position;
+    const prevTop = document.body.style.top;
+    const prevWidth = document.body.style.width;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.left = "0";
+    document.body.style.right = "0";
+    document.body.style.width = "100%";
+
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.body.style.position = prevPosition;
+      document.body.style.top = prevTop;
+      document.body.style.width = prevWidth;
+      document.body.style.left = "";
+      document.body.style.right = "";
+      document.documentElement.style.overflow = prevHtmlOverflow;
+      window.scrollTo(0, scrollY);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) {
+      setMode("signin");
+      setFlowStep("form");
+      setError(null);
+      setInfoMsg(null);
+      setEmail("");
+      setPassword("");
+      setFirstName("");
+      setLastName("");
+      setSignupEmail("");
+      setSignupPassword("");
+      setConfirmPassword("");
+      setShowPassword(false);
+      setSelectedProgramIds([]);
+      setVerificationEmail("");
+      setOtpCells(emptyOtpCells());
+    }
+  }, [open]);
+
+  const resetFormFields = () => {
     setError(null);
-    setSuccessMsg(null);
+    setInfoMsg(null);
     setEmail("");
     setPassword("");
     setFirstName("");
@@ -64,29 +145,39 @@ const LoginModal = ({
     setSignupPassword("");
     setConfirmPassword("");
     setShowPassword(false);
+    setSelectedProgramIds([]);
+    setOtpCells(emptyOtpCells());
+    setFlowStep("form");
+    setVerificationEmail("");
   };
 
   const switchMode = (m: Mode) => {
-    resetState();
+    resetFormFields();
     setMode(m);
   };
 
-  // ── Sign in ──────────────────────────────────────────────────────────────
   const loginMutation = useMutation({
     mutationFn: (body: { email: string; password: string }) => {
       if (import.meta.env.VITE_USE_MOCK === "true") {
         return Promise.resolve({
           status: "success",
-          token: "mock-token-static",
-          data: { user: { _id: "mock-user-001", email: body.email, firstName: "Demo", lastName: "User", role: "user" } },
+          data: {
+            user: {
+              _id: "mock-user-001",
+              email: body.email,
+              firstName: "Demo",
+              lastName: "User",
+              role: "user",
+            },
+          },
         } as AuthResponse);
       }
       return apiPost<AuthResponse>("/users/login", body, { skipAuth: true });
     },
     onSuccess: (res) => {
-      if (res.token && res.data?.user) {
-        login(res.token, res.data.user);
-        resetState();
+      if (res.data?.user) {
+        login(res.data.user);
+        resetFormFields();
         onClose();
       } else {
         setError("Unexpected response from server");
@@ -97,7 +188,6 @@ const LoginModal = ({
     },
   });
 
-  // ── Sign up ──────────────────────────────────────────────────────────────
   const signupMutation = useMutation({
     mutationFn: (body: {
       firstName: string;
@@ -105,13 +195,68 @@ const LoginModal = ({
       email: string;
       password: string;
       passwordConfirm: string;
+      fieldsOfInterest: string[];
     }) => apiPost<SignupResponse>("/users/signup", body, { skipAuth: true }),
-    onSuccess: (res) => {
-      setSuccessMsg(res.message ?? "Account created! Check your email to verify.");
+    onSuccess: (_res, variables) => {
       setError(null);
+      setInfoMsg(null);
+      setVerificationEmail(variables.email);
+      setOtpCells(emptyOtpCells());
+      setFlowStep("verifyEmail");
     },
     onError: (err: unknown) => {
       setError(err instanceof ApiError ? err.message : "Sign up failed");
+    },
+  });
+
+  const verifyEmailMutation = useMutation({
+    mutationFn: (body: { email: string; code: string }) => {
+      if (import.meta.env.VITE_USE_MOCK === "true") {
+        return Promise.resolve({
+          status: "success",
+          data: {
+            user: {
+              _id: "mock-user-new",
+              email: body.email,
+              firstName: firstName || "Demo",
+              lastName: lastName || "User",
+              role: "user",
+            },
+          },
+        } as AuthResponse);
+      }
+      return apiPost<AuthResponse>("/users/verifyEmail", body, {
+        skipAuth: true,
+      });
+    },
+    onSuccess: (res) => {
+      if (res.data?.user) {
+        login(res.data.user);
+        resetFormFields();
+        onClose();
+      } else {
+        setError("Unexpected response from server");
+      }
+    },
+    onError: (err: unknown) => {
+      setError(err instanceof ApiError ? err.message : "Verification failed");
+    },
+  });
+
+  const resendMutation = useMutation({
+    mutationFn: (body: { email: string }) =>
+      apiPost<ResendVerificationResponse>("/users/resendVerification", body, {
+        skipAuth: true,
+      }),
+    onSuccess: (res) => {
+      setInfoMsg(res.message ?? "A new code has been sent.");
+      setError(null);
+      setOtpCells(emptyOtpCells());
+    },
+    onError: (err: unknown) => {
+      setError(
+        err instanceof ApiError ? err.message : "Could not resend the code."
+      );
     },
   });
 
@@ -121,11 +266,21 @@ const LoginModal = ({
     loginMutation.mutate({ email, password });
   };
 
+  const toggleProgramInterest = (id: string) => {
+    setSelectedProgramIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
   const handleSignUp = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     if (signupPassword !== confirmPassword) {
       setError("Passwords do not match");
+      return;
+    }
+    if (selectedProgramIds.length === 0) {
+      setError("Please select at least one field of study.");
       return;
     }
     signupMutation.mutate({
@@ -134,90 +289,113 @@ const LoginModal = ({
       email: signupEmail,
       password: signupPassword,
       passwordConfirm: confirmPassword,
+      fieldsOfInterest: selectedProgramIds,
     });
   };
 
-  const submitting = loginMutation.isPending || signupMutation.isPending;
+  const handleVerifyOtp = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    const code = otpCells.join("");
+    if (code.length !== 6 || !/^\d{6}$/.test(code)) {
+      setError("Enter the 6-digit code from your email.");
+      return;
+    }
+    verifyEmailMutation.mutate({ email: verificationEmail, code });
+  };
+
+  const handleResend = () => {
+    setError(null);
+    resendMutation.mutate({ email: verificationEmail });
+  };
+
+  const submitting =
+    loginMutation.isPending ||
+    signupMutation.isPending ||
+    verifyEmailMutation.isPending;
 
   const inputClass =
     "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition-all focus:border-brand-blue focus:bg-white focus:ring-2 focus:ring-brand-blue/20 dark:border-white/10 dark:bg-zinc-800 dark:text-white dark:focus:bg-zinc-700";
+
+  const handleClose = () => {
+    resetFormFields();
+    setMode("signin");
+    onClose();
+  };
 
   return (
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto p-4 pt-16"
+          className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden p-4 sm:p-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
-          {/* Backdrop */}
           <button
             type="button"
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             aria-label="Close"
-            onClick={onClose}
+            onClick={handleClose}
           />
 
           <motion.div
             role="dialog"
             aria-modal="true"
+            aria-labelledby={flowStep === "verifyEmail" ? "verify-title" : undefined}
             initial={{ opacity: 0, scale: 0.95, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 12 }}
             transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            className="relative mb-8 w-full max-w-md overflow-y-auto rounded-[2rem] border border-slate-200/80 bg-white shadow-2xl dark:border-white/10 dark:bg-[#1a1a1a]"
+            className="relative z-10 flex max-h-[min(90vh,calc(100dvh-2rem))] w-full max-w-md flex-col overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white shadow-2xl dark:border-white/10 dark:bg-[#1a1a1a] overscroll-y-contain"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Top accent bar */}
-            <div className="h-1 w-full bg-gradient-to-r from-brand-blue via-blue-400 to-brand-yellow" />
+            <div className="h-1 w-full shrink-0 bg-gradient-to-r from-brand-blue via-blue-400 to-brand-yellow" />
 
-            <div className="p-8">
-              {/* Header */}
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain p-8">
               <div className="mb-6 flex items-center justify-between">
                 <img src={finaskLogo} alt="Finask" className="h-7 w-auto" />
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={handleClose}
                   className="rounded-full p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-white"
                 >
                   <X size={18} />
                 </button>
               </div>
 
-              {/* Mode tabs */}
-              <div className="mb-6 flex rounded-2xl bg-slate-100 p-1 dark:bg-zinc-800">
-                {(["signin", "signup"] as Mode[]).map((m) => (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => switchMode(m)}
-                    className={`flex-1 rounded-xl py-2.5 text-sm font-black transition-all duration-200 ${
-                      mode === m
-                        ? "bg-white text-brand-blue shadow-sm dark:bg-zinc-700 dark:text-white"
-                        : "text-slate-500 hover:text-slate-700 dark:text-slate-400"
-                    }`}
-                  >
-                    {m === "signin" ? "Sign In" : "Create Account"}
-                  </button>
-                ))}
-              </div>
+              {flowStep === "form" && (
+                <div className="mb-6 flex rounded-2xl bg-slate-100 p-1 dark:bg-zinc-800">
+                  {(["signin", "signup"] as Mode[]).map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => switchMode(m)}
+                      className={`flex-1 rounded-xl py-2.5 text-sm font-black transition-all duration-200 ${
+                        mode === m
+                          ? "bg-white text-brand-blue shadow-sm dark:bg-zinc-700 dark:text-white"
+                          : "text-slate-500 hover:text-slate-700 dark:text-slate-400"
+                      }`}
+                    >
+                      {m === "signin" ? "Sign In" : "Create Account"}
+                    </button>
+                  ))}
+                </div>
+              )}
 
-              {/* Success message */}
               <AnimatePresence>
-                {successMsg && (
+                {infoMsg && (
                   <motion.div
                     initial={{ opacity: 0, y: -8 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
-                    className="mb-4 rounded-2xl bg-green-50 px-4 py-3 text-sm font-medium text-green-700 dark:bg-green-900/20 dark:text-green-400"
+                    className="mb-4 rounded-2xl bg-blue-50 px-4 py-3 text-sm font-medium text-blue-800 dark:bg-blue-900/20 dark:text-blue-300"
                   >
-                    {successMsg}
+                    {infoMsg}
                   </motion.div>
                 )}
               </AnimatePresence>
 
-              {/* Error message */}
               <AnimatePresence>
                 {error && (
                   <motion.p
@@ -231,235 +409,352 @@ const LoginModal = ({
                 )}
               </AnimatePresence>
 
-              <AnimatePresence mode="wait">
-                {mode === "signin" ? (
-                  <motion.form
-                    key="signin"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.15 }}
-                    onSubmit={handleSignIn}
-                    className="space-y-4"
-                  >
-                    <div>
-                      <label htmlFor="login-email" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-400">
-                        Email
-                      </label>
-                      <input
-                        id="login-email"
-                        type="email"
-                        autoComplete="email"
-                        required
-                        placeholder="you@example.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className={inputClass}
-                      />
-                    </div>
-
-                    <div>
-                      <div className="mb-1.5 flex items-center justify-between">
-                        <label htmlFor="login-password" className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                          Password
-                        </label>
-                        <button type="button" className="text-xs font-bold text-brand-blue hover:underline">
-                          Forgot password?
-                        </button>
-                      </div>
-                      <div className="relative">
-                        <input
-                          id="login-password"
-                          type={showPassword ? "text" : "password"}
-                          autoComplete="current-password"
-                          required
-                          placeholder="••••••••"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          className={`${inputClass} pr-12`}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                        >
-                          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                        </button>
-                      </div>
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={submitting}
-                      className="w-full rounded-2xl bg-brand-blue py-3.5 font-black text-white shadow-lg shadow-blue-500/25 transition-all hover:-translate-y-0.5 hover:bg-blue-700 active:scale-95 disabled:opacity-60"
+              {flowStep === "verifyEmail" ? (
+                <motion.form
+                  key="verify"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onSubmit={handleVerifyOtp}
+                  className="space-y-5"
+                >
+                  <div>
+                    <h2
+                      id="verify-title"
+                      className="text-lg font-black text-slate-900 dark:text-white"
                     >
-                      {submitting ? "Signing in…" : "Sign In"}
-                    </button>
+                      Verify your email
+                    </h2>
+                    <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+                      We sent a 6-digit code to{" "}
+                      <span className="font-semibold text-slate-900 dark:text-white">
+                        {verificationEmail}
+                      </span>
+                      . Enter it below to finish signing up.
+                    </p>
+                  </div>
 
-                    {/* Divider */}
-                    <div className="flex items-center gap-3">
-                      <div className="h-px flex-1 bg-slate-200 dark:bg-white/10" />
-                      <span className="text-xs font-bold text-slate-400">or continue with</span>
-                      <div className="h-px flex-1 bg-slate-200 dark:bg-white/10" />
-                    </div>
+                  <div>
+                    <span className="mb-3 block text-center text-xs font-bold uppercase tracking-wider text-slate-400">
+                      Verification code
+                    </span>
+                    <VerificationOtpInput
+                      cells={otpCells}
+                      onCellsChange={setOtpCells}
+                      disabled={submitting || resendMutation.isPending}
+                      autoFocus
+                      idPrefix="verify-otp"
+                    />
+                  </div>
 
-                    {/* Google */}
+                  <button
+                    type="submit"
+                    disabled={submitting || resendMutation.isPending}
+                    className="w-full rounded-2xl bg-brand-blue py-3.5 font-black text-white shadow-lg shadow-blue-500/25 transition-all hover:-translate-y-0.5 hover:bg-blue-700 active:scale-95 disabled:opacity-60"
+                  >
+                    {verifyEmailMutation.isPending
+                      ? "Verifying…"
+                      : "Verify & continue"}
+                  </button>
+
+                  <div className="flex flex-col gap-2 text-center text-sm">
                     <button
                       type="button"
-                      className="flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white py-3 font-bold text-slate-700 transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md active:scale-95 dark:border-white/10 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700"
+                      onClick={handleResend}
+                      disabled={resendMutation.isPending || submitting}
+                      className="font-bold text-brand-blue hover:underline disabled:opacity-50"
                     >
-                      <GoogleIcon />
-                      Continue with Google
+                      {resendMutation.isPending ? "Sending…" : "Resend code"}
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFlowStep("form");
+                        setOtpCells(emptyOtpCells());
+                        setError(null);
+                        setInfoMsg(null);
+                        setMode("signup");
+                      }}
+                      className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
+                    >
+                      Use a different email
+                    </button>
+                  </div>
+                </motion.form>
+              ) : (
+                <AnimatePresence mode="wait">
+                  {mode === "signin" ? (
+                    <motion.form
+                      key="signin"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                      onSubmit={handleSignIn}
+                      className="space-y-4"
+                    >
+                      <div>
+                        <label htmlFor="login-email" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-400">
+                          Email
+                        </label>
+                        <input
+                          id="login-email"
+                          type="email"
+                          autoComplete="email"
+                          required
+                          placeholder="you@example.com"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className={inputClass}
+                        />
+                      </div>
 
-                    <p className="text-center text-sm text-slate-500 dark:text-slate-400">
-                      No account?{" "}
-                      <button type="button" onClick={() => switchMode("signup")} className="font-bold text-brand-blue hover:underline">
-                        Create one
+                      <div>
+                        <div className="mb-1.5 flex items-center justify-between">
+                          <label htmlFor="login-password" className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                            Password
+                          </label>
+                          <button type="button" className="text-xs font-bold text-brand-blue hover:underline">
+                            Forgot password?
+                          </button>
+                        </div>
+                        <div className="relative">
+                          <input
+                            id="login-password"
+                            type={showPassword ? "text" : "password"}
+                            autoComplete="current-password"
+                            required
+                            placeholder="••••••••"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className={`${inputClass} pr-12`}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                          >
+                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={submitting}
+                        className="w-full rounded-2xl bg-brand-blue py-3.5 font-black text-white shadow-lg shadow-blue-500/25 transition-all hover:-translate-y-0.5 hover:bg-blue-700 active:scale-95 disabled:opacity-60"
+                      >
+                        {submitting ? "Signing in…" : "Sign In"}
                       </button>
-                    </p>
-                  </motion.form>
-                ) : (
-                  <motion.form
-                    key="signup"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.15 }}
-                    onSubmit={handleSignUp}
-                    className="space-y-4"
-                  >
-                    <div className="grid grid-cols-2 gap-3">
+
+                      <div className="flex items-center gap-3">
+                        <div className="h-px flex-1 bg-slate-200 dark:bg-white/10" />
+                        <span className="text-xs font-bold text-slate-400">or continue with</span>
+                        <div className="h-px flex-1 bg-slate-200 dark:bg-white/10" />
+                      </div>
+
+                      <button
+                        type="button"
+                        className="flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white py-3 font-bold text-slate-700 transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md active:scale-95 dark:border-white/10 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700"
+                      >
+                        <GoogleIcon />
+                        Continue with Google
+                      </button>
+
+                      <p className="text-center text-sm text-slate-500 dark:text-slate-400">
+                        No account?{" "}
+                        <button type="button" onClick={() => switchMode("signup")} className="font-bold text-brand-blue hover:underline">
+                          Create one
+                        </button>
+                      </p>
+                    </motion.form>
+                  ) : (
+                    <motion.form
+                      key="signup"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                      onSubmit={handleSignUp}
+                      className="space-y-4"
+                    >
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label htmlFor="signup-first" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-400">
+                            First Name
+                          </label>
+                          <input
+                            id="signup-first"
+                            type="text"
+                            autoComplete="given-name"
+                            required
+                            placeholder="Abebe"
+                            value={firstName}
+                            onChange={(e) => setFirstName(e.target.value)}
+                            className={inputClass}
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="signup-last" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-400">
+                            Last Name
+                          </label>
+                          <input
+                            id="signup-last"
+                            type="text"
+                            autoComplete="family-name"
+                            required
+                            placeholder="Girma"
+                            value={lastName}
+                            onChange={(e) => setLastName(e.target.value)}
+                            className={inputClass}
+                          />
+                        </div>
+                      </div>
+
                       <div>
-                        <label htmlFor="signup-first" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-400">
-                          First Name
+                        <label htmlFor="signup-email" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-400">
+                          Email
                         </label>
                         <input
-                          id="signup-first"
-                          type="text"
-                          autoComplete="given-name"
+                          id="signup-email"
+                          type="email"
+                          autoComplete="email"
                           required
-                          placeholder="Abebe"
-                          value={firstName}
-                          onChange={(e) => setFirstName(e.target.value)}
+                          placeholder="you@example.com"
+                          value={signupEmail}
+                          onChange={(e) => setSignupEmail(e.target.value)}
                           className={inputClass}
                         />
                       </div>
+
                       <div>
-                        <label htmlFor="signup-last" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-400">
-                          Last Name
+                        <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-400">
+                          Fields of study
+                        </span>
+                        <p className="mb-2 text-xs text-slate-500 dark:text-slate-400">
+                          Pick at least one program you care about (required).
+                        </p>
+                        {programsQuery.isPending && (
+                          <p className="text-sm text-slate-500">Loading programs…</p>
+                        )}
+                        {programsQuery.isError && (
+                          <p className="text-sm text-red-600 dark:text-red-400">
+                            Could not load programs. Check your connection and try again.
+                          </p>
+                        )}
+                        {!programsQuery.isPending && !programsQuery.isError && programs.length === 0 && (
+                          <p className="text-sm text-slate-500">No programs available.</p>
+                        )}
+                        {programs.length > 0 && (
+                          <div
+                            className="max-h-44 space-y-2 overflow-y-auto overscroll-y-contain rounded-2xl border border-slate-200 bg-slate-50/80 p-3 dark:border-white/10 dark:bg-zinc-800/80"
+                            role="group"
+                            aria-label="Fields of study"
+                          >
+                            {programs.map((p) => {
+                              const id = p._id || p.id;
+                              if (!id) return null;
+                              const checked = selectedProgramIds.includes(id);
+                              return (
+                                <label
+                                  key={id}
+                                  className="flex cursor-pointer items-start gap-3 rounded-xl px-2 py-1.5 text-sm text-slate-800 hover:bg-white dark:text-slate-200 dark:hover:bg-zinc-700"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={() => toggleProgramInterest(id)}
+                                    className="mt-0.5 size-4 shrink-0 rounded border-slate-300 text-brand-blue focus:ring-brand-blue"
+                                  />
+                                  <span>{p.name}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <label htmlFor="signup-password" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-400">
+                          Password
+                        </label>
+                        <div className="relative">
+                          <input
+                            id="signup-password"
+                            type={showPassword ? "text" : "password"}
+                            autoComplete="new-password"
+                            required
+                            minLength={8}
+                            placeholder="Min. 8 characters"
+                            value={signupPassword}
+                            onChange={(e) => setSignupPassword(e.target.value)}
+                            className={`${inputClass} pr-12`}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                          >
+                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label htmlFor="signup-confirm" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-400">
+                          Confirm Password
                         </label>
                         <input
-                          id="signup-last"
-                          type="text"
-                          autoComplete="family-name"
-                          required
-                          placeholder="Girma"
-                          value={lastName}
-                          onChange={(e) => setLastName(e.target.value)}
-                          className={inputClass}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label htmlFor="signup-email" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-400">
-                        Email
-                      </label>
-                      <input
-                        id="signup-email"
-                        type="email"
-                        autoComplete="email"
-                        required
-                        placeholder="you@example.com"
-                        value={signupEmail}
-                        onChange={(e) => setSignupEmail(e.target.value)}
-                        className={inputClass}
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="signup-password" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-400">
-                        Password
-                      </label>
-                      <div className="relative">
-                        <input
-                          id="signup-password"
+                          id="signup-confirm"
                           type={showPassword ? "text" : "password"}
                           autoComplete="new-password"
                           required
-                          minLength={8}
-                          placeholder="Min. 8 characters"
-                          value={signupPassword}
-                          onChange={(e) => setSignupPassword(e.target.value)}
-                          className={`${inputClass} pr-12`}
+                          placeholder="Repeat password"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          className={inputClass}
                         />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                        >
-                          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                        </button>
                       </div>
-                    </div>
 
-                    <div>
-                      <label htmlFor="signup-confirm" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-400">
-                        Confirm Password
-                      </label>
-                      <input
-                        id="signup-confirm"
-                        type={showPassword ? "text" : "password"}
-                        autoComplete="new-password"
-                        required
-                        placeholder="Repeat password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        className={inputClass}
-                      />
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={submitting}
-                      className="w-full rounded-2xl bg-brand-blue py-3.5 font-black text-white shadow-lg shadow-blue-500/25 transition-all hover:-translate-y-0.5 hover:bg-blue-700 active:scale-95 disabled:opacity-60"
-                    >
-                      {submitting ? "Creating account…" : "Create Account"}
-                    </button>
-
-                    {/* Divider */}
-                    <div className="flex items-center gap-3">
-                      <div className="h-px flex-1 bg-slate-200 dark:bg-white/10" />
-                      <span className="text-xs font-bold text-slate-400">or</span>
-                      <div className="h-px flex-1 bg-slate-200 dark:bg-white/10" />
-                    </div>
-
-                    {/* Google */}
-                    <button
-                      type="button"
-                      className="flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white py-3 font-bold text-slate-700 transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md active:scale-95 dark:border-white/10 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700"
-                    >
-                      <GoogleIcon />
-                      Sign up with Google
-                    </button>
-
-                    <p className="text-center text-sm text-slate-500 dark:text-slate-400">
-                      Already have an account?{" "}
-                      <button type="button" onClick={() => switchMode("signin")} className="font-bold text-brand-blue hover:underline">
-                        Sign in
+                      <button
+                        type="submit"
+                        disabled={submitting}
+                        className="w-full rounded-2xl bg-brand-blue py-3.5 font-black text-white shadow-lg shadow-blue-500/25 transition-all hover:-translate-y-0.5 hover:bg-blue-700 active:scale-95 disabled:opacity-60"
+                      >
+                        {submitting ? "Creating account…" : "Create Account"}
                       </button>
-                    </p>
 
-                    <p className="text-center text-xs text-slate-400 dark:text-slate-500">
-                      By creating an account you agree to our{" "}
-                      <a href="#" className="underline hover:text-brand-blue">Terms</a>{" "}
-                      and{" "}
-                      <a href="#" className="underline hover:text-brand-blue">Privacy Policy</a>.
-                    </p>
-                  </motion.form>
-                )}
-              </AnimatePresence>
+                      <div className="flex items-center gap-3">
+                        <div className="h-px flex-1 bg-slate-200 dark:bg-white/10" />
+                        <span className="text-xs font-bold text-slate-400">or</span>
+                        <div className="h-px flex-1 bg-slate-200 dark:bg-white/10" />
+                      </div>
+
+                      <button
+                        type="button"
+                        className="flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white py-3 font-bold text-slate-700 transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md active:scale-95 dark:border-white/10 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700"
+                      >
+                        <GoogleIcon />
+                        Sign up with Google
+                      </button>
+
+                      <p className="text-center text-sm text-slate-500 dark:text-slate-400">
+                        Already have an account?{" "}
+                        <button type="button" onClick={() => switchMode("signin")} className="font-bold text-brand-blue hover:underline">
+                          Sign in
+                        </button>
+                      </p>
+
+                      <p className="text-center text-xs text-slate-400 dark:text-slate-500">
+                        By creating an account you agree to our{" "}
+                        <a href="#" className="underline hover:text-brand-blue">Terms</a>{" "}
+                        and{" "}
+                        <a href="#" className="underline hover:text-brand-blue">Privacy Policy</a>.
+                      </p>
+                    </motion.form>
+                  )}
+                </AnimatePresence>
+              )}
             </div>
           </motion.div>
         </motion.div>

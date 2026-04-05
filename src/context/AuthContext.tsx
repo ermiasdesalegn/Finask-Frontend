@@ -1,18 +1,21 @@
 import { useQueryClient } from "@tanstack/react-query";
 import React, {
-    createContext,
-    useCallback,
-    useContext,
-    useEffect,
-    useMemo,
-    useState,
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
 } from "react";
-import { apiPost } from "../lib/api";
+import { apiGet, apiPost } from "../lib/api";
 import { subscribeAuthInvalid } from "../lib/authEvents";
 import { queryKeys } from "../lib/queryKeys";
 
-const TOKEN_KEY = "token";
-
+/**
+ * Session: httpOnly `jwt` cookie on the API host (not localStorage). After refresh,
+ * GET /users/getMe with credentials must receive that cookie. If the SPA and API
+ * are different sites, the API needs JWT_COOKIE_SAMESITE=none (HTTPS) — see backend config.
+ */
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
 
 const MOCK_USER: AuthUser = {
@@ -22,7 +25,8 @@ const MOCK_USER: AuthUser = {
   lastName: "User",
   role: "user",
 };
-const MOCK_TOKEN = "mock-token-static";
+
+export type AuthSessionStatus = "loading" | "ready";
 
 export interface AuthUser {
   _id: string;
@@ -31,70 +35,78 @@ export interface AuthUser {
   lastName?: string;
   profileImage?: string;
   role?: string;
+  fieldsOfInterest?: unknown;
 }
 
 interface AuthContextValue {
   user: AuthUser | null;
-  token: string | null;
+  sessionStatus: AuthSessionStatus;
   isAuthenticated: boolean;
-  login: (token: string, user: AuthUser) => void;
+  login: (user: AuthUser) => void;
   logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+type GetMeResponse = { status: string; data?: { user: AuthUser } };
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
-  const [token, setToken] = useState<string | null>(() => {
-    if (USE_MOCK) return MOCK_TOKEN;
-    return localStorage.getItem(TOKEN_KEY);
-  });
-  const [user, setUser] = useState<AuthUser | null>(() => {
-    if (USE_MOCK) return MOCK_USER;
-    const raw = localStorage.getItem("user");
-    if (!raw) return null;
-    try {
-      return JSON.parse(raw) as AuthUser;
-    } catch {
-      return null;
-    }
-  });
+  const [sessionStatus, setSessionStatus] = useState<AuthSessionStatus>(() =>
+    USE_MOCK ? "ready" : "loading"
+  );
+  const [user, setUser] = useState<AuthUser | null>(() =>
+    USE_MOCK ? MOCK_USER : null
+  );
+
+  useEffect(() => {
+    if (USE_MOCK) return;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await apiGet<GetMeResponse>("/users/getMe");
+        if (!cancelled && res.data?.user) {
+          setUser(res.data.user);
+        }
+      } catch {
+        // 401, network, or server error — remain logged out
+      } finally {
+        if (!cancelled) setSessionStatus("ready");
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const login = useCallback(
-    (newToken: string, newUser: AuthUser) => {
-      localStorage.setItem(TOKEN_KEY, newToken);
-      localStorage.setItem("user", JSON.stringify(newUser));
-      setToken(newToken);
+    (newUser: AuthUser) => {
       setUser(newUser);
-      void queryClient.invalidateQueries({ queryKey: queryKeys.homeRoot });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.favorites() });
+      void queryClient.invalidateQueries();
     },
     [queryClient]
   );
 
   const logout = useCallback(async () => {
-    if (localStorage.getItem(TOKEN_KEY)) {
+    if (!USE_MOCK && user) {
       try {
         await apiPost("/users/signout", {});
       } catch {
         // still clear local session
       }
     }
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem("user");
-    setToken(null);
     setUser(null);
-    void queryClient.invalidateQueries({ queryKey: queryKeys.homeRoot });
+    void queryClient.invalidateQueries();
     void queryClient.removeQueries({ queryKey: queryKeys.favorites() });
-  }, [queryClient]);
+  }, [user, queryClient]);
 
   useEffect(() => {
     return subscribeAuthInvalid(() => {
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem("user");
-      setToken(null);
       setUser(null);
-      void queryClient.invalidateQueries({ queryKey: queryKeys.homeRoot });
+      void queryClient.invalidateQueries();
       void queryClient.removeQueries({ queryKey: queryKeys.favorites() });
     });
   }, [queryClient]);
@@ -102,12 +114,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo(
     () => ({
       user,
-      token,
-      isAuthenticated: Boolean(token && user),
+      sessionStatus,
+      isAuthenticated: Boolean(user),
       login,
       logout,
     }),
-    [user, token, login, logout]
+    [user, sessionStatus, login, logout]
   );
 
   return (
