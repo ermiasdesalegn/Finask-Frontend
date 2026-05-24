@@ -1,0 +1,778 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>WebGL 2D Tibeb Pattern (Ethiopian Cultural Cloth)</title>
+    <style>
+      :root {
+        --bg: #0b0f16;
+        --panel: rgba(255, 255, 255, 0.06);
+        --panel-border: rgba(255, 255, 255, 0.12);
+        --text: rgba(255, 255, 255, 0.88);
+        --muted: rgba(255, 255, 255, 0.62);
+        --accent: #f6c04b;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        background: #0b0f16;
+        color: var(--text);
+      }
+      .wrap {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 18px 16px 28px;
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 16px;
+        align-items: start;
+      }
+      header {
+        grid-column: 1 / -1;
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 16px;
+        padding: 10px 12px;
+        border: 1px solid var(--panel-border);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+        border-radius: 14px;
+      }
+      header h1 {
+        font-size: 16px;
+        margin: 0;
+        letter-spacing: 0.2px;
+        font-weight: 650;
+      }
+      header .hint {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .canvasCard {
+        border: 1px solid var(--panel-border);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+        border-radius: 16px;
+        overflow: hidden;
+        position: relative;
+      }
+      canvas {
+        width: 100%;
+        height: 640px;
+        display: block;
+        background: transparent;
+      }
+      .badge {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.78);
+        padding: 6px 8px;
+        background: rgba(0, 0, 0, 0.35);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 999px;
+        backdrop-filter: blur(6px);
+        user-select: none;
+      }
+      .panel {
+        border: 1px solid var(--panel-border);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+        border-radius: 16px;
+        padding: 14px;
+      }
+      .panel h2 {
+        margin: 0 0 10px;
+        font-size: 13px;
+        letter-spacing: 0.2px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px 12px;
+      }
+      label {
+        display: grid;
+        gap: 6px;
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.78);
+      }
+      input[type="range"] {
+        width: 100%;
+      }
+      select,
+      button {
+        width: 100%;
+        padding: 10px 10px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(0, 0, 0, 0.25);
+        color: var(--text);
+        outline: none;
+      }
+      button {
+        cursor: pointer;
+        transition: transform 0.06s ease, border-color 0.12s ease, background 0.12s ease;
+      }
+      button:hover {
+        border-color: rgba(246, 192, 75, 0.55);
+        background: rgba(246, 192, 75, 0.08);
+      }
+      button:active {
+        transform: translateY(1px);
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 12px;
+      }
+      .desc {
+        margin-top: 12px;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+      .kpis {
+        margin-top: 12px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+      }
+      .kpi {
+        padding: 10px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(0, 0, 0, 0.18);
+      }
+      .kpi .v {
+        font-weight: 700;
+        letter-spacing: 0.2px;
+      }
+      .kpi .k {
+        margin-top: 4px;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.62);
+      }
+      footer {
+        grid-column: 1 / -1;
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 11px;
+        padding: 4px 2px 0;
+      }
+      @media (max-width: 980px) {
+        .wrap {
+          grid-template-columns: 1fr;
+        }
+        canvas {
+          height: 560px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div>
+          <h1>2D WebGL Design of Ethiopian Cultural Dress (Tibeb)</h1>
+          <p class="hint">Interactive, symmetric, repeated motifs + transformations (translate/rotate/scale).</p>
+        </div>
+        <p class="hint" id="status">Initializing…</p>
+      </header>
+
+      <div class="canvasCard">
+        <div class="badge">Tip: drag on canvas to rotate • click to randomize</div>
+        <canvas id="glCanvas" aria-label="WebGL Tibeb pattern canvas"></canvas>
+      </div>
+
+      <aside class="panel">
+        <h2>Controls</h2>
+        <div class="grid">
+          <label>
+            Pattern scale
+            <input id="scale" type="range" min="0.65" max="1.6" step="0.01" value="1.0" />
+          </label>
+          <label>
+            Rotation
+            <input id="rotation" type="range" min="-180" max="180" step="1" value="0" />
+          </label>
+          <label>
+            Stripe density
+            <input id="density" type="range" min="6" max="24" step="1" value="14" />
+          </label>
+          <label>
+            Motif size
+            <input id="motif" type="range" min="0.55" max="1.35" step="0.01" value="0.95" />
+          </label>
+          <label>
+            Palette
+            <select id="palette">
+              <option value="goldGreen">Gold + Green (classic)</option>
+              <option value="goldBlue">Gold + Blue (cool)</option>
+              <option value="goldRed">Gold + Red (bold)</option>
+              <option value="nightNeon">Night + Neon (modern)</option>
+            </select>
+          </label>
+          <label>
+            Animation
+            <select id="animate">
+              <option value="on">On</option>
+              <option value="off">Off</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="row">
+          <button id="download">Download PNG</button>
+          <button id="reset">Reset</button>
+        </div>
+
+        <div class="desc">
+          <strong>Design concept (short description):</strong> This 2D WebGL pattern is inspired by Ethiopian
+          <em>Tibeb</em> textiles: a central woven band with repeating geometric motifs (diamonds, chevrons, and
+          stepped crosses) framed by border stripes. The pattern is built from basic geometric primitives
+          (triangles/lines) and arranged through transformations (translation, rotation, and scaling) to achieve
+          symmetry and repetition. Interactivity lets you explore variation in density, motif scale, palette, and
+          rotation—similar to adjusting weave rhythm and ornament balance in real cloth design.
+        </div>
+
+        <div class="kpis">
+          <div class="kpi">
+            <div class="v" id="kpiDraws">—</div>
+            <div class="k">Draw calls</div>
+          </div>
+          <div class="kpi">
+            <div class="v" id="kpiTris">—</div>
+            <div class="k">Triangles</div>
+          </div>
+          <div class="kpi">
+            <div class="v" id="kpiFps">—</div>
+            <div class="k">FPS</div>
+          </div>
+        </div>
+      </aside>
+
+      <footer>Built with WebGL2 (2D rendering). No external libraries.</footer>
+    </div>
+
+    <!--
+      Implementation notes (kept brief but useful):
+      - We render everything as a full-screen quad in clip space.
+      - The fragment shader computes the cloth layout and motifs procedurally in 2D.
+      - Transformations (rotation/scale) are applied to the 2D coordinate system.
+      - This approach demonstrates 2D design principles with WebGL while keeping the code compact and organized.
+    -->
+    <script>
+      (() => {
+        /** @type {HTMLCanvasElement} */
+        const canvas = document.getElementById("glCanvas");
+        const statusEl = document.getElementById("status");
+
+        const ui = {
+          scale: /** @type {HTMLInputElement} */ (document.getElementById("scale")),
+          rotation: /** @type {HTMLInputElement} */ (document.getElementById("rotation")),
+          density: /** @type {HTMLInputElement} */ (document.getElementById("density")),
+          motif: /** @type {HTMLInputElement} */ (document.getElementById("motif")),
+          palette: /** @type {HTMLSelectElement} */ (document.getElementById("palette")),
+          animate: /** @type {HTMLSelectElement} */ (document.getElementById("animate")),
+          download: /** @type {HTMLButtonElement} */ (document.getElementById("download")),
+          reset: /** @type {HTMLButtonElement} */ (document.getElementById("reset")),
+          kpiDraws: document.getElementById("kpiDraws"),
+          kpiTris: document.getElementById("kpiTris"),
+          kpiFps: document.getElementById("kpiFps"),
+        };
+
+        /** WebGL2 required (WebGL1 can work, but assignment asks WebGL, and WebGL2 is standard now). */
+        /** @type {WebGL2RenderingContext | null} */
+        const gl = canvas.getContext("webgl2", { antialias: true, preserveDrawingBuffer: true });
+        if (!gl) {
+          statusEl.textContent = "WebGL2 not supported in this browser.";
+          return;
+        }
+
+        // Vertex shader: draws a clip-space rectangle (2 triangles).
+        const vsSource = `#version 300 es
+          precision highp float;
+          layout(location=0) in vec2 a_pos;
+          out vec2 v_uv;
+          void main() {
+            // a_pos is in clip space (-1..1). Convert to uv (0..1) for convenience.
+            v_uv = a_pos * 0.5 + 0.5;
+            gl_Position = vec4(a_pos, 0.0, 1.0);
+          }
+        `;
+
+        // Fragment shader: procedural Tibeb-inspired design in 2D.
+        const fsSource = `#version 300 es
+          precision highp float;
+
+          in vec2 v_uv;
+          out vec4 outColor;
+
+          uniform vec2 u_resolution;
+          uniform float u_time;
+          uniform float u_scale;
+          uniform float u_rotation;
+          uniform float u_density;
+          uniform float u_motifScale;
+          uniform vec3 u_baseA;
+          uniform vec3 u_baseB;
+          uniform vec3 u_gold;
+          uniform vec3 u_ink;
+          uniform float u_seed;
+
+          // --- small helpers ---
+          float hash21(vec2 p) {
+            // A tiny, deterministic hash (no textures).
+            p = fract(p * vec2(123.34, 345.45));
+            p += dot(p, p + 34.345);
+            return fract(p.x * p.y);
+          }
+
+          mat2 rot(float a) {
+            float s = sin(a), c = cos(a);
+            return mat2(c, -s, s, c);
+          }
+
+          float sdBox(vec2 p, vec2 b) {
+            vec2 d = abs(p) - b;
+            return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0);
+          }
+
+          // Signed distance to an isosceles trapezoid (Inigo Quilez style).
+          // r1: half-width at top, r2: half-width at bottom, he: half-height
+          float sdTrapezoid(vec2 p, float r1, float r2, float he) {
+            p.x = abs(p.x);
+            vec2 k1 = vec2(r2, he);
+            vec2 k2 = vec2(r2 - r1, 2.0 * he);
+            p.y += he;
+            vec2 ca = vec2(p.x - min(p.x, (p.y < 0.0) ? r1 : r2), abs(p.y) - he);
+            vec2 cb = p - k1 + k2 * clamp(dot(k1 - p, k2) / dot(k2, k2), 0.0, 1.0);
+            float s = (cb.x < 0.0 && ca.y < 0.0) ? -1.0 : 1.0;
+            return s * sqrt(min(dot(ca, ca), dot(cb, cb)));
+          }
+
+          float sdRhombus(vec2 p, vec2 b) {
+            p = abs(p);
+            float h = clamp((-2.0 * dot(p, b) + dot(b, b)) / dot(b, b), -1.0, 1.0);
+            vec2 q = p - 0.5 * b * vec2(1.0 - h, 1.0 + h);
+            float s = sign(p.x * b.y + p.y * b.x - b.x * b.y);
+            return length(q) * s;
+          }
+
+          float aastep(float t, float v) {
+            float w = fwidth(v) * 1.25;
+            return smoothstep(t - w, t + w, v);
+          }
+
+          vec3 mix3(vec3 a, vec3 b, float t) { return a * (1.0 - t) + b * t; }
+
+          // Decorative "stepped cross" motif built from boxes.
+          float steppedCross(vec2 p) {
+            // Compose 5 boxes (center + 4 arms). Returns inside mask.
+            float c = 1.0 - aastep(0.0, sdBox(p, vec2(0.10, 0.10)));
+            float up = 1.0 - aastep(0.0, sdBox(p - vec2(0.0, 0.16), vec2(0.07, 0.10)));
+            float dn = 1.0 - aastep(0.0, sdBox(p + vec2(0.0, 0.16), vec2(0.07, 0.10)));
+            float lt = 1.0 - aastep(0.0, sdBox(p + vec2(0.16, 0.0), vec2(0.10, 0.07)));
+            float rt = 1.0 - aastep(0.0, sdBox(p - vec2(0.16, 0.0), vec2(0.10, 0.07)));
+            return clamp(c + up + dn + lt + rt, 0.0, 1.0);
+          }
+
+          float chevron(vec2 p, float width) {
+            // V-shaped stripe centered at p.x=0, p.y=0
+            p = abs(p);
+            float v = p.y - (0.85 * p.x);
+            float stripe = 1.0 - aastep(width, abs(v));
+            return stripe;
+          }
+
+          void main() {
+            // Normalized coordinates with aspect correction.
+            vec2 uv = v_uv;
+            vec2 p = (uv * 2.0 - 1.0);
+            p.x *= u_resolution.x / u_resolution.y;
+
+            // Global transforms (rotate + scale).
+            float ang = radians(u_rotation);
+            vec2 q = rot(ang) * (p / max(u_scale, 0.001));
+
+            // Dress silhouette (only the cloth, no person/background).
+            // Body: trapezoid (narrow top, wider bottom).
+            vec2 bodyP = q - vec2(0.0, -0.05);
+            float bodyD = sdTrapezoid(bodyP, 0.42, 0.86, 0.78);
+
+            // Sleeves: two rounded-ish rectangles.
+            float sleeveY = 0.38;
+            float sleeveD1 = sdBox(q - vec2(-0.78, sleeveY), vec2(0.30, 0.20));
+            float sleeveD2 = sdBox(q - vec2( 0.78, sleeveY), vec2(0.30, 0.20));
+            float sleevesD = min(sleeveD1, sleeveD2);
+
+            // Union body + sleeves.
+            float dressD = min(bodyD, sleevesD);
+
+            // Neck opening (cutout).
+            vec2 neckP = q - vec2(0.0, 0.78);
+            float neckD = length(neckP) - 0.12;
+
+            float cloth = 1.0 - aastep(0.0, dressD);
+            float neckHole = 1.0 - aastep(0.0, neckD);
+            cloth *= (1.0 - neckHole);
+
+            // Outside the cloth: transparent.
+            if (cloth <= 0.001) {
+              outColor = vec4(0.0, 0.0, 0.0, 0.0);
+              return;
+            }
+
+            // Base weave (two-tone) using soft noise-like stripes.
+            float n = hash21(floor((q + 2.0) * vec2(28.0, 20.0) + u_seed));
+            float weave = 0.5 + 0.5 * sin((q.y * 18.0 + q.x * 6.0) + n * 2.0);
+            vec3 base = mix3(u_baseA, u_baseB, smoothstep(0.25, 0.75, weave));
+
+            // Central vertical Tibeb band (like the reference dress).
+            float bandW = 0.16;
+            float band = 1.0 - aastep(0.0, abs(q.x) - bandW);
+            // Limit band mostly to the body area (avoid sleeves).
+            band *= (1.0 - (1.0 - aastep(0.0, bodyD))); // keep inside body silhouette
+
+            // Decorative vertical striping inside border and band.
+            float stripeFreq = u_density;
+            float stripes = 0.5 + 0.5 * sin((q.x * stripeFreq * 3.14159) + u_time * 0.6);
+            stripes = smoothstep(0.46, 0.54, stripes);
+
+            // Motif repeating grid in the central vertical band.
+            vec2 g = q;
+            g.y *= 2.2; // repeat more along the vertical strip
+            float cellX = 0.22 / max(u_motifScale, 0.001);
+            float cellY = 0.26 / max(u_motifScale, 0.001);
+            vec2 id = floor(vec2(g.x / cellX, g.y / cellY));
+            vec2 f = fract(vec2(g.x / cellX, g.y / cellY)) - 0.5;
+
+            // Alternate rows for richer repetition.
+            f.x += (mod(id.y, 2.0) * 0.18);
+
+            // Local variation per-cell (deterministic).
+            float r = hash21(id + u_seed);
+            float localRot = (r - 0.5) * 0.35;
+            vec2 fp = rot(localRot) * (f * vec2(1.2, 1.0));
+
+            // Motifs: rhombus + stepped cross + chevron accents.
+            float rh = 1.0 - aastep(0.0, sdRhombus(fp, vec2(0.28, 0.18)));
+            float cross = steppedCross(fp * 1.05);
+            float chev = chevron(fp * vec2(1.0, 1.1) + vec2(0.0, -0.06), 0.03);
+
+            float motif = clamp(rh * 0.75 + cross * 0.9 + chev * 0.55, 0.0, 1.0);
+            float motifMask = motif * band;
+
+            // Secondary motif: tiny dotted stitches along band edges.
+            float stitchEdge = 1.0 - aastep(0.0, abs(abs(q.x) - bandW) - 0.010);
+            float stitchDots = smoothstep(0.55, 0.92, 0.5 + 0.5 * sin((q.y * (stripeFreq + 6.0)) * 6.28318));
+            float stitches = stitchEdge * stitchDots * band;
+
+            // Hem and sleeve-end borders (subtle).
+            float hem = 1.0 - aastep(0.0, abs(q.y + 0.83) - 0.035);
+            float cuffL = 1.0 - aastep(0.0, abs((q - vec2(-0.78, sleeveY)).x) - 0.30) * (1.0 - aastep(0.0, abs((q - vec2(-0.78, sleeveY)).y) - 0.20));
+            float cuffR = 1.0 - aastep(0.0, abs((q - vec2( 0.78, sleeveY)).x) - 0.30) * (1.0 - aastep(0.0, abs((q - vec2( 0.78, sleeveY)).y) - 0.20));
+            float cuff = clamp(cuffL + cuffR, 0.0, 1.0);
+            float border = clamp(hem * cloth + cuff * cloth, 0.0, 1.0);
+
+            // Color composition.
+            vec3 c = base;
+
+            // Keep the main cloth mostly white; emphasize the central band and borders.
+            c = mix3(c, vec3(0.98, 0.98, 0.98), cloth * 0.55);
+
+            // Band base tint (gold-rich), with subtle internal striping.
+            vec3 bandBase = mix3(u_ink, u_gold, 0.78);
+            c = mix3(c, bandBase, band * 0.55);
+            c = mix3(c, mix3(u_ink, u_gold, 0.58), band * stripes * 0.25);
+
+            // Border tint + stripes.
+            vec3 borderBase = mix3(u_ink, u_gold, 0.62);
+            c = mix3(c, borderBase, border * 0.45);
+            c = mix3(c, mix3(u_ink, u_gold, 0.50), border * stripes * 0.25);
+
+            // Motifs (gold) with subtle edge darkening to feel woven/embossed.
+            float edge = aastep(0.55, abs(sdRhombus(fp, vec2(0.28, 0.18))));
+            vec3 motifCol = mix3(u_gold, u_ink, edge * 0.22);
+            c = mix3(c, motifCol, motifMask);
+
+            // Stitches.
+            c = mix3(c, u_gold, stitches * 0.85);
+
+            // Soft lighting/vignette inside cloth.
+            float v = smoothstep(1.05, 0.30, length(q * vec2(0.90, 1.10)));
+            c *= mix(0.85, 1.15, v);
+
+            // Outline from the dress SDF.
+            float outline = 1.0 - aastep(0.0, abs(dressD) - 0.010);
+            c = mix3(c, u_ink, outline * 0.55);
+            outColor = vec4(c, cloth);
+          }
+        `;
+
+        function compileShader(type, source) {
+          const sh = gl.createShader(type);
+          gl.shaderSource(sh, source);
+          gl.compileShader(sh);
+          if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
+            const info = gl.getShaderInfoLog(sh) || "Unknown shader compile error";
+            gl.deleteShader(sh);
+            throw new Error(info);
+          }
+          return sh;
+        }
+
+        function createProgram(vs, fs) {
+          const p = gl.createProgram();
+          gl.attachShader(p, vs);
+          gl.attachShader(p, fs);
+          gl.linkProgram(p);
+          if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
+            const info = gl.getProgramInfoLog(p) || "Unknown program link error";
+            gl.deleteProgram(p);
+            throw new Error(info);
+          }
+          return p;
+        }
+
+        let program;
+        try {
+          const vs = compileShader(gl.VERTEX_SHADER, vsSource);
+          const fs = compileShader(gl.FRAGMENT_SHADER, fsSource);
+          program = createProgram(vs, fs);
+          gl.deleteShader(vs);
+          gl.deleteShader(fs);
+        } catch (e) {
+          statusEl.textContent = "Shader error. Check console.";
+          // eslint-disable-next-line no-console
+          console.error(e);
+          return;
+        }
+
+        // Fullscreen quad.
+        const vao = gl.createVertexArray();
+        gl.bindVertexArray(vao);
+
+        const vbo = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+        const quad = new Float32Array([
+          -1, -1,
+          1, -1,
+          -1, 1,
+          -1, 1,
+          1, -1,
+          1, 1,
+        ]);
+        gl.bufferData(gl.ARRAY_BUFFER, quad, gl.STATIC_DRAW);
+        gl.enableVertexAttribArray(0);
+        gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+        gl.bindVertexArray(null);
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+        // Uniform locations.
+        gl.useProgram(program);
+        const u = {
+          resolution: gl.getUniformLocation(program, "u_resolution"),
+          time: gl.getUniformLocation(program, "u_time"),
+          scale: gl.getUniformLocation(program, "u_scale"),
+          rotation: gl.getUniformLocation(program, "u_rotation"),
+          density: gl.getUniformLocation(program, "u_density"),
+          motifScale: gl.getUniformLocation(program, "u_motifScale"),
+          baseA: gl.getUniformLocation(program, "u_baseA"),
+          baseB: gl.getUniformLocation(program, "u_baseB"),
+          gold: gl.getUniformLocation(program, "u_gold"),
+          ink: gl.getUniformLocation(program, "u_ink"),
+          seed: gl.getUniformLocation(program, "u_seed"),
+        };
+
+        const palettes = {
+          goldGreen: {
+            baseA: [0.96, 0.95, 0.92],
+            baseB: [0.92, 0.90, 0.86],
+            gold: [0.98, 0.78, 0.26],
+            ink: [0.08, 0.10, 0.13],
+          },
+          goldBlue: {
+            baseA: [0.95, 0.95, 0.94],
+            baseB: [0.90, 0.91, 0.92],
+            gold: [0.98, 0.78, 0.26],
+            ink: [0.06, 0.09, 0.16],
+          },
+          goldRed: {
+            baseA: [0.96, 0.95, 0.92],
+            baseB: [0.92, 0.89, 0.86],
+            gold: [0.98, 0.78, 0.26],
+            ink: [0.18, 0.05, 0.07],
+          },
+          nightNeon: {
+            baseA: [0.12, 0.14, 0.18],
+            baseB: [0.08, 0.09, 0.12],
+            gold: [0.35, 0.95, 0.73],
+            ink: [0.02, 0.03, 0.05],
+          },
+        };
+
+        const state = {
+          scale: Number(ui.scale.value),
+          rotation: Number(ui.rotation.value),
+          density: Number(ui.density.value),
+          motif: Number(ui.motif.value),
+          palette: ui.palette.value,
+          animate: ui.animate.value === "on",
+          seed: 7.0,
+        };
+
+        function applyPalette() {
+          const p = palettes[state.palette] || palettes.goldGreen;
+          gl.uniform3fv(u.baseA, p.baseA);
+          gl.uniform3fv(u.baseB, p.baseB);
+          gl.uniform3fv(u.gold, p.gold);
+          gl.uniform3fv(u.ink, p.ink);
+        }
+
+        // Resize canvas for crisp output.
+        function resize() {
+          const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+          const displayW = Math.floor(canvas.clientWidth * dpr);
+          const displayH = Math.floor(canvas.clientHeight * dpr);
+          if (canvas.width !== displayW || canvas.height !== displayH) {
+            canvas.width = displayW;
+            canvas.height = displayH;
+          }
+          gl.viewport(0, 0, canvas.width, canvas.height);
+          gl.uniform2f(u.resolution, canvas.width, canvas.height);
+        }
+
+        // Interactivity: drag to rotate, click to randomize seed.
+        let dragging = false;
+        let lastX = 0;
+        canvas.addEventListener("pointerdown", (e) => {
+          dragging = true;
+          lastX = e.clientX;
+          canvas.setPointerCapture(e.pointerId);
+        });
+        canvas.addEventListener("pointerup", (e) => {
+          dragging = false;
+          canvas.releasePointerCapture(e.pointerId);
+        });
+        canvas.addEventListener("pointermove", (e) => {
+          if (!dragging) return;
+          const dx = e.clientX - lastX;
+          lastX = e.clientX;
+          state.rotation = Math.max(-180, Math.min(180, state.rotation + dx * 0.25));
+          ui.rotation.value = String(Math.round(state.rotation));
+        });
+        canvas.addEventListener("click", () => {
+          // Randomize seed for subtle weave/motif variation.
+          state.seed = Math.floor(Math.random() * 1000) + 1;
+        });
+
+        // Hook up UI.
+        const bindRange = (el, key) => {
+          el.addEventListener("input", () => {
+            state[key] = Number(el.value);
+          });
+        };
+        bindRange(ui.scale, "scale");
+        bindRange(ui.rotation, "rotation");
+        bindRange(ui.density, "density");
+        bindRange(ui.motif, "motif");
+
+        ui.palette.addEventListener("change", () => {
+          state.palette = ui.palette.value;
+          applyPalette();
+        });
+        ui.animate.addEventListener("change", () => {
+          state.animate = ui.animate.value === "on";
+        });
+        ui.reset.addEventListener("click", () => {
+          ui.scale.value = "1.0";
+          ui.rotation.value = "0";
+          ui.density.value = "14";
+          ui.motif.value = "0.95";
+          ui.palette.value = "goldGreen";
+          ui.animate.value = "on";
+          state.scale = 1.0;
+          state.rotation = 0;
+          state.density = 14;
+          state.motif = 0.95;
+          state.palette = "goldGreen";
+          state.animate = true;
+          state.seed = 7.0;
+          applyPalette();
+        });
+
+        ui.download.addEventListener("click", () => {
+          const a = document.createElement("a");
+          a.download = "tibeb-webgl.png";
+          a.href = canvas.toDataURL("image/png");
+          a.click();
+        });
+
+        // Simple FPS meter.
+        let lastT = performance.now();
+        let fpsAcc = 0;
+        let fpsCount = 0;
+        let fpsOut = 0;
+        function updateFps(now) {
+          const dt = now - lastT;
+          lastT = now;
+          const fps = dt > 0 ? 1000 / dt : 0;
+          fpsAcc += fps;
+          fpsCount += 1;
+          if (fpsCount >= 20) {
+            fpsOut = fpsAcc / fpsCount;
+            fpsAcc = 0;
+            fpsCount = 0;
+            ui.kpiFps.textContent = `${fpsOut.toFixed(0)}`;
+          }
+        }
+
+        // Draw loop.
+        let start = performance.now();
+        function frame(now) {
+          resize();
+          updateFps(now);
+
+          const t = (now - start) * 0.001;
+          const time = state.animate ? t : 0.0;
+
+          gl.useProgram(program);
+          applyPalette();
+
+          gl.uniform1f(u.time, time);
+          gl.uniform1f(u.scale, state.scale);
+          gl.uniform1f(u.rotation, state.rotation);
+          gl.uniform1f(u.density, state.density);
+          gl.uniform1f(u.motifScale, state.motif);
+          gl.uniform1f(u.seed, state.seed);
+
+          gl.bindVertexArray(vao);
+          gl.drawArrays(gl.TRIANGLES, 0, 6);
+          gl.bindVertexArray(null);
+
+          ui.kpiDraws.textContent = "1";
+          ui.kpiTris.textContent = "2";
+          statusEl.textContent = "WebGL2 running";
+
+          requestAnimationFrame(frame);
+        }
+
+        // Init
+        applyPalette();
+        resize();
+        requestAnimationFrame(frame);
+      })();
+    </script>
+  </body>
+</html>

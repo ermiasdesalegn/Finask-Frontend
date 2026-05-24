@@ -1,32 +1,32 @@
-import { AnimatePresence, motion } from "motion/react";
 import {
-  BookOpen,
-  Brain,
-  Building2,
-  Heart,
-  MapPin,
-  Search,
-  Sparkles,
-  Star,
-  Thermometer,
-  Trophy,
+    BookOpen,
+    Brain,
+    Building2,
+    Heart,
+    MapPin,
+    Search,
+    Sparkles,
+    Star,
+    Thermometer,
+    Trophy,
 } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SearchDropdown } from "../components/ui/SearchDropdown";
 import { FlickeringGrid } from "../components/ui/flickering-grid";
 import {
-  PROGRAM_FIELD_LABELS,
-  PROGRAM_FIELD_STYLES,
+    PROGRAM_FIELD_LABELS,
+    PROGRAM_FIELD_STYLES,
 } from "../constants/programFieldStyles";
 import { useDebounce } from "../lib/hooks/useDebounce";
 import { useDocumentDark } from "../lib/hooks/useDocumentDark";
 import {
-  blurReveal,
-  slideInRight,
-  springPop,
-  staggerBlurContainer,
-  staggerBlurItem,
+    blurReveal,
+    slideInRight,
+    springPop,
+    staggerBlurContainer,
+    staggerBlurItem,
 } from "../lib/motion/pageMotion";
 import { useSearchQuery } from "../lib/queries/search";
 
@@ -125,7 +125,7 @@ const DiscoverPage: React.FC = () => {
 
           {/* Search — same behavior as Home hero (debounced GET /search + dropdown) */}
           <div className="relative z-30 w-full max-w-2xl">
-            <div className="flex items-center gap-3 rounded-full border border-slate-200/80 bg-white/90 px-6 py-4 shadow-2xl shadow-brand-blue/10 backdrop-blur-xl transition-all focus-within:border-brand-blue/50 focus-within:ring-4 focus-within:ring-brand-blue/10 hover:shadow-brand-blue/20 dark:border-white/10 dark:bg-zinc-900/90 md:py-5">
+            <div className="flex items-center gap-3 rounded-full border border-slate-200/80 bg-white/90 px-6 py-4 shadow-2xl shadow-brand-blue/10 backdrop-blur-xl transition-all focus-within:border-brand-blue/50 focus-within:ring-4 focus-within:ring-brand-blue/10 hover:shadow-brand-blue/20 dark:border-white/10 dark:bg-zinc-900/90 dark:shadow-lg dark:shadow-black/40 md:py-5">
               <Search size={24} className="shrink-0 text-brand-blue" />
               <input
                 type="text"
