@@ -17,6 +17,7 @@ type FlowStep = "form" | "verifyEmail";
 
 interface AuthResponse {
   status: string;
+  token?: string;
   data: { user: AuthUser };
 }
 
@@ -176,7 +177,7 @@ const LoginModal = ({
     },
     onSuccess: (res) => {
       if (res.data?.user) {
-        login(res.data.user);
+        login(res.data.user, res.token);
         resetFormFields();
         onClose();
       } else {
@@ -231,7 +232,7 @@ const LoginModal = ({
     },
     onSuccess: (res) => {
       if (res.data?.user) {
-        login(res.data.user);
+        login(res.data.user, res.token);
         resetFormFields();
         onClose();
       } else {

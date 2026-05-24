@@ -1,13 +1,13 @@
 import { useQueryClient } from "@tanstack/react-query";
 import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useMemo,
+    useState,
 } from "react";
-import { apiGet, apiPost } from "../lib/api";
+import { apiGet, apiPost, clearToken, getToken, saveToken } from "../lib/api";
 import { subscribeAuthInvalid } from "../lib/authEvents";
 import { queryKeys } from "../lib/queryKeys";
 
@@ -42,13 +42,14 @@ interface AuthContextValue {
   user: AuthUser | null;
   sessionStatus: AuthSessionStatus;
   isAuthenticated: boolean;
-  login: (user: AuthUser) => void;
+  login: (user: AuthUser, token?: string) => void;
   logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 type GetMeResponse = { status: string; data?: { user: AuthUser } };
+type AuthResponse = { status: string; token?: string; data?: { user: AuthUser } };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
@@ -62,6 +63,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (USE_MOCK) return;
 
+    // If no token in storage, skip the getMe call — user is definitely not logged in
+    if (!getToken()) {
+      setSessionStatus("ready");
+      return;
+    }
+
     let cancelled = false;
 
     (async () => {
@@ -71,7 +78,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(res.data.user);
         }
       } catch {
-        // 401, network, or server error — remain logged out
+        // Token invalid or expired — clear it
+        clearToken();
       } finally {
         if (!cancelled) setSessionStatus("ready");
       }
@@ -83,7 +91,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = useCallback(
-    (newUser: AuthUser) => {
+    (newUser: AuthUser, token?: string) => {
+      if (token) saveToken(token);
       setUser(newUser);
       void queryClient.invalidateQueries();
     },
@@ -98,6 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // still clear local session
       }
     }
+    clearToken();
     setUser(null);
     void queryClient.invalidateQueries();
     void queryClient.removeQueries({ queryKey: queryKeys.favorites() });
@@ -105,6 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     return subscribeAuthInvalid(() => {
+      clearToken();
       setUser(null);
       void queryClient.invalidateQueries();
       void queryClient.removeQueries({ queryKey: queryKeys.favorites() });

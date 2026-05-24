@@ -2,6 +2,7 @@ import {
   Building2,
   GraduationCap,
   Heart,
+  LogIn,
   MapPin,
   Star,
   Users,
@@ -9,17 +10,19 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import LoginModal from "../components/layout/LoginModal";
 import { FlickeringHeartsBackground } from "../components/ui/flickering-hearts-background";
-import { useAuth } from "../context/AuthContext";
-import { ApiError } from "../lib/api";
-import {
-  useFavoritesQuery,
-  useRemoveFavoriteMutation,
-} from "../lib/queries/favorites";
 import {
   CITY_IMAGE_FALLBACK,
   UNIVERSITY_IMAGE_FALLBACK,
 } from "../constants/defaultMediaFallbacks";
+import { useAuth } from "../context/AuthContext";
+import { ApiError } from "../lib/api";
+import { blurReveal, springPop } from "../lib/motion/pageMotion";
+import {
+  useFavoritesQuery,
+  useRemoveFavoriteMutation,
+} from "../lib/queries/favorites";
 import {
   displayRating,
   formatRatingsQuantityCompact,
@@ -27,7 +30,6 @@ import {
   universityCover,
   universityPath,
 } from "../lib/universityUi";
-import { blurReveal, springPop } from "../lib/motion/pageMotion";
 import { cn } from "../lib/utils";
 import type { Campus, City, Favorite, Program, University } from "../types";
 
@@ -102,13 +104,13 @@ const EmptyState = ({ label }: { label: string }) => (
     animate={{ opacity: 1, scale: 1 }}
     className="col-span-full flex flex-col items-center justify-center py-32 text-center"
   >
-    <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-[2rem] border border-slate-600/30 bg-black/40 shadow-xl backdrop-blur-md">
-      <Heart size={32} className="text-slate-500/90" />
+    <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-[2rem] border border-slate-200/80 bg-white shadow-xl dark:border-slate-600/30 dark:bg-black/40 dark:backdrop-blur-md">
+      <Heart size={32} className="text-slate-300 dark:text-slate-500/90" />
     </div>
-    <h3 className="mb-2 text-xl font-black text-white">
+    <h3 className="mb-2 text-xl font-black text-slate-900 dark:text-white">
       No favorite {label} yet
     </h3>
-    <p className="text-sm text-slate-400">
+    <p className="text-sm text-slate-500 dark:text-slate-400">
       Heart items while browsing and they&apos;ll appear here.
     </p>
   </motion.div>
@@ -116,25 +118,98 @@ const EmptyState = ({ label }: { label: string }) => (
 
 export default function FavoritesPage() {
   const [activeTab, setActiveTab] = useState<Tab>("universities");
+  const [loginOpen, setLoginOpen] = useState(false);
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, sessionStatus, isAuthenticated } = useAuth();
+
+  // ✅ Only fire the query once the session check is done AND user is authenticated.
+  // Firing it before sessionStatus === "ready" causes a 401 race that triggers
+  // emitAuthInvalid() and logs the user out mid-load.
+  const queryEnabled = sessionStatus === "ready" && isAuthenticated;
+
   const { data: favoritesRaw = [], isPending, isError, error } =
-    useFavoritesQuery(true);
+    useFavoritesQuery(queryEnabled);
   const removeMutation = useRemoveFavoriteMutation();
 
-  const isUnauthorized =
-    isError && error instanceof ApiError && error.status === 401;
-  const favorites = isError ? [] : favoritesRaw;
-  const showFetchError = isError && !isUnauthorized;
+  const showFetchError = isError && !(error instanceof ApiError && error.status === 401);
 
   const tabItems = useMemo(
-    () => favoritesForTab(favorites, activeTab),
-    [favorites, activeTab]
+    () => favoritesForTab(favoritesRaw, activeTab),
+    [favoritesRaw, activeTab]
   );
 
+  // ── Session still loading ──────────────────────────────────────────────────
+  if (sessionStatus === "loading") {
+    return (
+      <div className="relative min-h-screen w-full bg-slate-50 pb-24 dark:bg-[#05060c]">
+        <div className="mx-auto max-w-7xl px-6 pt-10 lg:px-8">
+          <div className="mb-10 space-y-4">
+            <div className="h-8 w-48 animate-pulse rounded-2xl bg-slate-200 dark:bg-zinc-800" />
+            <div className="h-12 w-72 animate-pulse rounded-2xl bg-slate-200 dark:bg-zinc-800" />
+          </div>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="animate-pulse rounded-[1.5rem] border border-slate-200/80 bg-white/80 p-2 dark:border-white/10 dark:bg-white/5"
+              >
+                <div className="mb-3 h-44 rounded-xl bg-slate-200 dark:bg-white/10" />
+                <div className="space-y-2 px-3 pb-3">
+                  <div className="h-4 w-3/4 rounded-lg bg-slate-200 dark:bg-white/10" />
+                  <div className="h-3 w-1/2 rounded bg-slate-100 dark:bg-white/5" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Not authenticated ──────────────────────────────────────────────────────
+  if (!isAuthenticated) {
+    return (
+      <>
+        <div className="relative min-h-screen w-full bg-slate-50 pb-24 dark:bg-[#05060c]">
+          <div className="pointer-events-none fixed inset-0 z-0 hidden dark:block">
+            <FlickeringHeartsBackground className="h-full w-full" />
+          </div>
+          <div className="relative z-10 flex min-h-[70vh] flex-col items-center justify-center px-6 text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="max-w-sm"
+            >
+              <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-[2rem] border border-slate-200/80 bg-white shadow-xl dark:border-white/10 dark:bg-zinc-900">
+                <Heart size={40} className="text-slate-300 dark:text-slate-600" />
+              </div>
+              <h1 className="mb-3 text-3xl font-black tracking-tight text-slate-900 dark:text-white">
+                Your Favorites
+              </h1>
+              <p className="mb-8 text-slate-500 dark:text-slate-400">
+                Sign in to save and view your favorite universities, programs, cities, and campuses.
+              </p>
+              <button
+                type="button"
+                onClick={() => setLoginOpen(true)}
+                className="inline-flex items-center gap-2 rounded-2xl bg-brand-blue px-8 py-4 font-black text-white shadow-lg shadow-brand-blue/25 transition-all hover:-translate-y-0.5 hover:bg-blue-700 active:scale-95"
+              >
+                <LogIn size={18} />
+                Sign In to Continue
+              </button>
+            </motion.div>
+          </div>
+        </div>
+        <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
+      </>
+    );
+  }
+
+  // ── Authenticated ──────────────────────────────────────────────────────────
   return (
-    <div className="relative min-h-screen w-full overflow-x-hidden bg-[#05060c] pb-24">
-      <div className="pointer-events-none fixed inset-0 z-0">
+    <div className="relative min-h-screen w-full overflow-x-hidden bg-slate-50 pb-24 transition-colors duration-300 dark:bg-[#05060c]">
+      <div className="pointer-events-none fixed inset-0 z-0 hidden dark:block">
         <FlickeringHeartsBackground className="h-full w-full" />
       </div>
 
@@ -145,26 +220,25 @@ export default function FavoritesPage() {
           variants={springPop}
           className="mb-10"
         >
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-slate-600/35 bg-black/40 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-slate-300 shadow-sm backdrop-blur-md">
-            <Heart size={12} className="fill-slate-500 text-slate-400" />
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/80 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-slate-500 shadow-sm backdrop-blur-md dark:border-slate-600/35 dark:bg-black/40 dark:text-slate-300">
+            <Heart size={12} className="fill-slate-300 text-slate-400 dark:fill-slate-500" />
             Your Collection
           </div>
-          <h1 className="text-4xl font-black tracking-tight text-white md:text-5xl">
+          <h1 className="text-4xl font-black tracking-tight text-slate-900 dark:text-white md:text-5xl">
             Your{" "}
-            <span className="bg-gradient-to-r from-slate-200 to-sky-200/90 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-brand-blue to-sky-400 bg-clip-text text-transparent dark:from-slate-200 dark:to-sky-200/90">
               Favorites
             </span>
           </h1>
           {user?.firstName && (
-            <p className="mt-2 text-slate-400">
-              Welcome back, {user.firstName}. Here&apos;s everything you&apos;ve
-              saved.
+            <p className="mt-2 text-slate-500 dark:text-slate-400">
+              Welcome back, {user.firstName}. Here&apos;s everything you&apos;ve saved.
             </p>
           )}
         </motion.div>
 
         {showFetchError && (
-          <p className="mb-6 rounded-2xl border border-red-900/50 bg-red-950/50 px-4 py-3 text-sm font-medium text-red-200">
+          <p className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:border-red-900/50 dark:bg-red-950/50 dark:text-red-200">
             {error instanceof Error ? error.message : "Could not load favorites."}
           </p>
         )}
@@ -187,8 +261,8 @@ export default function FavoritesPage() {
                 className={cn(
                   "flex items-center gap-2 rounded-2xl px-5 py-2.5 text-sm font-bold transition-all duration-200",
                   active
-                    ? "border border-sky-900/50 bg-slate-800/90 text-slate-100 shadow-md shadow-black/40"
-                    : "border border-white/10 bg-white/5 text-slate-400 backdrop-blur-md hover:bg-white/10 hover:text-slate-200"
+                    ? "border border-brand-blue/30 bg-brand-blue/10 text-brand-blue shadow-md dark:border-sky-900/50 dark:bg-slate-800/90 dark:text-slate-100 dark:shadow-black/40"
+                    : "border border-slate-200/80 bg-white/80 text-slate-500 hover:border-brand-blue/30 hover:text-brand-blue dark:border-white/10 dark:bg-white/5 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-slate-200"
                 )}
               >
                 <Icon size={15} />
@@ -212,12 +286,12 @@ export default function FavoritesPage() {
                 {[1, 2, 3, 4].map((i) => (
                   <div
                     key={i}
-                    className="animate-pulse rounded-[1.5rem] border border-white/10 bg-white/5 p-2"
+                    className="animate-pulse rounded-[1.5rem] border border-slate-200/80 bg-white/80 p-2 dark:border-white/10 dark:bg-white/5"
                   >
-                    <div className="mb-3 h-44 rounded-xl bg-white/10" />
+                    <div className="mb-3 h-44 rounded-xl bg-slate-200 dark:bg-white/10" />
                     <div className="space-y-2 px-3 pb-3">
-                      <div className="h-4 w-3/4 rounded-lg bg-white/10" />
-                      <div className="h-3 w-1/2 rounded bg-white/5" />
+                      <div className="h-4 w-3/4 rounded-lg bg-slate-200 dark:bg-white/10" />
+                      <div className="h-3 w-1/2 rounded bg-slate-100 dark:bg-white/5" />
                     </div>
                   </div>
                 ))}
@@ -236,9 +310,9 @@ export default function FavoritesPage() {
                       key={fav._id}
                       whileHover={{ y: -4 }}
                       onClick={() => navigate(universityPath(uni))}
-                      className="group cursor-pointer rounded-[1.5rem] border border-white/10 bg-black/35 p-2 backdrop-blur-md transition-all hover:border-slate-500/30 hover:shadow-lg hover:shadow-black/20"
+                      className="group cursor-pointer rounded-[1.5rem] border border-slate-200/80 bg-white/90 p-2 shadow-sm transition-all hover:border-brand-blue/30 hover:shadow-md dark:border-white/10 dark:bg-black/35 dark:backdrop-blur-md dark:hover:border-slate-500/30 dark:hover:shadow-black/20"
                     >
-                      <div className="relative mb-3 h-44 overflow-hidden rounded-xl bg-zinc-900">
+                      <div className="relative mb-3 h-44 overflow-hidden rounded-xl bg-slate-100 dark:bg-zinc-900">
                         <img
                           src={universityCover(uni)}
                           alt={uni.name}
@@ -258,27 +332,17 @@ export default function FavoritesPage() {
                         </button>
                       </div>
                       <div className="px-3 pb-3">
-                        <h3 className="mb-1 truncate font-black text-white transition-colors group-hover:text-sky-200/90">
+                        <h3 className="mb-1 truncate font-black text-slate-900 transition-colors group-hover:text-brand-blue dark:text-white dark:group-hover:text-sky-200/90">
                           {uni.name}
                         </h3>
-                        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400">
-                          <MapPin size={11} className="text-slate-500" />
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-slate-400">
+                          <MapPin size={11} className="text-slate-400 dark:text-slate-500" />
                           {universityCity(uni) || "—"}
-                          <span className="mx-1 text-slate-600">
-                            •
-                          </span>
-                          <Star
-                            size={11}
-                            className="text-brand-yellow"
-                            fill="currentColor"
-                          />
+                          <span className="mx-1 text-slate-300 dark:text-slate-600">•</span>
+                          <Star size={11} className="text-brand-yellow" fill="currentColor" />
                           {displayRating(uni)}
                           <span className="text-slate-400">
-                            (
-                            {formatRatingsQuantityCompact(
-                              uni.ratingsQuantity
-                            )}
-                            )
+                            ({formatRatingsQuantityCompact(uni.ratingsQuantity)})
                           </span>
                         </div>
                       </div>
@@ -300,10 +364,10 @@ export default function FavoritesPage() {
                       key={fav._id}
                       whileHover={{ y: -4 }}
                       onClick={() => navigate(programPath(prog))}
-                      className="group cursor-pointer rounded-[1.5rem] border border-white/10 bg-black/35 p-5 backdrop-blur-md transition-all hover:border-slate-500/30 hover:shadow-lg hover:shadow-black/20"
+                      className="group cursor-pointer rounded-[1.5rem] border border-slate-200/80 bg-white/90 p-5 shadow-sm transition-all hover:border-brand-blue/30 hover:shadow-md dark:border-white/10 dark:bg-black/35 dark:backdrop-blur-md dark:hover:border-slate-500/30 dark:hover:shadow-black/20"
                     >
                       <div className="mb-3 flex items-center justify-between">
-                        <span className="rounded-full bg-slate-800/80 px-3 py-1 text-xs font-black text-slate-300">
+                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600 dark:bg-slate-800/80 dark:text-slate-300">
                           {prog.fieldDisplayName ?? prog.field}
                         </span>
                         <button
@@ -313,21 +377,21 @@ export default function FavoritesPage() {
                             e.stopPropagation();
                             removeMutation.mutate(fav._id);
                           }}
-                          className="rounded-full p-1.5 text-slate-500 transition-all hover:scale-110 disabled:opacity-50"
+                          className="rounded-full p-1.5 text-slate-400 transition-all hover:scale-110 disabled:opacity-50 dark:text-slate-500"
                           title="Remove from favorites"
                         >
-                          <Heart size={14} className="fill-slate-500" />
+                          <Heart size={14} className="fill-slate-300 dark:fill-slate-500" />
                         </button>
                       </div>
-                      <h3 className="mb-1 font-black text-white transition-colors group-hover:text-sky-200/90">
+                      <h3 className="mb-1 font-black text-slate-900 transition-colors group-hover:text-brand-blue dark:text-white dark:group-hover:text-sky-200/90">
                         {prog.name}
                       </h3>
                       {prog.overview ? (
-                        <p className="line-clamp-2 text-xs text-slate-400">
+                        <p className="line-clamp-2 text-xs text-slate-500 dark:text-slate-400">
                           {prog.overview}
                         </p>
                       ) : null}
-                      <div className="mt-3 flex items-center gap-1.5 text-xs font-bold text-slate-400">
+                      <div className="mt-3 flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-slate-400">
                         <GraduationCap size={11} />
                         {prog.duration != null ? `${prog.duration} yrs` : "—"}
                       </div>
@@ -349,9 +413,9 @@ export default function FavoritesPage() {
                       key={fav._id}
                       whileHover={{ y: -4 }}
                       onClick={() => navigate(cityPath(city))}
-                      className="group cursor-pointer rounded-[1.5rem] border border-white/10 bg-black/35 p-2 backdrop-blur-md transition-all hover:border-slate-500/30 hover:shadow-lg hover:shadow-black/20"
+                      className="group cursor-pointer rounded-[1.5rem] border border-slate-200/80 bg-white/90 p-2 shadow-sm transition-all hover:border-brand-blue/30 hover:shadow-md dark:border-white/10 dark:bg-black/35 dark:backdrop-blur-md dark:hover:border-slate-500/30 dark:hover:shadow-black/20"
                     >
-                      <div className="relative mb-3 h-44 overflow-hidden rounded-xl bg-zinc-900">
+                      <div className="relative mb-3 h-44 overflow-hidden rounded-xl bg-slate-100 dark:bg-zinc-900">
                         <img
                           src={cityCover(city)}
                           alt={city.name}
@@ -371,11 +435,11 @@ export default function FavoritesPage() {
                         </button>
                       </div>
                       <div className="px-3 pb-3">
-                        <h3 className="mb-1 truncate font-black text-white transition-colors group-hover:text-sky-200/90">
+                        <h3 className="mb-1 truncate font-black text-slate-900 transition-colors group-hover:text-brand-blue dark:text-white dark:group-hover:text-sky-200/90">
                           {city.name}
                         </h3>
-                        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400">
-                          <MapPin size={11} className="text-slate-500" />
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-slate-400">
+                          <MapPin size={11} className="text-slate-400 dark:text-slate-500" />
                           {city.regionDisplayName || city.region || "Ethiopia"}
                         </div>
                       </div>
@@ -397,9 +461,9 @@ export default function FavoritesPage() {
                       key={fav._id}
                       whileHover={{ y: -4 }}
                       onClick={() => navigate(campusNavigatePath(campus))}
-                      className="group cursor-pointer rounded-[1.5rem] border border-white/10 bg-black/35 p-2 backdrop-blur-md transition-all hover:border-slate-500/30 hover:shadow-lg hover:shadow-black/20"
+                      className="group cursor-pointer rounded-[1.5rem] border border-slate-200/80 bg-white/90 p-2 shadow-sm transition-all hover:border-brand-blue/30 hover:shadow-md dark:border-white/10 dark:bg-black/35 dark:backdrop-blur-md dark:hover:border-slate-500/30 dark:hover:shadow-black/20"
                     >
-                      <div className="relative mb-3 h-44 overflow-hidden rounded-xl bg-zinc-900">
+                      <div className="relative mb-3 h-44 overflow-hidden rounded-xl bg-slate-100 dark:bg-zinc-900">
                         <img
                           src={campusCover(campus)}
                           alt={campus.name}
@@ -419,16 +483,15 @@ export default function FavoritesPage() {
                         </button>
                       </div>
                       <div className="px-3 pb-3">
-                        <h3 className="mb-1 truncate font-black text-white transition-colors group-hover:text-sky-200/90">
+                        <h3 className="mb-1 truncate font-black text-slate-900 transition-colors group-hover:text-brand-blue dark:text-white dark:group-hover:text-sky-200/90">
                           {campus.name}
                         </h3>
-                        <p className="text-xs text-slate-400">
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
                           {typeof campus.university === "object" &&
                           campus.university &&
                           "name" in campus.university
                             ? String(
-                                (campus.university as { name?: string }).name ??
-                                  ""
+                                (campus.university as { name?: string }).name ?? ""
                               )
                             : "Campus"}
                         </p>

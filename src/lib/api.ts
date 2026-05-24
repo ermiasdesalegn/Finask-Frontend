@@ -5,11 +5,6 @@ import * as mock from "./mockData";
 const API_FALLBACK_DEV = "http://localhost:3000/api/v1";
 const API_FALLBACK_PROD = "https://finask.onrender.com/api/v1";
 
-/**
- * Normalize env API base. Path-only values (e.g. `/api/v1`) are returned as-is for
- * callers to reject in production — they would otherwise fetch the **page origin**
- * (e.g. finask-frontend.vercel.app) and 404 on static hosting.
- */
 function normalizeApiBase(raw: string | undefined): string {
   const trimmed = raw?.trim().replace(/\/$/, "") ?? "";
   if (!trimmed) return "";
@@ -18,15 +13,6 @@ function normalizeApiBase(raw: string | undefined): string {
   return `https://${trimmed}`;
 }
 
-/**
- * Dev API target (default): `VITE_API_URL` if set, else `http://localhost:3000/api/v1`.
- * Optional same-origin proxy: set `VITE_DEV_API_PROXY=true` so requests go to
- * `http://localhost:5173/api/v1` and Vite forwards to `VITE_API_URL` (helps httpOnly
- * cookies when the API is on another host).
- *
- * Production: only an absolute `http(s)://host/...` env base is allowed; bad values
- * fall back to `API_FALLBACK_PROD`.
- */
 function resolveApiBase(): string {
   if (import.meta.env.DEV && import.meta.env.VITE_DEV_API_PROXY === "true") {
     return "/api/v1";
@@ -54,6 +40,23 @@ export const API_BASE = resolveApiBase();
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
 
+// ── Token storage ──────────────────────────────────────────────────────────
+// Stored in localStorage so it survives page refreshes and works cross-origin
+// (third-party cookies are blocked by modern browsers for cross-origin requests).
+const TOKEN_KEY = "finask_auth_token";
+
+export function saveToken(token: string): void {
+  try { localStorage.setItem(TOKEN_KEY, token); } catch { /* ignore */ }
+}
+
+export function getToken(): string | null {
+  try { return localStorage.getItem(TOKEN_KEY); } catch { return null; }
+}
+
+export function clearToken(): void {
+  try { localStorage.removeItem(TOKEN_KEY); } catch { /* ignore */ }
+}
+
 // ── Mock router ────────────────────────────────────────────────────────────
 function resolveMock<T>(path: string): T | null {
   if (path.startsWith("/home")) return mock.mockHomePage() as T;
@@ -64,31 +67,17 @@ function resolveMock<T>(path: string): T | null {
   if (path.match(/\/universities\/[^/]+\/campuses/)) return mock.mockUniversityCampuses() as T;
   {
     const basePath = path.split("?")[0];
-    if (
-      basePath === "/universities/trending" ||
-      path.startsWith("/universities/trending?")
-    ) {
+    if (basePath === "/universities/trending" || path.startsWith("/universities/trending?"))
       return mock.mockUniversitiesTrending() as T;
-    }
-    if (
-      basePath === "/universities/featured" ||
-      path.startsWith("/universities/featured?")
-    ) {
+    if (basePath === "/universities/featured" || path.startsWith("/universities/featured?"))
       return mock.mockUniversitiesFeatured() as T;
-    }
     const topRanked = basePath.match(/^\/universities\/top-(\d+)-ranked$/);
-    if (topRanked) {
-      return mock.mockUniversitiesTopRanked(Number(topRanked[1])) as T;
-    }
+    if (topRanked) return mock.mockUniversitiesTopRanked(Number(topRanked[1])) as T;
     const topRated = basePath.match(/^\/universities\/top-(\d+)-rated$/);
-    if (topRated) {
-      return mock.mockUniversitiesTopRated(Number(topRated[1])) as T;
-    }
+    if (topRated) return mock.mockUniversitiesTopRated(Number(topRated[1])) as T;
   }
   if (path.startsWith("/universities")) return mock.mockUniversitiesList(path) as T;
-  if (path.match(/^\/programs\/rare(\?|$)/)) {
-    return mock.mockRarePrograms() as T;
-  }
+  if (path.match(/^\/programs\/rare(\?|$)/)) return mock.mockRarePrograms() as T;
   if (path.match(/\/programs\/slug\/([^/?]+)/)) {
     const slug = path.split("/programs/slug/")[1].split("?")[0];
     return mock.mockProgramDetail(decodeURIComponent(slug)) as T;
@@ -98,34 +87,23 @@ function resolveMock<T>(path: string): T | null {
     return mock.mockProgramUniversities(decodeURIComponent(programId)) as T;
   }
   const programOne = path.match(/^\/programs\/([^/?]+)(\?|$)/);
-  if (programOne && programOne[1] !== "rare") {
+  if (programOne && programOne[1] !== "rare")
     return mock.mockProgramDetail(decodeURIComponent(programOne[1])) as T;
-  }
-  if (path.split("?")[0] === "/programs") {
-    return mock.mockProgramsList(path) as T;
-  }
-  if (path.split("?")[0] === "/campuses") {
-    return mock.mockCampusesList() as T;
-  }
+  if (path.split("?")[0] === "/programs") return mock.mockProgramsList(path) as T;
+  if (path.split("?")[0] === "/campuses") return mock.mockCampusesList() as T;
   if (path.match(/\/cities\/slug\/(.+)/)) {
     const slug = path.split("/cities/slug/")[1].split("?")[0];
     return mock.mockCityByIdentifier(decodeURIComponent(slug)) as T;
   }
   const cityOne = path.match(/^\/cities\/([^/?]+)$/);
-  if (cityOne) {
-    return mock.mockCityByIdentifier(decodeURIComponent(cityOne[1])) as T;
-  }
+  if (cityOne) return mock.mockCityByIdentifier(decodeURIComponent(cityOne[1])) as T;
   if (path.startsWith("/cities")) return mock.mockCitiesList() as T;
   if (path.startsWith("/search")) {
     const q = new URLSearchParams(path.split("?")[1] ?? "").get("q") ?? "";
     return mock.mockSearch(q) as T;
   }
   if (path.split("?")[0] === "/favorites") {
-    return {
-      status: "success",
-      results: 0,
-      data: { favorites: [] },
-    } as T;
+    return { status: "success", results: 0, data: { favorites: [] } } as T;
   }
   return null;
 }
@@ -133,9 +111,7 @@ function resolveMock<T>(path: string): T | null {
 
 let toastNotifier: ((message: string) => void) | null = null;
 
-export function setApiToastNotifier(
-  fn: ((message: string) => void) | null
-): void {
+export function setApiToastNotifier(fn: ((message: string) => void) | null): void {
   toastNotifier = fn;
 }
 
@@ -150,6 +126,12 @@ export function showApiToast(message: string): void {
 function joinUrl(path: string): string {
   const p = path.startsWith("/") ? path : `/${path}`;
   return `${API_BASE}${p}`;
+}
+
+/** Build auth headers — Bearer token takes priority over cookie for cross-origin support */
+function authHeaders(): Record<string, string> {
+  const token = getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 export class ApiError extends Error {
@@ -167,11 +149,16 @@ export class ApiError extends Error {
 async function parseJsonSafe(res: Response): Promise<unknown> {
   const text = await res.text();
   if (!text) return null;
-  try {
-    return JSON.parse(text);
-  } catch {
-    return text;
-  }
+  try { return JSON.parse(text); } catch { return text; }
+}
+
+// Only invalidate the session when the session-check endpoint itself returns 401.
+// A 401 from /favorites, /compare, etc. just means "auth required" — it should NOT
+// log the user out globally.
+const AUTH_INVALIDATING_PATHS = ["/users/getMe", "/users/me"];
+
+function shouldInvalidateSession(path: string): boolean {
+  return AUTH_INVALIDATING_PATHS.some((p) => path.startsWith(p));
 }
 
 export async function apiGet<T = unknown>(
@@ -191,6 +178,7 @@ export async function apiGet<T = unknown>(
       method: "GET",
       headers: {
         Accept: "application/json",
+        ...authHeaders(),
         ...(init?.headers as Record<string, string>),
       },
     });
@@ -201,7 +189,7 @@ export async function apiGet<T = unknown>(
 
   const body = await parseJsonSafe(res);
 
-  if (res.status === 401) {
+  if (res.status === 401 && shouldInvalidateSession(path)) {
     emitAuthInvalid();
   }
 
@@ -232,6 +220,7 @@ export async function apiPost<T = unknown>(
   const headers: Record<string, string> = {
     Accept: "application/json",
     "Content-Type": "application/json",
+    ...authHeaders(),
     ...(rest.headers as Record<string, string>),
   };
 
@@ -251,7 +240,7 @@ export async function apiPost<T = unknown>(
 
   const parsed = await parseJsonSafe(res);
 
-  if (res.status === 401 && !skipAuth) {
+  if (res.status === 401 && !skipAuth && shouldInvalidateSession(path)) {
     emitAuthInvalid();
   }
 
@@ -282,6 +271,7 @@ export async function apiDelete<T = unknown>(
       method: "DELETE",
       headers: {
         Accept: "application/json",
+        ...authHeaders(),
         ...(init?.headers as Record<string, string>),
       },
     });
@@ -292,7 +282,7 @@ export async function apiDelete<T = unknown>(
 
   const body = await parseJsonSafe(res);
 
-  if (res.status === 401) {
+  if (res.status === 401 && shouldInvalidateSession(path)) {
     emitAuthInvalid();
   }
 
