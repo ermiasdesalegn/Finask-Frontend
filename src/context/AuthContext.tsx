@@ -10,6 +10,7 @@ import React, {
 import { apiGet, apiPost, clearToken, getToken, saveToken } from "../lib/api";
 import { subscribeAuthInvalid } from "../lib/authEvents";
 import { queryKeys } from "../lib/queryKeys";
+import { userHasFieldsOfInterest } from "../lib/userProfile";
 
 /**
  * Session: httpOnly `jwt` cookie on the API host (not localStorage). After refresh,
@@ -42,7 +43,13 @@ interface AuthContextValue {
   user: AuthUser | null;
   sessionStatus: AuthSessionStatus;
   isAuthenticated: boolean;
-  login: (user: AuthUser, token?: string) => void;
+  /** Signed in but missing required fieldsOfInterest */
+  needsFieldsOfInterest: boolean;
+  profileComplete: boolean;
+  /** Saves token and reloads the user from GET /users/getMe (source of truth for fieldsOfInterest). */
+  login: (user: AuthUser, token?: string) => Promise<void>;
+  updateUser: (user: AuthUser) => void;
+  refreshUser: () => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -62,13 +69,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (USE_MOCK) return;
-
-    // If no token in storage, skip the getMe call — user is definitely not logged in
-    if (!getToken()) {
-      setSessionStatus("ready");
-      return;
-    }
-
+    // Attempt to fetch current user. We do this regardless of a stored
+    // local token so sessions that rely on httpOnly cookies (common for
+    // Google sign-in) are detected and the app can prompt for missing
+    // required fields like `fieldsOfInterest`.
     let cancelled = false;
 
     (async () => {
@@ -78,7 +82,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(res.data.user);
         }
       } catch {
-        // Token invalid or expired — clear it
+        // No active session or token invalid/expired — clear any local token
+        // (safe even if none exists) and continue.
         clearToken();
       } finally {
         if (!cancelled) setSessionStatus("ready");
@@ -91,9 +96,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = useCallback(
-    (newUser: AuthUser, token?: string) => {
+    async (newUser: AuthUser, token?: string) => {
       if (token) saveToken(token);
-      setUser(newUser);
+      try {
+        const res = await apiGet<GetMeResponse>("/users/getMe");
+        setUser(res.data?.user ?? newUser);
+      } catch {
+        setUser(newUser);
+      }
+      void queryClient.invalidateQueries();
+    },
+    [queryClient]
+  );
+
+  const refreshUser = useCallback(async () => {
+    if (USE_MOCK) return;
+    try {
+      const res = await apiGet<GetMeResponse>("/users/getMe");
+      if (res.data?.user) setUser(res.data.user);
+    } catch {
+      clearToken();
+      setUser(null);
+    }
+  }, []);
+
+  const updateUser = useCallback(
+    (next: AuthUser) => {
+      setUser(next);
       void queryClient.invalidateQueries();
     },
     [queryClient]
@@ -122,16 +151,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   }, [queryClient]);
 
-  const value = useMemo(
-    () => ({
+  const value = useMemo(() => {
+    const isAuthenticated = Boolean(user);
+    const profileComplete = isAuthenticated && userHasFieldsOfInterest(user);
+    return {
       user,
       sessionStatus,
-      isAuthenticated: Boolean(user),
+      isAuthenticated,
+      needsFieldsOfInterest: isAuthenticated && !userHasFieldsOfInterest(user),
+      profileComplete,
       login,
+      updateUser,
+      refreshUser,
       logout,
-    }),
-    [user, sessionStatus, login, logout]
-  );
+    };
+  }, [user, sessionStatus, login, updateUser, refreshUser, logout]);
 
   return (
     <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

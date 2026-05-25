@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Route, Routes } from "react-router-dom";
 import Footer from "./components/layout/Footer";
+import CompleteProfileModal from "./components/layout/CompleteProfileModal";
 import Navbar from "./components/layout/Navbar";
 import { CustomCursor } from "./components/ui/custom-cursor";
 import { FlickeringGrid } from "./components/ui/flickering-grid";
@@ -68,6 +69,7 @@ function AppShell() {
     <>
       <ScrollToTop />
       <CustomCursor />
+      <CompleteProfileModal />
 
       {toast && (
         <div

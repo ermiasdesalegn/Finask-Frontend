@@ -255,6 +255,49 @@ export async function apiPost<T = unknown>(
   return parsed as T;
 }
 
+export async function apiPatch<T = unknown>(
+  path: string,
+  body?: unknown,
+  init?: RequestInit
+): Promise<T> {
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    "Content-Type": "application/json",
+    ...authHeaders(),
+    ...(init?.headers as Record<string, string>),
+  };
+
+  let res: Response;
+  try {
+    res = await fetch(joinUrl(path), {
+      ...init,
+      credentials: "include",
+      method: "PATCH",
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+  } catch {
+    notifyNetwork("Network error. Check your connection and try again.");
+    throw new ApiError("Network error", 0, null);
+  }
+
+  const parsed = await parseJsonSafe(res);
+
+  if (res.status === 401 && shouldInvalidateSession(path)) {
+    emitAuthInvalid();
+  }
+
+  if (!res.ok) {
+    const msg =
+      typeof parsed === "object" && parsed !== null && "message" in parsed
+        ? String((parsed as { message: string }).message)
+        : res.statusText;
+    throw new ApiError(msg || "Request failed", res.status, parsed);
+  }
+
+  return parsed as T;
+}
+
 export async function apiDelete<T = unknown>(
   path: string,
   init?: RequestInit

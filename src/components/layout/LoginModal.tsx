@@ -1,12 +1,16 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Eye, EyeOff, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import finaskLogo from "../../assets/finask-logo.png";
 import { useAuth, type AuthUser } from "../../context/AuthContext";
 import { ApiError, apiPost } from "../../lib/api";
-import { queryKeys } from "../../lib/queryKeys";
-import { fetchProgramsList } from "../../lib/services/programService";
+import {
+  ensureGoogleIdentity,
+  getGoogleClientId,
+  triggerGoogleSignIn,
+} from "../../lib/googleIdentity";
+import FieldsOfStudyPicker from "./FieldsOfStudyPicker";
 import {
   VerificationOtpInput,
   emptyOtpCells,
@@ -29,6 +33,10 @@ interface SignupResponse {
 interface ResendVerificationResponse {
   status: string;
   message: string;
+}
+
+interface GoogleAuthResponse extends AuthResponse {
+  needsProfile?: boolean;
 }
 
 // Google "G" SVG icon
@@ -67,24 +75,7 @@ const LoginModal = ({
 
   const [verificationEmail, setVerificationEmail] = useState("");
   const [otpCells, setOtpCells] = useState<string[]>(() => emptyOtpCells());
-
-  const signupProgramsFilters = useMemo(
-    () =>
-      ({
-        limit: 300,
-        sort: "name" as const,
-        fields: "_id,name",
-      }) as const,
-    []
-  );
-
-  const programsQuery = useQuery({
-    queryKey: queryKeys.programsList(signupProgramsFilters),
-    queryFn: () => fetchProgramsList(signupProgramsFilters),
-    enabled: open && mode === "signup" && flowStep === "form",
-  });
-
-  const programs = programsQuery.data?.data.programs ?? [];
+  const googleConfigured = Boolean(getGoogleClientId());
 
   useEffect(() => {
     if (!open) return;
@@ -175,11 +166,11 @@ const LoginModal = ({
       }
       return apiPost<AuthResponse>("/users/login", body, { skipAuth: true });
     },
-    onSuccess: (res) => {
+    onSuccess: async (res) => {
       if (res.data?.user) {
-        login(res.data.user, res.token);
-        resetFormFields();
         onClose();
+        resetFormFields();
+        await login(res.data.user, res.token);
       } else {
         setError("Unexpected response from server");
       }
@@ -230,17 +221,76 @@ const LoginModal = ({
         skipAuth: true,
       });
     },
-    onSuccess: (res) => {
+    onSuccess: async (res) => {
       if (res.data?.user) {
-        login(res.data.user, res.token);
-        resetFormFields();
         onClose();
+        resetFormFields();
+        await login(res.data.user, res.token);
       } else {
         setError("Unexpected response from server");
       }
     },
     onError: (err: unknown) => {
       setError(err instanceof ApiError ? err.message : "Verification failed");
+    },
+  });
+
+  const completeGoogleAuth = useCallback(
+    async (res: GoogleAuthResponse) => {
+      if (res.status === "success" && res.data?.user) {
+        onClose();
+        resetFormFields();
+        await login(res.data.user, res.token);
+        return;
+      }
+      setError("Unexpected response from server");
+    },
+    [login, onClose]
+  );
+
+  const googleAuthMutation = useMutation({
+    mutationFn: (body: {
+      idToken: string;
+      fieldsOfInterest?: string[];
+      firstName?: string;
+      lastName?: string;
+    }) => {
+      if (import.meta.env.VITE_USE_MOCK === "true") {
+        const hasFields = Boolean(body.fieldsOfInterest?.length);
+        return Promise.resolve({
+          status: "success",
+          token: "mock-google-token",
+          needsProfile: !hasFields,
+          data: {
+            user: {
+              _id: "mock-google-001",
+              email: "google.user@finask.et",
+              firstName: body.firstName ?? "Google",
+              lastName: body.lastName ?? "User",
+              role: "user",
+              fieldsOfInterest: body.fieldsOfInterest ?? [],
+            },
+          },
+        } as GoogleAuthResponse);
+      }
+      return apiPost<GoogleAuthResponse>("/users/auth/google", body, {
+        skipAuth: true,
+      });
+    },
+    onSuccess: (res) => {
+      void completeGoogleAuth(res);
+    },
+    onError: (err: unknown) => {
+      const msg =
+        err instanceof ApiError ? err.message : "Google sign-in failed";
+      // Old API blocked Google sign-in before creating a session; new API always returns a token.
+      if (msg.toLowerCase().includes("field of interest")) {
+        setError(
+          "Google sign-in could not finish. Redeploy the API with the latest auth changes, then try again."
+        );
+        return;
+      }
+      setError(msg);
     },
   });
 
@@ -281,7 +331,7 @@ const LoginModal = ({
       return;
     }
     if (selectedProgramIds.length === 0) {
-      setError("Please select at least one field of study.");
+      setError("Please select at least one field of interest.");
       return;
     }
     signupMutation.mutate({
@@ -310,10 +360,36 @@ const LoginModal = ({
     resendMutation.mutate({ email: verificationEmail });
   };
 
+  const handleGoogleClick = async () => {
+    setError(null);
+    setInfoMsg(null);
+    if (!googleConfigured) {
+      setError(
+        "Google Sign-In is not configured. Add VITE_GOOGLE_CLIENT_ID to your .env file."
+      );
+      return;
+    }
+    try {
+      const ready = await ensureGoogleIdentity((credential) => {
+        googleAuthMutation.mutate({ idToken: credential });
+      });
+      if (!ready) {
+        setError("Could not initialize Google Sign-In.");
+        return;
+      }
+      await triggerGoogleSignIn();
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : "Could not open Google Sign-In"
+      );
+    }
+  };
+
   const submitting =
     loginMutation.isPending ||
     signupMutation.isPending ||
-    verifyEmailMutation.isPending;
+    verifyEmailMutation.isPending ||
+    googleAuthMutation.isPending;
 
   const inputClass =
     "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition-all focus:border-brand-blue focus:bg-white focus:ring-2 focus:ring-brand-blue/20 dark:border-white/10 dark:bg-zinc-800 dark:text-white dark:focus:bg-zinc-700";
@@ -366,7 +442,7 @@ const LoginModal = ({
               </div>
 
               {flowStep === "form" && (
-                <div className="mb-6 flex rounded-2xl bg-slate-100 p-1 dark:bg-zinc-800">
+                <div className="mb-6 flex rounded-2xl bg-slate-100 p-1 dark:bg-zinc-800" key="mode-tabs">
                   {(["signin", "signup"] as Mode[]).map((m) => (
                     <button
                       key={m}
@@ -556,10 +632,14 @@ const LoginModal = ({
 
                       <button
                         type="button"
-                        className="flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white py-3 font-bold text-slate-700 transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md active:scale-95 dark:border-white/10 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700"
+                        onClick={handleGoogleClick}
+                        disabled={submitting}
+                        className="flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white py-3 font-bold text-slate-700 transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700"
                       >
                         <GoogleIcon />
-                        Continue with Google
+                        {googleAuthMutation.isPending
+                          ? "Connecting…"
+                          : "Continue with Google"}
                       </button>
 
                       <p className="text-center text-sm text-slate-500 dark:text-slate-400">
@@ -628,52 +708,11 @@ const LoginModal = ({
                         />
                       </div>
 
-                      <div>
-                        <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-400">
-                          Fields of study
-                        </span>
-                        <p className="mb-2 text-xs text-slate-500 dark:text-slate-400">
-                          Pick at least one program you care about (required).
-                        </p>
-                        {programsQuery.isPending && (
-                          <p className="text-sm text-slate-500">Loading programs…</p>
-                        )}
-                        {programsQuery.isError && (
-                          <p className="text-sm text-red-600 dark:text-red-400">
-                            Could not load programs. Check your connection and try again.
-                          </p>
-                        )}
-                        {!programsQuery.isPending && !programsQuery.isError && programs.length === 0 && (
-                          <p className="text-sm text-slate-500">No programs available.</p>
-                        )}
-                        {programs.length > 0 && (
-                          <div
-                            className="max-h-44 space-y-2 overflow-y-auto overscroll-y-contain rounded-2xl border border-slate-200 bg-slate-50/80 p-3 dark:border-white/10 dark:bg-zinc-800/80"
-                            role="group"
-                            aria-label="Fields of study"
-                          >
-                            {programs.map((p) => {
-                              const id = p._id || p.id;
-                              if (!id) return null;
-                              const checked = selectedProgramIds.includes(id);
-                              return (
-                                <label
-                                  key={id}
-                                  className="flex cursor-pointer items-start gap-3 rounded-xl px-2 py-1.5 text-sm text-slate-800 hover:bg-white dark:text-slate-200 dark:hover:bg-zinc-700"
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={checked}
-                                    onChange={() => toggleProgramInterest(id)}
-                                    className="mt-0.5 size-4 shrink-0 rounded border-slate-300 text-brand-blue focus:ring-brand-blue"
-                                  />
-                                  <span>{p.name}</span>
-                                </label>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
+                      <FieldsOfStudyPicker
+                        selectedIds={selectedProgramIds}
+                        onToggle={toggleProgramInterest}
+                        enabled={open && mode === "signup" && flowStep === "form"}
+                      />
 
                       <div>
                         <label htmlFor="signup-password" className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-400">
@@ -733,10 +772,14 @@ const LoginModal = ({
 
                       <button
                         type="button"
-                        className="flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white py-3 font-bold text-slate-700 transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md active:scale-95 dark:border-white/10 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700"
+                        onClick={handleGoogleClick}
+                        disabled={submitting}
+                        className="flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white py-3 font-bold text-slate-700 transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700"
                       >
                         <GoogleIcon />
-                        Sign up with Google
+                        {googleAuthMutation.isPending
+                          ? "Connecting…"
+                          : "Sign up with Google"}
                       </button>
 
                       <p className="text-center text-sm text-slate-500 dark:text-slate-400">
