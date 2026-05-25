@@ -28,6 +28,14 @@ export const queryKeys = {
     ["universities", "top-ranked", n] as const,
   universitiesTopRated: (n: number) =>
     ["universities", "top-rated", n] as const,
+  universitiesTopReviewed: (n: number) =>
+    ["universities", "top-reviewed", n] as const,
+  universitiesNear: (lat: number, lng: number) =>
+    ["universities", "near", lat, lng] as const,
+  universitiesSuggestedLocation: () =>
+    ["universities", "suggested-location"] as const,
+  universitiesSuggestedProgram: () =>
+    ["universities", "suggested-program"] as const,
 
   campusesList: (opts?: { limit?: number; sort?: string }) =>
     [

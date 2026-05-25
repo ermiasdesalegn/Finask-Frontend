@@ -28,16 +28,9 @@ import {
   universityPath,
 } from "../lib/universityUi";
 import { unwrapMarkdownLink } from "../lib/unwrapMarkdownLink";
-import type { Review } from "../types";
-
-function reviewAuthorName(r: Review): string {
-  const u = r.user;
-  if (!u) return "Student";
-  const full = u.fullName?.trim();
-  if (full) return full;
-  const parts = [u.firstName, u.lastName].filter(Boolean);
-  return parts.length ? parts.join(" ") : "Student";
-}
+import FavoriteButton from "../components/favorites/FavoriteButton";
+import ReviewsSection from "../components/community/ReviewsSection";
+import QuestionsSection from "../components/community/QuestionsSection";
 
 const ProgramPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -128,6 +121,7 @@ const ProgramPage: React.FC = () => {
               {program.duration != null ? ` · ${program.duration} yrs` : ""}
             </p>
           </div>
+          <FavoriteButton itemId={program._id} onModel="Program" />
         </div>
       </header>
 
@@ -258,108 +252,16 @@ const ProgramPage: React.FC = () => {
             </div>
           )}
 
-          {reviews.length > 0 && (
-            <div className="rounded-3xl border border-slate-200/60 bg-white/80 p-6 dark:border-white/5 dark:bg-zinc-900/80">
-              <h2 className="mb-4 flex items-center gap-2 text-lg font-black text-slate-900 dark:text-white">
-                <Star size={18} className="text-amber-500" fill="currentColor" />
-                Reviews
-              </h2>
-              <ul className="space-y-4">
-                {reviews.map((r) => {
-                  const likes = r.likesCount ?? r.likes?.length ?? 0;
-                  const when = r.createdAt
-                    ? new Date(r.createdAt).toLocaleDateString(undefined, {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      })
-                    : null;
-                  return (
-                    <li
-                      key={r._id}
-                      className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4 dark:border-white/10 dark:bg-zinc-800/40"
-                    >
-                      <div className="mb-3 flex items-start gap-3">
-                        {r.user?.profileImage ? (
-                          <img
-                            src={r.user.profileImage}
-                            alt=""
-                            className="h-11 w-11 shrink-0 rounded-full object-cover ring-2 ring-white dark:ring-zinc-700"
-                          />
-                        ) : (
-                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-200 ring-2 ring-white dark:bg-zinc-700 dark:ring-zinc-700">
-                            <User size={20} className="text-slate-500 dark:text-slate-400" />
-                          </div>
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <p className="font-bold text-slate-900 dark:text-white">
-                            {reviewAuthorName(r)}
-                          </p>
-                          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-500 dark:text-slate-400">
-                            <span className="inline-flex items-center gap-0.5 font-semibold text-amber-700 dark:text-amber-400">
-                              <Star size={11} className="fill-current" />
-                              {r.rating.toFixed(1)}
-                            </span>
-                            {when ? <span>{when}</span> : null}
-                          </div>
-                        </div>
-                      </div>
-                      <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-                        {r.review}
-                      </p>
-                      {likes > 0 ? (
-                        <div className="mt-3 flex items-center gap-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
-                          <ThumbsUp size={13} className="text-brand-blue" />
-                          {likes} {likes === 1 ? "like" : "likes"}
-                        </div>
-                      ) : null}
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          )}
-
-          {questions.length > 0 && (
-            <div className="rounded-3xl border border-slate-200/60 bg-white/80 p-6 dark:border-white/5 dark:bg-zinc-900/80">
-              <h2 className="mb-4 flex items-center gap-2 text-lg font-black text-slate-900 dark:text-white">
-                <MessageCircleQuestion size={18} className="text-brand-blue" />
-                Questions
-              </h2>
-              <ul className="space-y-3">
-                {questions.map((q) => (
-                  <li
-                    key={q._id}
-                    className="rounded-2xl border border-slate-100 bg-slate-50/60 px-4 py-3 text-sm text-slate-700 dark:border-white/10 dark:bg-zinc-800/40 dark:text-slate-300"
-                  >
-                    {q.question}
-                    {q.replyCount != null && q.replyCount > 0 ? (
-                      <span className="mt-2 block text-xs font-semibold text-slate-500">
-                        {q.replyCount} {q.replyCount === 1 ? "reply" : "replies"}
-                      </span>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {questions.length === 0 &&
-          program.questionCount != null &&
-          program.questionCount > 0 ? (
-            <div className="rounded-3xl border border-dashed border-slate-200/70 bg-white/60 p-6 dark:border-white/15 dark:bg-zinc-900/50">
-              <h2 className="mb-2 flex items-center gap-2 text-lg font-black text-slate-900 dark:text-white">
-                <MessageCircleQuestion size={18} className="text-brand-blue" />
-                Questions
-              </h2>
-              <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-                {program.questionCount === 1
-                  ? "There is 1 community question for this program."
-                  : `There are ${program.questionCount} community questions.`}{" "}
-                Question text will show here when the API includes the questions list on this endpoint.
-              </p>
-            </div>
-          ) : null}
+          <ReviewsSection
+            parentType="program"
+            parentId={program._id}
+            initialReviews={reviews}
+          />
+          <QuestionsSection
+            parentType="program"
+            parentId={program._id}
+            initialQuestions={questions}
+          />
 
           <div>
             <h2 className="mb-4 text-lg font-black text-slate-900 dark:text-white">

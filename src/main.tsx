@@ -5,6 +5,7 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App.tsx";
 import { AuthProvider } from "./context/AuthContext";
 import { CompareProvider } from "./context/CompareContext";
+import { LoginModalProvider } from "./context/LoginModalContext";
 import { createQueryClient } from "./lib/queryClient";
 import "./index.css";
 
@@ -16,7 +17,9 @@ function Root() {
       <BrowserRouter>
         <CompareProvider>
           <AuthProvider>
-            <App />
+            <LoginModalProvider>
+              <App />
+            </LoginModalProvider>
           </AuthProvider>
         </CompareProvider>
       </BrowserRouter>

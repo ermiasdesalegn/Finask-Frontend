@@ -9,13 +9,19 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion, type Variants } from "motion/react";
 import React, { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import FavoriteButton from "../components/favorites/FavoriteButton";
 import { AnimatedGridPattern } from "../components/ui/animated-grid-pattern";
 import { staggerBlurContainer, staggerBlurItem } from "../lib/motion/pageMotion";
 import { useCampusesListQuery } from "../lib/queries";
 import { UNIVERSITY_IMAGE_FALLBACK } from "../constants/defaultMediaFallbacks";
 import { cn } from "../lib/utils";
 import type { Campus } from "../types";
+
+function campusHref(c: Campus): string {
+  const key = c.slug?.trim() || c._id;
+  return `/campuses/${encodeURIComponent(key)}`;
+}
 
 function universityHref(c: Campus): string | null {
   const u = c.university;
@@ -225,13 +231,11 @@ function CampusCard({
           className="absolute inset-0 h-full w-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/25 to-transparent" />
-        <button
-          type="button"
-          className="absolute right-3 top-3 rounded-full bg-black/40 p-2 text-white backdrop-blur-md"
-          aria-label="Favorite"
-        >
-          <Heart size={14} />
-        </button>
+        {campus._id && (
+          <div className="absolute right-3 top-3">
+            <FavoriteButton itemId={campus._id} onModel="Campus" size={14} />
+          </div>
+        )}
         <div className="absolute bottom-4 left-5 right-5">
           <h2 className="text-lg font-black tracking-tight text-white md:text-xl">
             {campus.name}
@@ -254,15 +258,23 @@ function CampusCard({
         <p className="line-clamp-3 text-xs font-medium leading-relaxed text-slate-600 dark:text-slate-400">
           {campus.overview || "Campus profile from the directory."}
         </p>
-        {href && (
-          <button
-            type="button"
-            onClick={onOpenUniversity}
-            className="mt-auto flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-blue py-3 text-xs font-black text-white shadow-lg shadow-brand-blue/25 transition-all hover:bg-blue-700"
+        <div className="mt-auto flex flex-col gap-2">
+          <Link
+            to={campusHref(campus)}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-brand-blue py-3 text-xs font-black text-brand-blue"
           >
-            View university <ArrowRight size={14} />
-          </button>
-        )}
+            Campus details <ArrowRight size={14} />
+          </Link>
+          {href && (
+            <button
+              type="button"
+              onClick={onOpenUniversity}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-blue py-3 text-xs font-black text-white shadow-lg shadow-brand-blue/25 transition-all hover:bg-blue-700"
+            >
+              View university <ArrowRight size={14} />
+            </button>
+          )}
+        </div>
       </div>
     </motion.article>
   );

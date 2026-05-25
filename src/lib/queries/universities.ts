@@ -5,7 +5,11 @@ import {
   fetchFeaturedUniversities,
   fetchTopRankedUniversities,
   fetchTopRatedUniversities,
+  fetchTopReviewedUniversities,
   fetchTrendingUniversities,
+  fetchUniversitiesNear,
+  fetchSuggestedByLocation,
+  fetchSuggestedByProgram,
   fetchUniversitiesList,
   fetchUniversityCampuses,
   fetchUniversityDetail,
@@ -71,6 +75,47 @@ export function useTopRatedUniversitiesQuery(
     queryFn: () => fetchTopRatedUniversities(limit),
     staleTime: STALE_MS.list,
     enabled: options?.enabled !== false,
+  });
+}
+
+export function useTopReviewedUniversitiesQuery(
+  limit = DISCOVER_TOP_LIMIT,
+  options?: { enabled?: boolean }
+) {
+  return useQuery({
+    queryKey: queryKeys.universitiesTopReviewed(limit),
+    queryFn: () => fetchTopReviewedUniversities(limit),
+    staleTime: STALE_MS.list,
+    enabled: options?.enabled !== false,
+  });
+}
+
+export function useUniversitiesNearQuery(
+  coords: { lat: number; lng: number } | null,
+  options?: { enabled?: boolean }
+) {
+  return useQuery({
+    queryKey: queryKeys.universitiesNear(coords?.lat ?? 0, coords?.lng ?? 0),
+    queryFn: () => fetchUniversitiesNear(coords!.lat, coords!.lng),
+    enabled: Boolean(coords) && options?.enabled !== false,
+  });
+}
+
+export function useSuggestedByLocationQuery(enabled: boolean) {
+  return useQuery({
+    queryKey: queryKeys.universitiesSuggestedLocation(),
+    queryFn: fetchSuggestedByLocation,
+    enabled,
+    staleTime: STALE_MS.list,
+  });
+}
+
+export function useSuggestedByProgramQuery(enabled: boolean) {
+  return useQuery({
+    queryKey: queryKeys.universitiesSuggestedProgram(),
+    queryFn: fetchSuggestedByProgram,
+    enabled,
+    staleTime: STALE_MS.list,
   });
 }
 

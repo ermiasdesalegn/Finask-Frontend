@@ -188,3 +188,44 @@ export async function fetchUniversityPrograms(
     data: { universityprograms },
   };
 }
+
+/** GET /api/v1/universities/near — requires auth + coordinates */
+export async function fetchUniversitiesNear(
+  lat: number,
+  lng: number,
+  options?: { limit?: number; maxDistance?: number }
+): Promise<UniversitiesListResponse> {
+  const params = new URLSearchParams();
+  params.set("lat", String(lat));
+  params.set("lng", String(lng));
+  if (options?.limit) params.set("limit", String(options.limit));
+  if (options?.maxDistance) params.set("maxDistance", String(options.maxDistance));
+  const res = await apiGet<LooseUniversitiesPayload>(
+    `/universities/near?${params.toString()}`
+  );
+  return normalizeUniversitiesListResponse(res);
+}
+
+export async function fetchSuggestedByLocation(): Promise<UniversitiesListResponse> {
+  const res = await apiGet<LooseUniversitiesPayload>(
+    "/universities/suggested-by-location"
+  );
+  return normalizeUniversitiesListResponse(res);
+}
+
+export async function fetchSuggestedByProgram(): Promise<UniversitiesListResponse> {
+  const res = await apiGet<LooseUniversitiesPayload>(
+    "/universities/suggested-by-program"
+  );
+  return normalizeUniversitiesListResponse(res);
+}
+
+/** GET /api/v1/universities/top-:n-reviewed */
+export async function fetchTopReviewedUniversities(
+  limit = DISCOVER_TOP_LIMIT
+): Promise<UniversitiesListResponse> {
+  const res = await apiGet<LooseUniversitiesPayload>(
+    `/universities/top-${limit}-reviewed`
+  );
+  return normalizeUniversitiesListResponse(res);
+}

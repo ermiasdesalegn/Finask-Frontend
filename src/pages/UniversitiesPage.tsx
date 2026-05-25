@@ -21,7 +21,8 @@ import {
     Trophy,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import FavoriteButton from "../components/favorites/FavoriteButton";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import EthiopiaMap from "../components/home/EthiopiaMap";
 import { AnimatedGridPattern } from "../components/ui/animated-grid-pattern";
@@ -37,6 +38,8 @@ import {
     useFeaturedUniversitiesQuery,
     useTopRankedUniversitiesQuery,
     useTopRatedUniversitiesQuery,
+    useTopReviewedUniversitiesQuery,
+    useUniversitiesNearQuery,
     useTrendingUniversitiesQuery,
     useUniversitiesListQuery,
 } from "../lib/queries";
@@ -62,7 +65,7 @@ type FilterState = {
 };
 type SortOption = "rating-desc" | "name-asc" | "name-desc";
 
-type DiscoverPreset = "trending" | "featured" | "top-ranked" | "top-rated";
+type DiscoverPreset = "trending" | "featured" | "top-ranked" | "top-rated" | "top-reviewed" | "near-me";
 
 const CLIMATE_ZONE_FILTERS: { id: string | null; label: string }[] = [
   { id: null, label: "All zones" },
@@ -105,6 +108,8 @@ const UniversitiesPage: React.FC = () => {
     if (f === "research") return null;
     if (s === "rank") return "top-ranked";
     if (s === "rating") return "top-rated";
+    if (f === "nearby" || f === "near-me") return "near-me";
+    if (s === "reviewed") return "top-reviewed";
     return null;
   }, [searchParams]);
 
@@ -154,6 +159,29 @@ const UniversitiesPage: React.FC = () => {
   const topRatedQuery = useTopRatedUniversitiesQuery(DISCOVER_TOP_LIMIT, {
     enabled: discoverPreset === "top-rated",
   });
+  const topReviewedQuery = useTopReviewedUniversitiesQuery(DISCOVER_TOP_LIMIT, {
+    enabled: discoverPreset === "top-reviewed",
+  });
+
+  const [nearCoords, setNearCoords] = useState<{ lat: number; lng: number } | null>(
+    null
+  );
+  const nearQuery = useUniversitiesNearQuery(nearCoords, {
+    enabled: discoverPreset === "near-me" && nearCoords != null,
+  });
+
+  useEffect(() => {
+    if (discoverPreset !== "near-me" || nearCoords) return;
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) =>
+        setNearCoords({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        }),
+      () => showApiToast("Could not get your location.")
+    );
+  }, [discoverPreset, nearCoords]);
 
   const citiesQuery = useCitiesListQuery();
   const searchQuery_ = useSearchQuery(debouncedQuery, 20);
@@ -168,6 +196,10 @@ const UniversitiesPage: React.FC = () => {
         return topRankedQuery.data?.data?.universities ?? [];
       case "top-rated":
         return topRatedQuery.data?.data?.universities ?? [];
+      case "top-reviewed":
+        return topReviewedQuery.data?.data?.universities ?? [];
+      case "near-me":
+        return nearQuery.data?.data?.universities ?? [];
       default:
         return universitiesQuery.data?.data?.universities ?? [];
     }
@@ -177,6 +209,8 @@ const UniversitiesPage: React.FC = () => {
     featuredDiscoverQuery.data,
     topRankedQuery.data,
     topRatedQuery.data,
+    topReviewedQuery.data,
+    nearQuery.data,
     universitiesQuery.data,
   ]);
 
@@ -468,13 +502,14 @@ const UniversitiesPage: React.FC = () => {
           >
             <GitCompare size={14} />
           </button>
-          <button
-            type="button"
-            className="absolute right-3 top-3 rounded-full bg-black/40 p-1.5 text-white backdrop-blur-md transition-all hover:scale-110 hover:bg-black/60 active:scale-95"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Heart size={14} />
-          </button>
+          {uni._id && (
+            <div
+              className="absolute right-3 top-3"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <FavoriteButton itemId={uni._id} onModel="University" size={14} />
+            </div>
+          )}
           {inGallery && (
             <div className="absolute left-3 top-3 rounded-full bg-black/40 p-1.5 text-white backdrop-blur-md">
               <LayoutGrid size={14} />

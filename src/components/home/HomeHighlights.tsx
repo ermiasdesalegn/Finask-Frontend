@@ -1,4 +1,5 @@
-﻿import { BookOpen, ChevronRight, Heart, MapPin, Navigation, Sparkles, Star, TrendingUp, Trophy } from "lucide-react";
+﻿import { BookOpen, ChevronRight, MapPin, Navigation, Sparkles, Star, TrendingUp, Trophy } from "lucide-react";
+import FavoriteButton from "../favorites/FavoriteButton";
 import { motion } from "motion/react";
 import { Link } from "react-router-dom";
 import {
@@ -12,6 +13,7 @@ import type { HomePagePayload, Program, University } from "../../types";
 // ── Shared card ────────────────────────────────────────────────────────────
 
 function UniCard({ uni, badge }: { uni: University; badge?: React.ReactNode }) {
+  const id = uni._id ?? uni.id ?? "";
   return (
     <Link
       to={universityPath(uni)}
@@ -26,13 +28,11 @@ function UniCard({ uni, badge }: { uni: University; badge?: React.ReactNode }) {
         {badge && (
           <div className="absolute left-2.5 top-2.5">{badge}</div>
         )}
-        <button
-          type="button"
-          onClick={(e) => e.preventDefault()}
-          className="absolute right-2.5 top-2.5 rounded-full bg-black/40 p-1.5 text-white backdrop-blur-md transition-all hover:bg-black/60"
-        >
-          <Heart size={12} />
-        </button>
+        {id && (
+          <div className="absolute right-2.5 top-2.5" onClick={(e) => e.preventDefault()}>
+            <FavoriteButton itemId={id} onModel="University" size={14} />
+          </div>
+        )}
       </div>
       <div className="flex flex-1 flex-col p-3">
         <p className="mb-1 truncate text-sm font-black text-slate-900 transition-colors group-hover:text-brand-blue dark:text-white">
@@ -54,8 +54,13 @@ function ProgramCard({ program }: { program: Program }) {
   return (
     <Link
       to={`/programs/${program.slug}`}
-      className="group flex w-48 shrink-0 snap-start flex-col gap-2 rounded-2xl border border-slate-200/60 bg-white/80 p-4 backdrop-blur-md transition-all hover:border-brand-blue/30 hover:shadow-lg dark:border-white/5 dark:bg-zinc-900/80 md:w-56"
+      className="group relative flex w-48 shrink-0 snap-start flex-col gap-2 rounded-2xl border border-slate-200/60 bg-white/80 p-4 backdrop-blur-md transition-all hover:border-brand-blue/30 hover:shadow-lg dark:border-white/5 dark:bg-zinc-900/80 md:w-56"
     >
+      {program._id && (
+        <div className="absolute right-2 top-2" onClick={(e) => e.preventDefault()}>
+          <FavoriteButton itemId={program._id} onModel="Program" size={14} />
+        </div>
+      )}
       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 dark:bg-brand-blue/10">
         <BookOpen size={18} className="text-brand-blue" />
       </div>

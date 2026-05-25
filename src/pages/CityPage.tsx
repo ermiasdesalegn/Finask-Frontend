@@ -21,6 +21,9 @@ import { staggerBlurContainer, staggerBlurItem } from "../lib/motion/pageMotion"
 import { useCityByIdQuery } from "../lib/queries/cities";
 import { CITY_HERO_IMAGE_FALLBACK } from "../constants/defaultMediaFallbacks";
 import { universityPath } from "../lib/universityUi";
+import FavoriteButton from "../components/favorites/FavoriteButton";
+import ReviewsSection from "../components/community/ReviewsSection";
+import QuestionsSection from "../components/community/QuestionsSection";
 import type { University } from "../types";
 
 const containerVariants = staggerBlurContainer;
@@ -157,6 +160,7 @@ const CityPage: React.FC = () => {
               )}
             </div>
           </div>
+          {city._id && <FavoriteButton itemId={city._id} onModel="City" />}
           <div className="hidden shrink-0 items-center gap-1 rounded-full border border-slate-200/80 bg-white/90 px-3 py-1.5 text-xs font-bold text-slate-600 backdrop-blur dark:border-white/10 dark:bg-zinc-800/90 dark:text-slate-300 sm:flex">
             <MapPin size={14} className="text-emerald-500" />
             City
@@ -433,47 +437,17 @@ const CityPage: React.FC = () => {
             </motion.div>
           ) : null}
 
-          {/* Reviews */}
-          {reviews.length > 0 && (
+          {city._id && (
             <motion.div variants={itemVariants}>
-              <SectionTitle accentClass="bg-brand-blue shadow-brand-blue/30">
-                Student reviews
-              </SectionTitle>
-              <div className="space-y-4">
-                {reviews.slice(0, 5).map((r: { _id: string; review: string; rating: number; user?: { firstName?: string } }) => (
-                  <div
-                    key={r._id}
-                    className="rounded-2xl border border-slate-200/60 bg-white/90 p-5 shadow-sm dark:border-white/5 dark:bg-zinc-900/80"
-                  >
-                    <div className="mb-3 flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-blue/10 text-sm font-black text-brand-blue">
-                        {r.user?.firstName?.[0] ?? "U"}
-                      </div>
-                      <div>
-                        <p className="font-black text-slate-900 dark:text-white">
-                          {r.user?.firstName ?? "Student"}
-                        </p>
-                        <div className="flex gap-0.5">
-                          {[1, 2, 3, 4, 5].map((s) => (
-                            <Star
-                              key={s}
-                              size={12}
-                              className={
-                                s <= r.rating
-                                  ? "fill-brand-yellow text-brand-yellow"
-                                  : "text-slate-300 dark:text-zinc-600"
-                              }
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                    <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-400">
-                      {r.review}
-                    </p>
-                  </div>
-                ))}
-              </div>
+              <ReviewsSection
+                parentType="city"
+                parentId={city._id}
+                initialReviews={reviews}
+              />
+              <QuestionsSection
+                parentType="city"
+                parentId={city._id}
+              />
             </motion.div>
           )}
         </motion.div>

@@ -22,6 +22,12 @@ import ProgramPage from "./pages/ProgramPage";
 import ProgramsPage from "./pages/ProgramsPage";
 import UniversitiesPage from "./pages/UniversitiesPage";
 import UniversityPage from "./pages/University";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import SettingsPage from "./pages/SettingsPage";
+import MePage from "./pages/MePage";
+import UserProfilePage from "./pages/UserProfilePage";
+import CampusPage from "./pages/CampusPage";
+import ElevationZonesPage from "./pages/ElevationZonesPage";
 
 function AppShell() {
   const [darkMode, setDarkMode] = useState(() => {
@@ -217,6 +223,60 @@ function AppShell() {
               element={
                 <div className="min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]">
                   <AboutPage />
+                </div>
+              }
+            />
+
+            <Route
+              path="/forgot-password"
+              element={
+                <div className="min-h-screen bg-white pt-20 dark:bg-[#121212]">
+                  <ForgotPasswordPage />
+                </div>
+              }
+            />
+
+            <Route
+              path="/settings"
+              element={
+                <div className="min-h-screen bg-white pt-20 dark:bg-[#121212]">
+                  <SettingsPage />
+                </div>
+              }
+            />
+
+            <Route
+              path="/me"
+              element={
+                <div className="min-h-screen bg-white pt-20 dark:bg-[#121212]">
+                  <MePage />
+                </div>
+              }
+            />
+
+            <Route
+              path="/users/:id"
+              element={
+                <div className="min-h-screen bg-white pt-20 dark:bg-[#121212]">
+                  <UserProfilePage />
+                </div>
+              }
+            />
+
+            <Route
+              path="/campuses/:slugOrId"
+              element={
+                <div className="min-h-screen bg-white pt-20 dark:bg-[#121212]">
+                  <CampusPage />
+                </div>
+              }
+            />
+
+            <Route
+              path="/elevation-zones"
+              element={
+                <div className="min-h-screen bg-white pt-20 dark:bg-[#121212]">
+                  <ElevationZonesPage />
                 </div>
               }
             />

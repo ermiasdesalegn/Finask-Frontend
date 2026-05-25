@@ -18,7 +18,10 @@ import {
   Users,
 } from "lucide-react";
 import { motion } from "motion/react";
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
+import FavoriteButton from "../components/favorites/FavoriteButton";
+import ReviewsSection from "../components/community/ReviewsSection";
+import QuestionsSection from "../components/community/QuestionsSection";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   PROGRAM_FIELD_LABELS,
@@ -56,7 +59,6 @@ const StarRow = ({ rating }: { rating: number }) => (
 const UniversityPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const [isFavorite, setIsFavorite] = useState(false);
   const { add, remove, contains } = useCompare();
 
   const universityQuery = useUniversityBySlugQuery(slug);
@@ -168,16 +170,9 @@ const UniversityPage: React.FC = () => {
               }`}
             />
           </button>
-          <button type="button" onClick={() => setIsFavorite(!isFavorite)}
-            className="rounded-full bg-slate-100 p-2.5 transition-all hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700">
-            <Heart
-              className={`h-5 w-5 transition-colors ${
-                isFavorite
-                  ? "fill-brand-blue text-brand-blue"
-                  : "fill-none text-slate-700 dark:text-slate-300"
-              }`}
-            />
-          </button>
+          {uniId && (
+            <FavoriteButton itemId={uniId} onModel="University" className="!bg-slate-100 dark:!bg-zinc-800" />
+          )}
         </div>
       </header>
 
@@ -445,39 +440,18 @@ const UniversityPage: React.FC = () => {
                 )}
               </motion.div>
 
-              {/* Reviews */}
-              {reviews.length > 0 && (
+              {uniId && (
                 <motion.div variants={itemVariants}>
-                  <div className="mb-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-6 w-1.5 rounded-full bg-brand-yellow" />
-                      <h2 className="text-xl font-black text-slate-900 dark:text-white">Student Reviews</h2>
-                    </div>
-                    <span className="rounded-xl bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600 dark:bg-zinc-800 dark:text-slate-300">
-                      {uni.ratingsAverage?.toFixed(1)} avg · {uni.ratingsQuantity} total
-                    </span>
-                  </div>
-                  <div className="space-y-4">
-                    {reviews.map((r: any) => (
-                      <div key={r._id} className="rounded-2xl border border-slate-200/60 bg-white/80 p-5 dark:border-white/5 dark:bg-zinc-900/80">
-                        <div className="mb-3 flex items-start gap-3">
-                          <img src={r.user?.profileImage} alt={r.user?.firstName}
-                            className="h-10 w-10 shrink-0 rounded-full object-cover" />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-2">
-                              <p className="font-black text-slate-900 dark:text-white">{r.user?.fullName ?? r.user?.firstName}</p>
-                              <StarRow rating={r.rating} />
-                            </div>
-                            {r.user?.headline && <p className="text-xs text-slate-400">{r.user.headline}</p>}
-                          </div>
-                        </div>
-                        <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-400">{r.review}</p>
-                        <div className="mt-3 flex items-center gap-1.5 text-xs font-bold text-slate-400">
-                          <ThumbsUp size={12} /> {r.likesCount} likes
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <ReviewsSection
+                    parentType="university"
+                    parentId={uniId}
+                    initialReviews={reviews}
+                  />
+                  <QuestionsSection
+                    parentType="university"
+                    parentId={uniId}
+                    initialQuestions={uni.questions}
+                  />
                 </motion.div>
               )}
             </div>

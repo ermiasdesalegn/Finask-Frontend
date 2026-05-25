@@ -26,6 +26,8 @@ import {
 import { celebrityPath } from "../lib/services/celebrityService";
 import { unwrapMarkdownLink } from "../lib/unwrapMarkdownLink";
 import { cn } from "../lib/utils";
+import FavoriteButton from "../components/favorites/FavoriteButton";
+import QuestionsSection from "../components/community/QuestionsSection";
 import type { Celebrity, Program, Question } from "../types";
 
 const HERO_FALLBACK =
@@ -260,21 +262,13 @@ const CelebrityPage: React.FC = () => {
             >
               <ArrowLeft className="h-5 w-5 text-slate-800 dark:text-white" />
             </button>
-            <button
-              type="button"
-              onClick={() => setSaved((s) => !s)}
-              className="rounded-full bg-white/90 p-2.5 shadow-md backdrop-blur-sm transition-colors hover:bg-white dark:bg-zinc-900/90 dark:hover:bg-zinc-800"
-              aria-label={saved ? "Remove from saved" : "Save"}
-            >
-              <Heart
-                className={cn(
-                  "h-5 w-5",
-                  saved
-                    ? "fill-brand-blue text-brand-blue"
-                    : "fill-none text-slate-800 dark:text-white"
-                )}
+            {celeb._id && (
+              <FavoriteButton
+                itemId={celeb._id}
+                onModel="Celebrity"
+                className="!bg-white/90 dark:!bg-zinc-900/90"
               />
-            </button>
+            )}
           </div>
         </div>
 
@@ -534,31 +528,13 @@ const CelebrityPage: React.FC = () => {
           </section>
         ) : null}
 
-        {questions.length > 0 ? (
-          <section>
-            <SectionTitle>Community questions</SectionTitle>
-            <ul className="space-y-3">
-              {questions.map((q) => (
-                <li
-                  key={q._id}
-                  className="rounded-2xl border border-slate-200/80 bg-white p-4 text-sm shadow-sm dark:border-white/10 dark:bg-zinc-900"
-                >
-                  <p className="font-medium text-slate-900 dark:text-white">
-                    {q.question}
-                  </p>
-                  {q.user?.firstName ? (
-                    <p className="mt-2 text-xs text-slate-500">
-                      — {q.user.firstName}
-                      {q.replyCount != null && q.replyCount > 0
-                        ? ` · ${q.replyCount} replies`
-                        : ""}
-                    </p>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
+        {celeb._id && (
+          <QuestionsSection
+            parentType="celebrity"
+            parentId={celeb._id}
+            initialQuestions={questions}
+          />
+        )}
 
         {related.length > 0 ? (
           <section>

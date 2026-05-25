@@ -217,6 +217,22 @@ export interface Question {
   onModelType?: string;
   createdAt?: string;
   updatedAt?: string;
+  likesCount?: number;
+}
+
+export interface Reply {
+  _id: string;
+  reply: string;
+  user?: {
+    _id: string;
+    firstName?: string;
+    lastName?: string;
+    profileImage?: string;
+  };
+  question?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  likesCount?: number;
 }
 
 export interface Campus {

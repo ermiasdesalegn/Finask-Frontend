@@ -2,6 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { Eye, EyeOff, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import React, { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import finaskLogo from "../../assets/finask-logo.png";
 import { useAuth, type AuthUser } from "../../context/AuthContext";
 import { ApiError, apiPost } from "../../lib/api";
@@ -591,9 +592,13 @@ const LoginModal = ({
                           <label htmlFor="login-password" className="text-xs font-bold uppercase tracking-wider text-slate-400">
                             Password
                           </label>
-                          <button type="button" className="text-xs font-bold text-brand-blue hover:underline">
+                          <Link
+                            to="/forgot-password"
+                            onClick={onClose}
+                            className="text-xs font-bold text-brand-blue hover:underline"
+                          >
                             Forgot password?
-                          </button>
+                          </Link>
                         </div>
                         <div className="relative">
                           <input

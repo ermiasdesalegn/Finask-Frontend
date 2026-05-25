@@ -3,6 +3,7 @@ import ComparisonEngine from "../components/home/ComparisonEngine";
 import EthiopiaMap from "../components/home/EthiopiaMap";
 import Hero from "../components/home/Hero";
 import HomeHighlights from "../components/home/HomeHighlights";
+import HomeSuggested from "../components/home/HomeSuggested";
 import { useAuth } from "../context/AuthContext";
 import { blurReveal, viewportOnce } from "../lib/motion/pageMotion";
 import { useHomePageQuery, useUniversitiesListQuery } from "../lib/queries";
@@ -70,6 +71,7 @@ const HomePage = () => {
           >
             <HomeHighlights home={home} loading={loading} />
           </motion.div>
+          <HomeSuggested />
           <motion.div
             initial="hidden"
             whileInView="show"
