@@ -1,4 +1,4 @@
-import { ArrowLeft, Loader2, MapPin, Sparkles } from "lucide-react";
+import { ArrowLeft, Loader2, MapPin } from "lucide-react";
 import { motion } from "motion/react";
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -47,8 +47,6 @@ export default function ComparePage() {
   const data = compareQuery.data?.data;
   const cols = data?.universities ?? [];
   const facts = data?.comparisonFacts ?? [];
-  const summary = data?.aiSummary;
-
   const requestLocation = () => {
     if (!navigator.geolocation) {
       showApiToast("Location is not supported in this browser.");
@@ -102,13 +100,11 @@ export default function ComparePage() {
             </button>
             <div>
               <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white md:text-4xl">
-                Comparison Engine
+                Compare universities
               </h1>
               <p className="mt-1 max-w-xl text-sm text-slate-600 dark:text-slate-400">
-                Rankings, climate, programs, and more in one view—everything
-                below is what you need to weigh your options. Location is
-                optional: it can add distance when we can match it to these
-                campuses.
+                Add up to 3 schools from any university page, then compare rank,
+                climate, generation, and excellence side by side.
               </p>
               {usingQueue ? (
                 <p className="mt-2 text-xs font-medium text-brand-blue">
@@ -162,14 +158,17 @@ export default function ComparePage() {
             <h2 className="mb-2 text-lg font-bold text-slate-900 dark:text-white">
               Pick 2–3 universities
             </h2>
-            <p className="mb-6 text-sm text-slate-600 dark:text-slate-400">
-              Use{" "}
-              <span className="font-semibold text-slate-800 dark:text-slate-200">
-                Add to compare
-              </span>{" "}
-              on a university page, add schools from the directory, or open a
-              link from the home comparison preview.
-            </p>
+            <ol className="mb-6 list-decimal space-y-2 pl-5 text-sm text-slate-600 dark:text-slate-400">
+              <li>Browse the university directory or open a school profile.</li>
+              <li>Tap the compare icon in the header to add it (max 3).</li>
+              <li>Return here or use the navbar compare button to view the table.</li>
+            </ol>
+            <Link
+              to="/universities"
+              className="inline-block rounded-xl bg-brand-blue px-6 py-3 text-sm font-bold text-white"
+            >
+              Browse universities
+            </Link>
 
             {queueIds.length > 0 ? (
               <div className="mb-6">
@@ -243,32 +242,9 @@ export default function ComparePage() {
           </div>
         ) : (
           <>
-            {summary ? (
-              <motion.div
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-8 rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#141414]"
-              >
-                <div className="mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-brand-blue">
-                  <Sparkles className="h-4 w-4" aria-hidden />
-                  At a glance
-                </div>
-                <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700 dark:text-slate-300">
-                  {summary}
-                </p>
-                <p className="mt-4 border-t border-slate-100 pt-4 text-xs text-slate-500 dark:border-white/10 dark:text-slate-400">
-                  This is a quick narrative to complement the table—not a
-                  single “right answer.” Your priorities still decide the best fit.
-                </p>
-              </motion.div>
-            ) : null}
-
-            {!summary ? (
-              <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
-                You&apos;re all set—everything you need to compare these schools
-                is in the table below.
-              </p>
-            ) : null}
+            <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+              Side-by-side facts for your selected schools:
+            </p>
 
             <div className="overflow-x-auto rounded-[2rem] border border-slate-200 shadow-lg dark:border-white/10">
               <table className="w-full min-w-[640px] border-collapse bg-white text-left dark:bg-[#1e1e1e]">

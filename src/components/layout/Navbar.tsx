@@ -73,6 +73,8 @@ const Navbar = ({
     { name: "Home", path: "/" },
     { name: "Discover", path: "/discover" },
     { name: "Universities", path: "/universities" },
+    { name: "Campus", path: "/campuses" },
+    { name: "Cities", path: "/cities" },
     { name: "Programs", path: "/programs" },
     { name: "Climate", path: "/elevation-zones" },
     { name: "Great Minds", path: "/celebrities" },
@@ -141,8 +143,8 @@ const Navbar = ({
                   type="button"
                   onClick={() => navigate(compareDest)}
                   className={cn(iconBtn, onComparePage && "text-brand-blue")}
-                  aria-label="Compare universities"
-                  title="Compare"
+                  aria-label="Compare universities (up to 3)"
+                  title="Compare universities (max 3)"
                 >
                   <span className="relative">
                     <GitCompare size={18} />
@@ -235,20 +237,20 @@ const Navbar = ({
                     Account
                   </p>
                   <Link
-                    to="/me"
+                    to="/account"
                     onClick={closeMenu}
                     className="flex items-center gap-3 rounded-2xl px-4 py-3 font-medium text-slate-800 dark:text-white"
                   >
                     <UserCircle size={20} className="text-slate-400" />
-                    My content
+                    Account
                   </Link>
                   <Link
-                    to="/settings"
+                    to="/chat"
                     onClick={closeMenu}
                     className="flex items-center gap-3 rounded-2xl px-4 py-3 font-medium text-slate-800 dark:text-white"
                   >
                     <Settings size={20} className="text-slate-400" />
-                    Settings
+                    Chat
                   </Link>
                   <button
                     type="button"

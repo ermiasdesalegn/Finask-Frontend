@@ -22,6 +22,9 @@ import {
 } from "../../lib/services/replyService";
 import type { Question, Reply } from "../../types";
 
+const QUESTION_PREVIEW_LIMIT = 5;
+const REPLY_PREVIEW_LIMIT = 3;
+
 type Props = {
   parentType: ParentEntityType;
   parentId: string;
@@ -33,7 +36,7 @@ export default function QuestionsSection({
   parentType,
   parentId,
   initialQuestions,
-  title = "Community questions",
+  title = "Questions & answers",
 }: Props) {
   const { user, isAuthenticated, sessionStatus } = useAuth();
   const { openLogin } = useLoginModal();
@@ -50,8 +53,7 @@ export default function QuestionsSection({
   } = useQuery({
     queryKey: qk,
     queryFn: () => listQuestions(parentType, parentId),
-    enabled:
-      Boolean(parentId) && sessionStatus === "ready" && isAuthenticated,
+    enabled: Boolean(parentId) && sessionStatus === "ready",
     placeholderData: seededQuestions,
     staleTime: 0,
   });
@@ -59,6 +61,8 @@ export default function QuestionsSection({
   const [newQ, setNewQ] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [replyDraft, setReplyDraft] = useState<Record<string, string>>({});
+  const [showAllQuestions, setShowAllQuestions] = useState(false);
+  const [showAskForm, setShowAskForm] = useState(false);
 
   const invalidate = () => void qc.invalidateQueries({ queryKey: qk });
 
@@ -83,12 +87,27 @@ export default function QuestionsSection({
   const questionTooShort = newQ.trim().length > 0 && newQ.trim().length < 10;
 
   const canPost = isAuthenticated && user?.role === "user";
+  const visibleQuestions = showAllQuestions
+    ? questions
+    : questions.slice(0, QUESTION_PREVIEW_LIMIT);
+  const hasMoreQuestions = questions.length > QUESTION_PREVIEW_LIMIT;
 
   return (
     <section className="mt-12">
-      <h2 className="mb-4 text-xl font-bold text-slate-900 dark:text-white">{title}</h2>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white">{title}</h2>
+        {canPost && !showAskForm && (
+          <button
+            type="button"
+            onClick={() => setShowAskForm(true)}
+            className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white"
+          >
+            Ask a question
+          </button>
+        )}
+      </div>
 
-      {canPost && (
+      {canPost && showAskForm && (
         <form
           className="mb-6 flex gap-2"
           onSubmit={(e) => {
@@ -114,7 +133,14 @@ export default function QuestionsSection({
             disabled={createQMut.isPending || questionTooShort}
             className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
           >
-            Ask
+            Post
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowAskForm(false)}
+            className="rounded-xl border border-slate-200 px-3 py-2 text-sm dark:border-white/10"
+          >
+            Cancel
           </button>
         </form>
       )}
@@ -129,26 +155,26 @@ export default function QuestionsSection({
           <button type="button" className="font-semibold text-brand-blue" onClick={openLogin}>
             Sign in
           </button>{" "}
-          to join the discussion.
+          to post.
         </p>
       )}
 
-      {isLoading && isAuthenticated && (
+      {isLoading && (
         <div className="flex justify-center py-6">
           <Loader2 className="animate-spin text-brand-blue" />
         </div>
       )}
 
-      {isError && isAuthenticated && (
+      {isError && (
         <p className="text-sm text-rose-500">Could not load questions. Try refreshing.</p>
       )}
 
-      {!isLoading && isAuthenticated && !isError && questions.length === 0 && (
+      {!isLoading && !isError && questions.length === 0 && (
         <p className="text-sm text-slate-500">No questions yet.</p>
       )}
 
       <ul className="space-y-3">
-        {questions.map((q) => (
+        {visibleQuestions.map((q) => (
           <QuestionThread
             key={q._id}
             q={q}
@@ -165,6 +191,25 @@ export default function QuestionsSection({
           />
         ))}
       </ul>
+
+      {hasMoreQuestions && !showAllQuestions && (
+        <button
+          type="button"
+          onClick={() => setShowAllQuestions(true)}
+          className="mt-4 text-sm font-bold text-brand-blue hover:underline"
+        >
+          See all questions ({questions.length})
+        </button>
+      )}
+      {showAllQuestions && hasMoreQuestions && (
+        <button
+          type="button"
+          onClick={() => setShowAllQuestions(false)}
+          className="mt-4 text-sm font-bold text-slate-500 hover:underline"
+        >
+          Show fewer questions
+        </button>
+      )}
     </section>
   );
 }
@@ -196,6 +241,7 @@ function QuestionThread({
 }) {
   const [editingQ, setEditingQ] = useState(false);
   const [editQText, setEditQText] = useState(q.question);
+  const [showAllReplies, setShowAllReplies] = useState(false);
 
   const rk = ["replies", parentType, parentId, q._id] as const;
   const { data: replies = [], isLoading } = useQuery({
@@ -338,22 +384,33 @@ function QuestionThread({
         <div className="mt-4 border-t border-slate-200/60 pt-4 dark:border-white/10">
           {isLoading && <Loader2 size={18} className="animate-spin" />}
           <ul className="mb-3 space-y-2">
-            {replies.map((r) => (
-              <ReplyRow
-                key={r._id}
-                reply={r}
-                parentType={parentType}
-                parentId={parentId}
-                questionId={q._id}
-                userId={userId}
-                isAuthenticated={isAuthenticated}
-                onInvalidate={() => {
-                  invReplies();
-                  onInvalidate();
-                }}
-              />
-            ))}
+            {(showAllReplies ? replies : replies.slice(0, REPLY_PREVIEW_LIMIT)).map(
+              (r) => (
+                <ReplyRow
+                  key={r._id}
+                  reply={r}
+                  parentType={parentType}
+                  parentId={parentId}
+                  questionId={q._id}
+                  userId={userId}
+                  isAuthenticated={isAuthenticated}
+                  onInvalidate={() => {
+                    invReplies();
+                    onInvalidate();
+                  }}
+                />
+              )
+            )}
           </ul>
+          {replies.length > REPLY_PREVIEW_LIMIT && !showAllReplies && (
+            <button
+              type="button"
+              onClick={() => setShowAllReplies(true)}
+              className="mb-3 text-xs font-bold text-brand-blue hover:underline"
+            >
+              See more replies ({replies.length - REPLY_PREVIEW_LIMIT} more)
+            </button>
+          )}
           {isAuthenticated ? (
             <form
               className="flex gap-2"

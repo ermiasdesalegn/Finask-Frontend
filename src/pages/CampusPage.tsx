@@ -2,9 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { Building2, GraduationCap, Loader2, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useParams } from "react-router-dom";
+import { useState } from "react";
 import ReviewsSection from "../components/community/ReviewsSection";
 import QuestionsSection from "../components/community/QuestionsSection";
 import FavoriteButton from "../components/favorites/FavoriteButton";
+import CollapsibleSection from "../components/shared/CollapsibleSection";
+import EntityMap from "../components/shared/EntityMap";
+import GalleryModal from "../components/shared/GalleryModal";
 import SubpageLayout, { SubpageCard } from "../components/layout/SubpageLayout";
 import { UNIVERSITY_IMAGE_FALLBACK } from "../constants/defaultMediaFallbacks";
 import {
@@ -12,10 +16,11 @@ import {
   fetchCampusPrograms,
 } from "../lib/services/campusService";
 import { universityPath } from "../lib/universityUi";
-import type { University } from "../types";
+import type { Program, University } from "../types";
 
 export default function CampusPage() {
   const { slugOrId } = useParams<{ slugOrId: string }>();
+  const [galleryOpen, setGalleryOpen] = useState(false);
   const campusQ = useQuery({
     queryKey: ["campus", slugOrId],
     queryFn: () => fetchCampusDetail(slugOrId!),
@@ -54,9 +59,12 @@ export default function CampusPage() {
     typeof campus.university === "object"
       ? (campus.university as University)
       : null;
-  const cover =
-    campus.coverImage || campus.images?.[0] || UNIVERSITY_IMAGE_FALLBACK;
-  const programs = programsQ.data ?? [];
+  const galleryImages = [
+    ...(campus.coverImage ? [campus.coverImage] : []),
+    ...(campus.images ?? []),
+  ].filter(Boolean) as string[];
+  const cover = galleryImages[0] || UNIVERSITY_IMAGE_FALLBACK;
+  const programs = (programsQ.data ?? []) as Program[];
 
   return (
     <SubpageLayout
@@ -78,6 +86,14 @@ export default function CampusPage() {
         <div className="relative h-56 md:h-64">
           <img src={cover} alt="" className="h-full w-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent" />
+          <button
+            type="button"
+            onClick={() => setGalleryOpen(true)}
+            className="absolute bottom-4 right-4 rounded-full bg-white/90 px-4 py-2 text-xs font-black text-slate-900 shadow-lg"
+          >
+            View gallery
+            {galleryImages.length > 1 ? ` (${galleryImages.length})` : ""}
+          </button>
           {uni && (
             <div className="absolute bottom-4 left-4 right-4 flex flex-wrap items-center gap-2 text-sm text-white/90">
               <MapPin size={14} />
@@ -93,6 +109,38 @@ export default function CampusPage() {
           )}
         </div>
       </div>
+      <GalleryModal
+        images={galleryImages.length ? galleryImages : [cover]}
+        title={campus.name}
+        open={galleryOpen}
+        onClose={() => setGalleryOpen(false)}
+      />
+
+      <div className="mb-6 grid gap-3 sm:grid-cols-2">
+        {uni && (
+          <SubpageCard>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              Parent university
+            </p>
+            <Link
+              to={universityPath(uni)}
+              className="mt-1 inline-block text-base font-black text-brand-blue hover:underline"
+            >
+              {uni.name}
+            </Link>
+          </SubpageCard>
+        )}
+        {campus.distanceFromMainCampus != null && (
+          <SubpageCard>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              Distance from main campus
+            </p>
+            <p className="mt-1 text-base font-black text-slate-900 dark:text-white">
+              {campus.distanceFromMainCampus} km
+            </p>
+          </SubpageCard>
+        )}
+      </div>
 
       {campus.overview && (
         <SubpageCard className="mb-6">
@@ -105,6 +153,16 @@ export default function CampusPage() {
         </SubpageCard>
       )}
 
+      <SubpageCard className="mb-6">
+        <h2 className="mb-4 text-lg font-black text-slate-900 dark:text-white">
+          View on map
+        </h2>
+        <EntityMap
+          coordinates={campus.location?.coordinates}
+          label={campus.name}
+        />
+      </SubpageCard>
+
       <SubpageCard>
         <h2 className="mb-4 flex items-center gap-2 text-lg font-black text-slate-900 dark:text-white">
           <GraduationCap size={20} className="text-brand-blue" />
@@ -113,19 +171,21 @@ export default function CampusPage() {
         {programsQ.isPending ? (
           <Loader2 className="animate-spin text-brand-blue" size={24} />
         ) : programs.length > 0 ? (
-          <ul className="grid gap-3 sm:grid-cols-2">
-            {programs.map((p) => (
-              <li key={p._id}>
-                <Link
-                  to={`/programs/${p.slug || p._id}`}
-                  className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50/80 px-4 py-3 font-semibold text-slate-800 transition-colors hover:border-brand-blue/30 hover:text-brand-blue dark:border-white/10 dark:bg-zinc-800/50 dark:text-slate-200"
-                >
-                  <GraduationCap size={18} className="shrink-0 text-brand-blue" />
-                  <span className="line-clamp-2">{p.name}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <CollapsibleSection
+            items={programs}
+            limit={8}
+            gridClassName="grid gap-3 sm:grid-cols-2"
+            renderItem={(p) => (
+              <Link
+                key={p._id}
+                to={`/programs/${p.slug || p._id}`}
+                className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50/80 px-4 py-3 font-semibold text-slate-800 transition-colors hover:border-brand-blue/30 hover:text-brand-blue dark:border-white/10 dark:bg-zinc-800/50 dark:text-slate-200"
+              >
+                <GraduationCap size={18} className="shrink-0 text-brand-blue" />
+                <span className="line-clamp-2">{p.name}</span>
+              </Link>
+            )}
+          />
         ) : (
           <p className="text-sm text-slate-500">No programs listed for this campus.</p>
         )}

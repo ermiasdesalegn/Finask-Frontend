@@ -29,6 +29,8 @@ export interface University {
   bestKnownFor?: string[];
   wikipediaLink?: string;
   isFeatured?: boolean;
+  institutionalType?: "public" | "private" | null;
+  campusSetting?: "urban" | "suburban" | "rural" | null;
   address?: {
     city?: string;
     /** Regional state / admin region (matches API `city_region` filter values). */
@@ -313,6 +315,9 @@ export interface City {
   cityProfile?: CityProfile;
   climate?: CityClimate;
   touristAttractions?: CityTouristAttraction[];
+  flyFromCities?: { name: string; airportCode?: string; distanceKm?: number }[];
+  flightOrigins?: string[];
+  images?: string[];
   universities?: unknown[];
   reviews?: Review[];
   ratingsAverage?: number;

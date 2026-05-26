@@ -18,10 +18,15 @@ import {
   Users,
 } from "lucide-react";
 import { motion } from "motion/react";
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import FavoriteButton from "../components/favorites/FavoriteButton";
 import ReviewsSection from "../components/community/ReviewsSection";
 import QuestionsSection from "../components/community/QuestionsSection";
+import CollapsibleSection from "../components/shared/CollapsibleSection";
+import EntityMap from "../components/shared/EntityMap";
+import GalleryModal from "../components/shared/GalleryModal";
+import { SuggestedUniversitiesRow } from "../components/shared/SuggestedRow";
+import { useAuth } from "../context/AuthContext";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   PROGRAM_FIELD_LABELS,
@@ -30,6 +35,8 @@ import { useCompare } from "../context/CompareContext";
 import { showApiToast } from "../lib/api";
 import { staggerBlurContainer, staggerBlurItem } from "../lib/motion/pageMotion";
 import {
+  useSuggestedByLocationQuery,
+  useSuggestedByProgramQuery,
   useUniversityBySlugQuery,
   useUniversityCampusesQuery,
   useUniversityProgramsQuery,
@@ -43,7 +50,7 @@ import {
   universityCover,
 } from "../lib/universityUi";
 import { PROGRAM_IMAGE_FALLBACK } from "../constants/defaultMediaFallbacks";
-import type { Program, University } from "../types";
+import type { City, Program, University } from "../types";
 
 const containerVariants = staggerBlurContainer;
 const itemVariants = staggerBlurItem;
@@ -60,6 +67,7 @@ const UniversityPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { add, remove, contains } = useCompare();
+  const { isAuthenticated } = useAuth();
 
   const universityQuery = useUniversityBySlugQuery(slug);
   const uni = (universityQuery.data as University | undefined) ?? null;
@@ -86,6 +94,26 @@ const UniversityPage: React.FC = () => {
   const error = universityQuery.isError
     ? universityQuery.error instanceof Error ? universityQuery.error.message : "Failed to load"
     : null;
+
+  const suggestedLocQ = useSuggestedByLocationQuery(
+    isAuthenticated && Boolean(uniId)
+  );
+  const suggestedProgQ = useSuggestedByProgramQuery(
+    isAuthenticated && Boolean(uniId)
+  );
+  const [galleryOpen, setGalleryOpen] = useState(false);
+
+  const suggestedUnis = useMemo(() => {
+    const a = suggestedLocQ.data?.data?.universities ?? [];
+    const b = suggestedProgQ.data?.data?.universities ?? [];
+    const seen = new Set<string>();
+    return [...a, ...b].filter((u) => {
+      const id = u._id ?? u.slug;
+      if (!id || id === uniId || seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    }).slice(0, 8);
+  }, [suggestedLocQ.data, suggestedProgQ.data, uniId]);
 
   const gallery = useMemo(() => {
     if (!uni) return [];
@@ -125,6 +153,13 @@ const UniversityPage: React.FC = () => {
   }
 
   const cityNavId = universityCityId(uni);
+  const cityDoc =
+    typeof uni.city === "object" && uni.city != null ? (uni.city as City) : null;
+  const elevationZone =
+    cityDoc?.climate?.elevationZone &&
+    typeof cityDoc.climate.elevationZone === "object"
+      ? (cityDoc.climate.elevationZone as { slug?: string; name?: string })
+      : null;
 
   return (
     <div className="min-h-screen bg-slate-50/50 pb-20 transition-colors dark:bg-[#0a0a0a]">
@@ -142,7 +177,31 @@ const UniversityPage: React.FC = () => {
           </button>
           <div className="flex flex-grow items-center gap-3">
             <div className="h-6 w-1.5 rounded-full bg-brand-yellow shadow-[0_0_10px_rgba(250,204,21,0.5)]" />
-            <h1 className="line-clamp-1 text-xl font-black tracking-tight text-slate-900 dark:text-white md:text-2xl">{uni.name}</h1>
+            <div className="min-w-0 flex-1">
+              <h1 className="line-clamp-1 text-xl font-black tracking-tight text-slate-900 dark:text-white md:text-2xl">
+                {uni.name}
+              </h1>
+              <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-bold text-slate-500 dark:text-slate-400">
+                {eduRank?.ethiopiaRank != null && (
+                  <span>ET Rank #{eduRank.ethiopiaRank}</span>
+                )}
+                <span>{displayRating(uni as University)} rating</span>
+                {tags[0] && <span>{tags[0]}</span>}
+                {uni.academicProfile?.abbreviation && (
+                  <span>{uni.academicProfile.abbreviation}</span>
+                )}
+                {uni.academicProfile?.yearFounded != null && (
+                  <span>Est. {uni.academicProfile.yearFounded}</span>
+                )}
+                {uni.academicProfile?.numberOfCampuses != null && (
+                  <span>{uni.academicProfile.numberOfCampuses} campuses</span>
+                )}
+                {cityDoc?.name && <span>{cityDoc.name}</span>}
+                {cityDoc?.climate?.climateTag && (
+                  <span className="text-brand-blue">{cityDoc.climate.climateTag}</span>
+                )}
+              </div>
+            </div>
           </div>
           <button
             type="button"
@@ -205,7 +264,20 @@ const UniversityPage: React.FC = () => {
             {!gallery[2] && (
               <div className="hidden rounded-[1.5rem] bg-slate-100 dark:bg-zinc-800 md:block" />
             )}
+            <button
+              type="button"
+              onClick={() => setGalleryOpen(true)}
+              className="absolute bottom-4 right-4 z-10 rounded-full bg-white/90 px-4 py-2 text-xs font-black text-slate-900 shadow-lg backdrop-blur hover:bg-white dark:bg-zinc-900/90 dark:text-white md:bottom-6 md:right-6"
+            >
+              View gallery
+            </button>
           </motion.div>
+          <GalleryModal
+            images={gallery}
+            title={uni.name}
+            open={galleryOpen}
+            onClose={() => setGalleryOpen(false)}
+          />
 
           <div className="grid grid-cols-1 gap-10 lg:grid-cols-3">
             {/* Left column */}
@@ -311,15 +383,20 @@ const UniversityPage: React.FC = () => {
                     No programs are linked to this university in the directory yet.
                   </p>
                 ) : (
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {programCards.map((row) => {
+                  <CollapsibleSection
+                    items={programCards}
+                    limit={6}
+                    renderItem={(row) => {
                       const prog = row.program as Program;
-                      const slug = prog.slug?.trim() || prog._id?.trim() || prog.id?.trim();
-                      const href = slug
-                        ? `/programs/${encodeURIComponent(slug)}`
+                      const progSlug =
+                        prog.slug?.trim() || prog._id?.trim() || prog.id?.trim();
+                      const href = progSlug
+                        ? `/programs/${encodeURIComponent(progSlug)}`
                         : "/programs";
                       const fieldLabel =
-                        PROGRAM_FIELD_LABELS[prog.field] ?? prog.fieldDisplayName ?? prog.field;
+                        PROGRAM_FIELD_LABELS[prog.field] ??
+                        prog.fieldDisplayName ??
+                        prog.field;
                       const thumb =
                         prog.coverImage?.trim() || PROGRAM_IMAGE_FALLBACK;
                       return (
@@ -342,19 +419,11 @@ const UniversityPage: React.FC = () => {
                             <p className="mt-0.5 line-clamp-1 text-[11px] font-bold uppercase tracking-wide text-slate-400">
                               {fieldLabel}
                             </p>
-                            {row.yearOffered != null ? (
-                              <p className="mt-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                                Since {row.yearOffered}
-                                {row.graduatesCount != null
-                                  ? ` · ${row.graduatesCount.toLocaleString()} grads`
-                                  : ""}
-                              </p>
-                            ) : null}
                           </div>
                         </Link>
                       );
-                    })}
-                  </div>
+                    }}
+                  />
                 )}
                 <div className="mt-4">
                   <Link
@@ -366,13 +435,63 @@ const UniversityPage: React.FC = () => {
                 </div>
               </motion.div>
 
-              {/* Rankings */}
-              {(eduRank || uniRank) && (
+              {cityDoc && (
                 <motion.div variants={itemVariants}>
                   <div className="mb-4 flex items-center gap-3">
-                    <div className="h-6 w-1.5 rounded-full bg-brand-blue" />
-                    <h2 className="text-xl font-black text-slate-900 dark:text-white">Rankings</h2>
+                    <div className="h-6 w-1.5 rounded-full bg-emerald-500" />
+                    <h2 className="text-xl font-black text-slate-900 dark:text-white">City</h2>
                   </div>
+                  <div className="rounded-2xl border border-slate-200/60 bg-white/80 p-5 dark:border-white/5 dark:bg-zinc-900/80">
+                    <Link
+                      to={`/cities/${cityDoc._id ?? cityNavId}`}
+                      className="text-lg font-black text-brand-blue hover:underline"
+                    >
+                      {cityDoc.name}
+                    </Link>
+                    <div className="mt-3 flex flex-wrap gap-4 text-sm text-slate-600 dark:text-slate-300">
+                      {cityDoc.cityProfile?.population != null && (
+                        <span>
+                          <span className="font-bold text-slate-400">Population:</span>{" "}
+                          {cityDoc.cityProfile.population.toLocaleString()}
+                        </span>
+                      )}
+                      {(cityDoc.regionDisplayName ?? cityDoc.region) && (
+                        <span>
+                          <span className="font-bold text-slate-400">Region:</span>{" "}
+                          {cityDoc.regionDisplayName ?? cityDoc.region}
+                        </span>
+                      )}
+                      {cityDoc.cityProfile?.elevation != null && (
+                        <span>
+                          <span className="font-bold text-slate-400">Elevation:</span>{" "}
+                          {cityDoc.cityProfile.elevation} m
+                        </span>
+                      )}
+                    </div>
+                    {cityNavId && (
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/cities/${cityNavId}`)}
+                        className="mt-4 text-sm font-bold text-brand-blue hover:underline"
+                      >
+                        Explore {cityDoc.name} →
+                      </button>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Rankings */}
+              <motion.div variants={itemVariants}>
+                <div className="mb-4 flex items-center gap-3">
+                  <div className="h-6 w-1.5 rounded-full bg-brand-blue" />
+                  <h2 className="text-xl font-black text-slate-900 dark:text-white">Rankings</h2>
+                </div>
+                {!eduRank && !uniRank ? (
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Ranking data not available for this university yet.
+                  </p>
+                ) : (
                   <div className="grid gap-4 sm:grid-cols-2">
                     {eduRank && (
                       <div className="rounded-2xl border border-slate-200/60 bg-white/80 p-5 dark:border-white/5 dark:bg-zinc-900/80">
@@ -407,8 +526,8 @@ const UniversityPage: React.FC = () => {
                       </div>
                     )}
                   </div>
-                </motion.div>
-              )}
+                )}
+              </motion.div>
 
               {/* Campuses */}
               <motion.div variants={itemVariants}>
@@ -419,26 +538,168 @@ const UniversityPage: React.FC = () => {
                 {campuses.length === 0 ? (
                   <p className="text-sm text-slate-500 dark:text-slate-400">No campus listings available yet.</p>
                 ) : (
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    {campuses.map((campus: any) => (
-                      <div key={campus._id}
-                        className="group flex cursor-pointer flex-col rounded-[2rem] border border-slate-200/80 bg-white p-2 transition-all hover:border-brand-blue/30 hover:shadow-xl dark:border-white/5 dark:bg-zinc-900/80">
-                        <div className="relative aspect-[4/3] overflow-hidden rounded-[1.5rem] bg-slate-100 dark:bg-zinc-800">
-                          <img src={campus.coverImage || campus.images?.[0] || universityCover(uni as University)} alt={campus.name}
-                            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                        </div>
-                        <div className="p-4 pt-3">
-                          <h3 className="mb-1 font-black text-slate-900 group-hover:text-brand-blue dark:text-white">{campus.name}</h3>
-                          <p className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
-                            <MapPin size={11} className="text-brand-blue" />
-                            {campus.address?.fullAddress || campus.address?.city || "—"}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <CollapsibleSection
+                    items={campuses}
+                    limit={4}
+                    gridClassName="grid grid-cols-2 gap-3 md:grid-cols-3"
+                    renderItem={(campus: {
+                      _id: string;
+                      name: string;
+                      slug?: string;
+                      coverImage?: string;
+                      images?: string[];
+                      address?: { fullAddress?: string; city?: string };
+                    }) => {
+                      const campusHref = `/campuses/${encodeURIComponent(campus.slug ?? campus._id)}`;
+                      return (
+                        <Link
+                          key={campus._id}
+                          to={campusHref}
+                          className="group flex flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white transition-all hover:border-brand-blue/30 hover:shadow-md dark:border-white/5 dark:bg-zinc-900/80"
+                        >
+                          <div className="relative aspect-[3/2] overflow-hidden bg-slate-100 dark:bg-zinc-800">
+                            <img
+                              src={
+                                campus.coverImage ||
+                                campus.images?.[0] ||
+                                universityCover(uni as University)
+                              }
+                              alt={campus.name}
+                              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            />
+                          </div>
+                          <div className="p-3">
+                            <h3 className="line-clamp-1 text-sm font-black text-slate-900 group-hover:text-brand-blue dark:text-white">
+                              {campus.name}
+                            </h3>
+                          </div>
+                        </Link>
+                      );
+                    }}
+                  />
                 )}
               </motion.div>
+
+              {cityDoc?.climate &&
+                (cityDoc.climate.summary ||
+                  cityDoc.climate.detail ||
+                  cityDoc.climate.climateTag) && (
+                <motion.div variants={itemVariants}>
+                  <div className="mb-4 flex items-center gap-3">
+                    <div className="h-6 w-1.5 rounded-full bg-teal-500" />
+                    <h2 className="text-xl font-black text-slate-900 dark:text-white">Climate</h2>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200/60 bg-white/80 p-5 dark:border-white/5 dark:bg-zinc-900/80">
+                    {cityDoc.climate.climateTag && (
+                      <p className="text-sm font-bold text-brand-blue">
+                        {cityDoc.climate.climateTag}
+                      </p>
+                    )}
+                    <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                      {cityDoc.climate.detail || cityDoc.climate.summary}
+                    </p>
+                    <div className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+                      {cityDoc.climate.hottestMonth && (
+                        <div className="rounded-xl border border-orange-100 bg-orange-50/80 p-3 dark:border-orange-900/30 dark:bg-orange-900/20">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-orange-500">
+                            Hottest
+                          </p>
+                          <p className="font-black text-orange-800 dark:text-orange-200">
+                            {cityDoc.climate.hottestMonth.month} ·{" "}
+                            {cityDoc.climate.hottestMonth.value}°C
+                          </p>
+                        </div>
+                      )}
+                      {cityDoc.climate.coldestMonth && (
+                        <div className="rounded-xl border border-blue-100 bg-blue-50/80 p-3 dark:border-blue-900/30 dark:bg-blue-900/20">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-blue-500">
+                            Coldest
+                          </p>
+                          <p className="font-black text-blue-800 dark:text-blue-200">
+                            {cityDoc.climate.coldestMonth.month} ·{" "}
+                            {cityDoc.climate.coldestMonth.value}°C
+                          </p>
+                        </div>
+                      )}
+                      {cityDoc.climate.minTemperature != null &&
+                        cityDoc.climate.maxTemperature != null && (
+                          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 sm:col-span-2 dark:border-white/10 dark:bg-zinc-800">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                              Typical range
+                            </p>
+                            <p className="font-black text-slate-800 dark:text-slate-200">
+                              {cityDoc.climate.minTemperature}°C –{" "}
+                              {cityDoc.climate.maxTemperature}°C
+                            </p>
+                          </div>
+                        )}
+                    </div>
+                    {cityDoc.climate.climateWebLinks &&
+                      cityDoc.climate.climateWebLinks.length > 0 && (
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          {cityDoc.climate.climateWebLinks.map((link) =>
+                            link.url ? (
+                              <a
+                                key={link.url}
+                                href={link.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1 rounded-full border border-slate-200/80 px-3 py-1.5 text-xs font-bold text-brand-blue dark:border-white/10"
+                              >
+                                {link.name ?? "Climate source"}{" "}
+                                <ExternalLink size={12} />
+                              </a>
+                            ) : null
+                          )}
+                        </div>
+                      )}
+                    {elevationZone?.slug && (
+                      <Link
+                        to={`/elevation-zones/${elevationZone.slug}`}
+                        className="mt-4 inline-block text-sm font-bold text-brand-blue hover:underline"
+                      >
+                        View elevation zone →
+                      </Link>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+
+              <motion.div variants={itemVariants}>
+                <div className="mb-4 flex items-center gap-3">
+                  <div className="h-6 w-1.5 rounded-full bg-emerald-500" />
+                  <h2 className="text-xl font-black text-slate-900 dark:text-white">View on map</h2>
+                </div>
+                <EntityMap
+                  coordinates={uni.location?.coordinates}
+                  label={uni.name}
+                />
+              </motion.div>
+
+              {isAuthenticated ? (
+                <SuggestedUniversitiesRow
+                  title="Suggested for you"
+                  subtitle="Based on your interests and location"
+                  universities={suggestedUnis}
+                  loading={suggestedLocQ.isPending || suggestedProgQ.isPending}
+                  viewAllHref="/discover/for-you"
+                />
+              ) : (
+                <motion.div
+                  variants={itemVariants}
+                  className="rounded-2xl border border-dashed border-brand-blue/30 bg-brand-blue/5 p-6 text-center dark:bg-brand-blue/10"
+                >
+                  <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                    Sign in for personalized university picks matched to your profile.
+                  </p>
+                  <Link
+                    to="/discover/for-you"
+                    className="mt-3 inline-block rounded-xl bg-brand-blue px-5 py-2.5 text-sm font-black text-white"
+                  >
+                    Explore personalized picks
+                  </Link>
+                </motion.div>
+              )}
 
               {uniId && (
                 <motion.div variants={itemVariants}>

@@ -18,7 +18,15 @@ import {
 import { deleteMe, updatePassword } from "../lib/services/authService";
 import { updateMe, updateMePhoto } from "../lib/services/userService";
 
-export default function SettingsPage() {
+type SettingsSection = "profile" | "preferences" | "security" | "all";
+
+export default function SettingsPage({
+  embedded = false,
+  section = "all",
+}: {
+  embedded?: boolean;
+  section?: SettingsSection;
+}) {
   const { user, isAuthenticated, logout, refreshUser } = useAuth();
   const { openLogin } = useLoginModal();
   const navigate = useNavigate();
@@ -62,16 +70,22 @@ export default function SettingsPage() {
   }, []);
 
   if (!isAuthenticated) {
+    const gate = (
+      <SignInGate
+        title="Account settings"
+        description="Sign in to update your profile, password, and preferences."
+        onSignIn={openLogin}
+      />
+    );
+    if (embedded) return gate;
     return (
-      <div className="min-h-screen bg-slate-50 pt-20 dark:bg-[#05060c]">
-        <SignInGate
-          title="Account settings"
-          description="Sign in to update your profile, password, and preferences."
-          onSignIn={openLogin}
-        />
-      </div>
+      <div className="min-h-screen bg-slate-50 pt-20 dark:bg-[#05060c]">{gate}</div>
     );
   }
+
+  const showProfile = section === "all" || section === "profile";
+  const showPreferences = section === "all" || section === "preferences";
+  const showSecurity = section === "all" || section === "security";
 
   const initial =
     (user?.firstName?.[0] ?? user?.email?.[0] ?? "?").toUpperCase();
@@ -153,26 +167,10 @@ export default function SettingsPage() {
     }
   };
 
-  return (
-    <SubpageLayout
-      badge={
-        <>
-          <User size={12} />
-          Account
-        </>
-      }
-      title={
-        <>
-          Account{" "}
-          <span className="bg-gradient-to-r from-brand-blue to-sky-400 bg-clip-text text-transparent">
-            settings
-          </span>
-        </>
-      }
-      subtitle="Manage your profile, programs, personal interests, password, and account security."
-      maxWidth="md"
-    >
+  const body = (
       <div className="space-y-6">
+        {showProfile && (
+        <>
         <SubpageCard>
           <h2 className="mb-4 flex items-center gap-2 text-lg font-black text-slate-900 dark:text-white">
             <Camera size={20} className="text-brand-blue" />
@@ -270,7 +268,10 @@ export default function SettingsPage() {
             </button>
           </form>
         </SubpageCard>
+        </>
+        )}
 
+        {showPreferences && (
         <SubpageCard>
           <h2 className="mb-4 flex items-center gap-2 text-lg font-black text-slate-900 dark:text-white">
             <BookOpen size={20} className="text-brand-blue" />
@@ -300,7 +301,10 @@ export default function SettingsPage() {
             </button>
           </form>
         </SubpageCard>
+        )}
 
+        {showSecurity && (
+        <>
         <SubpageCard>
           <h2 className="mb-4 flex items-center gap-2 text-lg font-black text-slate-900 dark:text-white">
             <Shield size={20} className="text-brand-blue" />
@@ -359,7 +363,33 @@ export default function SettingsPage() {
             Delete account
           </button>
         </SubpageCard>
+        </>
+        )}
       </div>
+  );
+
+  if (embedded) return body;
+
+  return (
+    <SubpageLayout
+      badge={
+        <>
+          <User size={12} />
+          Account
+        </>
+      }
+      title={
+        <>
+          Account{" "}
+          <span className="bg-gradient-to-r from-brand-blue to-sky-400 bg-clip-text text-transparent">
+            settings
+          </span>
+        </>
+      }
+      subtitle="Manage your profile, programs, personal interests, password, and account security."
+      maxWidth="md"
+    >
+      {body}
     </SubpageLayout>
   );
 }
