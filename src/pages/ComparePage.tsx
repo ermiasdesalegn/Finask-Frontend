@@ -163,17 +163,11 @@ export default function ComparePage() {
               <li>Tap the compare icon in the header to add it (max 3).</li>
               <li>Return here or use the navbar compare button to view the table.</li>
             </ol>
-            <Link
-              to="/universities"
-              className="inline-block rounded-xl bg-brand-blue px-6 py-3 text-sm font-bold text-white"
-            >
-              Browse universities
-            </Link>
 
             {queueIds.length > 0 ? (
               <div className="mb-6">
                 <p className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">
-                  Your compare list
+                  Your compare list ({queueIds.length}/3)
                 </p>
                 <ul className="flex flex-wrap gap-2">
                   {queueIds.map((id) => (
@@ -193,6 +187,11 @@ export default function ComparePage() {
                     </li>
                   ))}
                 </ul>
+                {queueIds.length === 1 ? (
+                  <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
+                    Add one more school to open the comparison table.
+                  </p>
+                ) : null}
                 <button
                   type="button"
                   onClick={() => clear()}
