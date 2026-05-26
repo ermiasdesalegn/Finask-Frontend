@@ -94,7 +94,7 @@ export async function ensureGoogleIdentity(
 export async function triggerGoogleSignIn(): Promise<void> {
   const clientId = getGoogleClientId();
   if (!clientId) {
-    throw new Error("Google Sign-In is not configured (missing VITE_GOOGLE_CLIENT_ID).");
+    throw new Error("GOOGLE_SIGN_IN_UNAVAILABLE");
   }
 
   await loadGoogleScript();
@@ -116,7 +116,7 @@ export async function triggerGoogleSignIn(): Promise<void> {
 
   if (!btn) {
     host.remove();
-    throw new Error("Could not open Google Sign-In.");
+    throw new Error("GOOGLE_SIGN_IN_PROMPT_FAILED");
   }
 
   btn.click();

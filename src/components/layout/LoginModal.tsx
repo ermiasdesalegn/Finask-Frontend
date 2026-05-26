@@ -1,11 +1,16 @@
 import { useMutation } from "@tanstack/react-query";
-import { Eye, EyeOff, X } from "lucide-react";
+import { AlertCircle, Eye, EyeOff, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import React, { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import finaskLogo from "../../assets/finask-logo.png";
 import { useAuth, type AuthUser } from "../../context/AuthContext";
 import { ApiError, apiPost } from "../../lib/api";
+import {
+  formatAuthApiError,
+  formatGoogleSignInError,
+  GOOGLE_SIGN_IN_UNAVAILABLE,
+} from "../../lib/authErrorMessages";
 import {
   ensureGoogleIdentity,
   getGoogleClientId,
@@ -177,7 +182,12 @@ const LoginModal = ({
       }
     },
     onError: (err: unknown) => {
-      setError(err instanceof ApiError ? err.message : "Login failed");
+      setError(
+        formatAuthApiError(
+          err,
+          "We couldn't sign you in. Check your email and password."
+        )
+      );
     },
   });
 
@@ -284,14 +294,13 @@ const LoginModal = ({
     onError: (err: unknown) => {
       const msg =
         err instanceof ApiError ? err.message : "Google sign-in failed";
-      // Old API blocked Google sign-in before creating a session; new API always returns a token.
       if (msg.toLowerCase().includes("field of interest")) {
         setError(
-          "Google sign-in could not finish. Redeploy the API with the latest auth changes, then try again."
+          "We couldn't finish setting up your account. Try signing in with email, or contact support if this continues."
         );
         return;
       }
-      setError(msg);
+      setError(formatGoogleSignInError(new Error(msg)));
     },
   });
 
@@ -365,9 +374,7 @@ const LoginModal = ({
     setError(null);
     setInfoMsg(null);
     if (!googleConfigured) {
-      setError(
-        "Google Sign-In is not configured. Add VITE_GOOGLE_CLIENT_ID to your .env file."
-      );
+      setError(GOOGLE_SIGN_IN_UNAVAILABLE);
       return;
     }
     try {
@@ -375,14 +382,12 @@ const LoginModal = ({
         googleAuthMutation.mutate({ idToken: credential });
       });
       if (!ready) {
-        setError("Could not initialize Google Sign-In.");
+        setError(formatGoogleSignInError(new Error("failed to initialize")));
         return;
       }
       await triggerGoogleSignIn();
     } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : "Could not open Google Sign-In"
-      );
+      setError(formatGoogleSignInError(err));
     }
   };
 
@@ -476,14 +481,22 @@ const LoginModal = ({
 
               <AnimatePresence>
                 {error && (
-                  <motion.p
+                  <motion.div
+                    role="alert"
                     initial={{ opacity: 0, y: -8 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
-                    className="mb-4 rounded-2xl bg-red-50 px-4 py-3 text-sm font-medium text-red-600 dark:bg-red-900/20 dark:text-red-400"
+                    className="mb-4 flex gap-3 rounded-2xl border border-red-200/80 bg-red-50 px-4 py-3 dark:border-red-500/20 dark:bg-red-900/20"
                   >
-                    {error}
-                  </motion.p>
+                    <AlertCircle
+                      className="mt-0.5 shrink-0 text-red-600 dark:text-red-400"
+                      size={18}
+                      aria-hidden
+                    />
+                    <p className="text-sm leading-relaxed text-red-700 dark:text-red-300">
+                      {error}
+                    </p>
+                  </motion.div>
                 )}
               </AnimatePresence>
 
@@ -638,14 +651,24 @@ const LoginModal = ({
                       <button
                         type="button"
                         onClick={handleGoogleClick}
-                        disabled={submitting}
-                        className="flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white py-3 font-bold text-slate-700 transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700"
+                        disabled={submitting || !googleConfigured}
+                        title={
+                          googleConfigured
+                            ? undefined
+                            : "Google sign-in is not available on this site yet"
+                        }
+                        className="flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white py-3 font-bold text-slate-700 transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700"
                       >
                         <GoogleIcon />
                         {googleAuthMutation.isPending
                           ? "Connecting…"
                           : "Continue with Google"}
                       </button>
+                      {!googleConfigured && (
+                        <p className="text-center text-xs text-slate-500 dark:text-slate-400">
+                          Google sign-in is unavailable. Use your email and password above.
+                        </p>
+                      )}
 
                       <p className="text-center text-sm text-slate-500 dark:text-slate-400">
                         No account?{" "}
@@ -778,14 +801,24 @@ const LoginModal = ({
                       <button
                         type="button"
                         onClick={handleGoogleClick}
-                        disabled={submitting}
-                        className="flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white py-3 font-bold text-slate-700 transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700"
+                        disabled={submitting || !googleConfigured}
+                        title={
+                          googleConfigured
+                            ? undefined
+                            : "Google sign-in is not available on this site yet"
+                        }
+                        className="flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white py-3 font-bold text-slate-700 transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700"
                       >
                         <GoogleIcon />
                         {googleAuthMutation.isPending
                           ? "Connecting…"
                           : "Sign up with Google"}
                       </button>
+                      {!googleConfigured && (
+                        <p className="text-center text-xs text-slate-500 dark:text-slate-400">
+                          Google sign-in is unavailable. Use the form above or sign in with email.
+                        </p>
+                      )}
 
                       <p className="text-center text-sm text-slate-500 dark:text-slate-400">
                         Already have an account?{" "}
