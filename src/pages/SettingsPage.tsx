@@ -1,5 +1,5 @@
 import { Camera, Loader2, Shield, Trash2, User } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SubpageLayout, {
   SubpageCard,
@@ -10,7 +10,7 @@ import { useAuth } from "../context/AuthContext";
 import { useLoginModal } from "../context/LoginModalContext";
 import { ApiError, showApiToast } from "../lib/api";
 import { deleteMe, updatePassword } from "../lib/services/authService";
-import { updateMePhoto } from "../lib/services/userService";
+import { updateMe, updateMePhoto } from "../lib/services/userService";
 
 export default function SettingsPage() {
   const { user, isAuthenticated, logout, refreshUser } = useAuth();
@@ -18,10 +18,22 @@ export default function SettingsPage() {
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [bio, setBio] = useState("");
   const [oldPw, setOldPw] = useState("");
   const [newPw, setNewPw] = useState("");
   const [confirmPw, setConfirmPw] = useState("");
   const [pending, setPending] = useState(false);
+  const [profilePending, setProfilePending] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setFirstName(user.firstName ?? "");
+      setLastName(user.lastName ?? "");
+      setBio(user.bio ?? "");
+    }
+  }, [user]);
 
   if (!isAuthenticated) {
     return (
@@ -37,6 +49,24 @@ export default function SettingsPage() {
 
   const initial =
     (user?.firstName?.[0] ?? user?.email?.[0] ?? "?").toUpperCase();
+
+  const saveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setProfilePending(true);
+    try {
+      await updateMe({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        bio: bio.trim(),
+      });
+      await refreshUser();
+      showApiToast("Profile updated.");
+    } catch (err) {
+      showApiToast(err instanceof ApiError ? err.message : "Update failed");
+    } finally {
+      setProfilePending(false);
+    }
+  };
 
   const changePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,7 +122,7 @@ export default function SettingsPage() {
           </span>
         </>
       }
-      subtitle="Manage your profile photo, password, and account security."
+      subtitle="Manage your profile, photo, password, and account security."
       maxWidth="md"
     >
       <div className="space-y-6">
@@ -139,6 +169,59 @@ export default function SettingsPage() {
               </button>
             </div>
           </div>
+        </SubpageCard>
+
+        <SubpageCard>
+          <h2 className="mb-4 flex items-center gap-2 text-lg font-black text-slate-900 dark:text-white">
+            <User size={20} className="text-brand-blue" />
+            Profile details
+          </h2>
+          <form onSubmit={saveProfile} className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-400">
+                  First name
+                </label>
+                <input
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  className={formInputClass}
+                  autoComplete="given-name"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-400">
+                  Last name
+                </label>
+                <input
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  className={formInputClass}
+                  autoComplete="family-name"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-400">
+                Bio
+              </label>
+              <textarea
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                rows={3}
+                placeholder="A short intro for your public profile…"
+                className={formInputClass}
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={profilePending}
+              className="inline-flex items-center gap-2 rounded-2xl bg-brand-blue px-6 py-3 text-sm font-black text-white shadow-lg shadow-brand-blue/20 transition-all hover:bg-blue-700 disabled:opacity-60"
+            >
+              {profilePending && <Loader2 className="animate-spin" size={18} />}
+              Save profile
+            </button>
+          </form>
         </SubpageCard>
 
         <SubpageCard>

@@ -4,8 +4,11 @@ export interface ElevationZone {
   _id: string;
   name: string;
   slug?: string;
+  subtitle?: string;
+  displayName?: string;
   overview?: string;
   coverImage?: string;
+  images?: string[];
 }
 
 type ListResponse = {
@@ -13,9 +16,28 @@ type ListResponse = {
   data?: { elevationzones?: ElevationZone[]; data?: ElevationZone[] };
 };
 
+type ZoneUniversity = {
+  _id: string;
+  name: string;
+  slug?: string;
+  coverImage?: string;
+};
+
 type DetailResponse = {
   status: string;
-  data?: { elevationzone?: ElevationZone; data?: ElevationZone };
+  data?: {
+    /** GET /elevation-zones/slug/:slug — custom controller */
+    zone?: ElevationZone;
+    universities?: ZoneUniversity[];
+    /** GET /elevation-zones/:id — handlerFactory */
+    elevationzone?: ElevationZone;
+    data?: ElevationZone;
+  };
+};
+
+export type ElevationZoneDetail = {
+  zone: ElevationZone;
+  universities: ZoneUniversity[];
 };
 
 export async function fetchElevationZones(): Promise<ElevationZone[]> {
@@ -25,11 +47,14 @@ export async function fetchElevationZones(): Promise<ElevationZone[]> {
 
 export async function fetchElevationZoneBySlug(
   slug: string
-): Promise<ElevationZone> {
+): Promise<ElevationZoneDetail> {
   const res = await apiGet<DetailResponse>(
     `/elevation-zones/slug/${encodeURIComponent(slug)}`
   );
-  const z = res.data?.elevationzone ?? res.data?.data;
+  const z = res.data?.zone ?? res.data?.elevationzone ?? res.data?.data;
   if (!z) throw new Error("Elevation zone not found");
-  return z;
+  return {
+    zone: z,
+    universities: res.data?.universities ?? [],
+  };
 }

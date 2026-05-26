@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Building2, GraduationCap, Loader2, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useParams } from "react-router-dom";
+import ReviewsSection from "../components/community/ReviewsSection";
+import QuestionsSection from "../components/community/QuestionsSection";
 import FavoriteButton from "../components/favorites/FavoriteButton";
 import SubpageLayout, { SubpageCard } from "../components/layout/SubpageLayout";
 import { UNIVERSITY_IMAGE_FALLBACK } from "../constants/defaultMediaFallbacks";
@@ -128,6 +130,13 @@ export default function CampusPage() {
           <p className="text-sm text-slate-500">No programs listed for this campus.</p>
         )}
       </SubpageCard>
+
+      {campus._id && (
+        <>
+          <ReviewsSection parentType="campus" parentId={campus._id} />
+          <QuestionsSection parentType="campus" parentId={campus._id} />
+        </>
+      )}
     </SubpageLayout>
   );
 }

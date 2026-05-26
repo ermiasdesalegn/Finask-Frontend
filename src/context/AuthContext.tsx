@@ -34,6 +34,7 @@ export interface AuthUser {
   email?: string;
   firstName?: string;
   lastName?: string;
+  bio?: string;
   profileImage?: string;
   role?: string;
   fieldsOfInterest?: unknown;

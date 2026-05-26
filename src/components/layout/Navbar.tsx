@@ -74,11 +74,12 @@ const Navbar = ({
     { name: "Discover", path: "/discover" },
     { name: "Universities", path: "/universities" },
     { name: "Programs", path: "/programs" },
+    { name: "Climate", path: "/elevation-zones" },
     { name: "Great Minds", path: "/celebrities" },
     { name: "About", path: "/about" },
   ] as const;
 
-  const condensedHidden = new Set(["Great Minds", "About"]);
+  const condensedHidden = new Set(["Climate", "Great Minds", "About"]);
   const visibleNavLinks = isScrolled
     ? mainNavLinks.filter((l) => !condensedHidden.has(l.name))
     : mainNavLinks;
