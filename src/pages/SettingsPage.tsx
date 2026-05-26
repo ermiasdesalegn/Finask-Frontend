@@ -1,6 +1,8 @@
-import { Camera, Loader2, Shield, Trash2, User } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { BookOpen, Camera, Loader2, Shield, Trash2, User } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import FieldsOfStudyPicker from "../components/layout/FieldsOfStudyPicker";
+import PersonalInterestsPicker from "../components/layout/PersonalInterestsPicker";
 import SubpageLayout, {
   SubpageCard,
   SignInGate,
@@ -9,6 +11,10 @@ import SubpageLayout, {
 import { useAuth } from "../context/AuthContext";
 import { useLoginModal } from "../context/LoginModalContext";
 import { ApiError, showApiToast } from "../lib/api";
+import {
+  fieldsOfInterestIds,
+  userInterestNames,
+} from "../lib/userProfile";
 import { deleteMe, updatePassword } from "../lib/services/authService";
 import { updateMe, updateMePhoto } from "../lib/services/userService";
 
@@ -26,14 +32,34 @@ export default function SettingsPage() {
   const [confirmPw, setConfirmPw] = useState("");
   const [pending, setPending] = useState(false);
   const [profilePending, setProfilePending] = useState(false);
+  const [preferencesPending, setPreferencesPending] = useState(false);
+  const [selectedProgramIds, setSelectedProgramIds] = useState<string[]>([]);
+  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
 
   useEffect(() => {
     if (user) {
       setFirstName(user.firstName ?? "");
       setLastName(user.lastName ?? "");
       setBio(user.bio ?? "");
+      setSelectedProgramIds(fieldsOfInterestIds(user));
+      setSelectedInterests(userInterestNames(user));
     }
   }, [user]);
+
+  const toggleProgram = useCallback((id: string) => {
+    setSelectedProgramIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  }, []);
+
+  const toggleInterest = useCallback((name: string) => {
+    const key = name.toLowerCase();
+    setSelectedInterests((prev) =>
+      prev.some((n) => n.toLowerCase() === key)
+        ? prev.filter((n) => n.toLowerCase() !== key)
+        : [...prev, key]
+    );
+  }, []);
 
   if (!isAuthenticated) {
     return (
@@ -65,6 +91,27 @@ export default function SettingsPage() {
       showApiToast(err instanceof ApiError ? err.message : "Update failed");
     } finally {
       setProfilePending(false);
+    }
+  };
+
+  const savePreferences = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (selectedProgramIds.length === 0) {
+      showApiToast("Select at least one program you follow.");
+      return;
+    }
+    setPreferencesPending(true);
+    try {
+      await updateMe({
+        fieldsOfInterest: selectedProgramIds,
+        interests: selectedInterests,
+      });
+      await refreshUser();
+      showApiToast("Preferences saved.");
+    } catch (err) {
+      showApiToast(err instanceof ApiError ? err.message : "Update failed");
+    } finally {
+      setPreferencesPending(false);
     }
   };
 
@@ -122,7 +169,7 @@ export default function SettingsPage() {
           </span>
         </>
       }
-      subtitle="Manage your profile, photo, password, and account security."
+      subtitle="Manage your profile, programs, personal interests, password, and account security."
       maxWidth="md"
     >
       <div className="space-y-6">
@@ -220,6 +267,36 @@ export default function SettingsPage() {
             >
               {profilePending && <Loader2 className="animate-spin" size={18} />}
               Save profile
+            </button>
+          </form>
+        </SubpageCard>
+
+        <SubpageCard>
+          <h2 className="mb-4 flex items-center gap-2 text-lg font-black text-slate-900 dark:text-white">
+            <BookOpen size={20} className="text-brand-blue" />
+            Programs you follow
+          </h2>
+          <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">
+            Academic programs used for home recommendations and personalization.
+          </p>
+          <form onSubmit={savePreferences} className="space-y-4">
+            <FieldsOfStudyPicker
+              selectedIds={selectedProgramIds}
+              onToggle={toggleProgram}
+            />
+            <PersonalInterestsPicker
+              selectedNames={selectedInterests}
+              onToggle={toggleInterest}
+            />
+            <button
+              type="submit"
+              disabled={preferencesPending}
+              className="inline-flex items-center gap-2 rounded-2xl bg-brand-blue px-6 py-3 text-sm font-black text-white shadow-lg shadow-brand-blue/20 transition-all hover:bg-blue-700 disabled:opacity-60"
+            >
+              {preferencesPending && (
+                <Loader2 className="animate-spin" size={18} />
+              )}
+              Save programs & interests
             </button>
           </form>
         </SubpageCard>

@@ -37,7 +37,10 @@ export interface AuthUser {
   bio?: string;
   profileImage?: string;
   role?: string;
-  fieldsOfInterest?: unknown;
+  /** Program ObjectIds (or populated Program docs from getMe). */
+  fieldsOfInterest?: string[] | { _id: string }[];
+  /** Hobby tag names from Interest catalog (lowercase). */
+  interests?: string[];
 }
 
 interface AuthContextValue {

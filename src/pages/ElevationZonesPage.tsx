@@ -46,7 +46,7 @@ export default function ElevationZonesPage() {
                 to={
                   z.slug
                     ? `/elevation-zones/${encodeURIComponent(z.slug)}`
-                    : `/universities?view=climate&zone=${encodeURIComponent(z.name)}`
+                    : `/elevation-zones/${encodeURIComponent(z._id)}`
                 }
                 className="group block overflow-hidden rounded-[1.5rem] border border-slate-200/80 bg-white/80 p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand-blue/30 hover:shadow-lg dark:border-white/10 dark:bg-zinc-900/60"
               >

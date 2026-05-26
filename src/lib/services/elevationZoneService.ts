@@ -1,5 +1,7 @@
 import { apiGet } from "../api";
 
+const MONGO_OBJECT_ID_RE = /^[a-f0-9]{24}$/i;
+
 export interface ElevationZone {
   _id: string;
   name: string;
@@ -10,6 +12,13 @@ export interface ElevationZone {
   coverImage?: string;
   images?: string[];
 }
+
+type ZoneCity = {
+  _id: string;
+  name: string;
+  slug?: string;
+  region?: string;
+};
 
 type ListResponse = {
   status: string;
@@ -26,11 +35,9 @@ type ZoneUniversity = {
 type DetailResponse = {
   status: string;
   data?: {
-    /** GET /elevation-zones/slug/:slug — custom controller */
     zone?: ElevationZone;
     universities?: ZoneUniversity[];
-    /** GET /elevation-zones/:id — handlerFactory */
-    elevationzone?: ElevationZone;
+    elevationzone?: ElevationZone & { cities?: ZoneCity[] };
     data?: ElevationZone;
   };
 };
@@ -38,6 +45,7 @@ type DetailResponse = {
 export type ElevationZoneDetail = {
   zone: ElevationZone;
   universities: ZoneUniversity[];
+  cities: ZoneCity[];
 };
 
 export async function fetchElevationZones(): Promise<ElevationZone[]> {
@@ -45,7 +53,8 @@ export async function fetchElevationZones(): Promise<ElevationZone[]> {
   return res.data?.elevationzones ?? res.data?.data ?? [];
 }
 
-export async function fetchElevationZoneBySlug(
+/** GET /elevation-zones/slug/:slug — universities in zone */
+async function fetchElevationZoneBySlug(
   slug: string
 ): Promise<ElevationZoneDetail> {
   const res = await apiGet<DetailResponse>(
@@ -56,5 +65,30 @@ export async function fetchElevationZoneBySlug(
   return {
     zone: z,
     universities: res.data?.universities ?? [],
+    cities: [],
   };
+}
+
+/** GET /elevation-zones/:id — zone with populated cities */
+async function fetchElevationZoneById(id: string): Promise<ElevationZoneDetail> {
+  const res = await apiGet<DetailResponse>(
+    `/elevation-zones/${encodeURIComponent(id)}`
+  );
+  const z = res.data?.elevationzone ?? res.data?.zone ?? res.data?.data;
+  if (!z) throw new Error("Elevation zone not found");
+  const populated = z as ElevationZone & { cities?: ZoneCity[] };
+  return {
+    zone: populated,
+    universities: [],
+    cities: populated.cities ?? [],
+  };
+}
+
+/** Slug → universities list; Mongo id → GET /elevation-zones/:id with cities */
+export async function fetchElevationZoneDetail(
+  slugOrId: string
+): Promise<ElevationZoneDetail> {
+  const key = slugOrId.trim();
+  if (MONGO_OBJECT_ID_RE.test(key)) return fetchElevationZoneById(key);
+  return fetchElevationZoneBySlug(key);
 }

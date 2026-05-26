@@ -3,7 +3,7 @@ import { CloudSun, Loader2, Mountain } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import SubpageLayout, { SubpageCard } from "../components/layout/SubpageLayout";
 import {
-  fetchElevationZoneBySlug,
+  fetchElevationZoneDetail,
   type ElevationZone,
 } from "../lib/services/elevationZoneService";
 import { UNIVERSITY_IMAGE_FALLBACK } from "../constants/defaultMediaFallbacks";
@@ -17,11 +17,12 @@ export default function ElevationZonePage() {
   const { slug } = useParams<{ slug: string }>();
   const { data, isLoading, isError } = useQuery({
     queryKey: ["elevation-zone", slug],
-    queryFn: () => fetchElevationZoneBySlug(slug!),
+    queryFn: () => fetchElevationZoneDetail(slug!),
     enabled: Boolean(slug),
   });
   const zone = data?.zone;
   const universities = data?.universities ?? [];
+  const cities = data?.cities ?? [];
 
   if (isLoading) {
     return (
@@ -106,6 +107,26 @@ export default function ElevationZonePage() {
                   />
                   <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">
                     {u.name}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : cities.length > 0 ? (
+          <ul className="mb-4 grid gap-3 sm:grid-cols-2">
+            {cities.map((c) => (
+              <li key={c._id}>
+                <Link
+                  to={`/cities/${encodeURIComponent(c._id)}`}
+                  className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50/80 p-3 transition-colors hover:border-brand-blue/30 hover:text-brand-blue dark:border-white/10 dark:bg-zinc-800/50"
+                >
+                  <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                    {c.name}
+                    {c.region ? (
+                      <span className="ml-1 font-normal text-slate-500">
+                        ({c.region})
+                      </span>
+                    ) : null}
                   </span>
                 </Link>
               </li>

@@ -32,7 +32,7 @@ export default function UserMenu() {
     "Account";
 
   return (
-    <div ref={rootRef} className="relative hidden md:block">
+    <div ref={rootRef} className="relative z-[110] hidden md:block">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -74,7 +74,7 @@ export default function UserMenu() {
             exit={{ opacity: 0, y: 8, scale: 0.96 }}
             transition={{ duration: 0.18 }}
             role="menu"
-            className="absolute right-0 top-[calc(100%+10px)] z-[60] w-56 overflow-hidden rounded-2xl border border-slate-200/90 bg-white/95 p-1.5 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/95"
+            className="absolute right-0 top-[calc(100%+10px)] z-[120] w-56 overflow-hidden rounded-2xl border border-slate-200/90 bg-white/95 p-1.5 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/95"
           >
             <div className="border-b border-slate-100 px-3 py-2.5 dark:border-white/10">
               <p className="truncate text-sm font-bold text-slate-900 dark:text-white">
