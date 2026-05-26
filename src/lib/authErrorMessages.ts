@@ -57,11 +57,52 @@ export function formatGoogleSignInError(err: unknown): string {
     : raw;
 }
 
+function errorStatus(err: unknown): number {
+  if (err && typeof err === "object" && "status" in err) {
+    const s = Number((err as { status: number }).status);
+    return Number.isFinite(s) ? s : 0;
+  }
+  return 0;
+}
+
+function errorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message.trim();
+  if (typeof err === "string") return err.trim();
+  return "";
+}
+
+export function formatLoginError(err: unknown): string {
+  const status = errorStatus(err);
+  const msg = errorMessage(err);
+  const lower = msg.toLowerCase();
+
+  if (status === 0 && lower.includes("network")) {
+    return "We couldn't reach the server. Check your connection and try again.";
+  }
+
+  if (lower.includes("not verified")) {
+    return "Your email isn't verified yet. Check your inbox for the 6-digit code, or create an account again.";
+  }
+
+  if (lower.includes("deactivated")) {
+    return msg || "This account is deactivated. Contact support for help.";
+  }
+
+  if (
+    status === 401 ||
+    lower.includes("invalid credentials") ||
+    lower.includes("incorrect") ||
+    lower.includes("unauthorized")
+  ) {
+    return "That email or password doesn't match our records. Try again or use Forgot password.";
+  }
+
+  if (msg) return msg;
+  return "We couldn't sign you in. Check your email and password.";
+}
+
 export function formatAuthApiError(err: unknown, fallback: string): string {
-  const msg =
-    err instanceof Error && err.message.trim()
-      ? err.message
-      : fallback;
+  const msg = errorMessage(err) || fallback;
   if (isGoogleConfigurationError(msg)) {
     return GOOGLE_SIGN_IN_UNAVAILABLE;
   }

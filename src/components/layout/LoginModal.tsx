@@ -7,8 +7,8 @@ import finaskLogo from "../../assets/finask-logo.png";
 import { useAuth, type AuthUser } from "../../context/AuthContext";
 import { ApiError, apiPost } from "../../lib/api";
 import {
-  formatAuthApiError,
   formatGoogleSignInError,
+  formatLoginError,
   GOOGLE_SIGN_IN_UNAVAILABLE,
 } from "../../lib/authErrorMessages";
 import {
@@ -182,12 +182,7 @@ const LoginModal = ({
       }
     },
     onError: (err: unknown) => {
-      setError(
-        formatAuthApiError(
-          err,
-          "We couldn't sign you in. Check your email and password."
-        )
-      );
+      setError(formatLoginError(err));
     },
   });
 
