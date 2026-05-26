@@ -10,6 +10,7 @@ import {
 import { AnimatePresence, motion, type Variants } from "motion/react";
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import FavoriteButton from "../components/favorites/FavoriteButton";
 import { AnimatedGridPattern } from "../components/ui/animated-grid-pattern";
 import { staggerBlurContainer, staggerBlurItem } from "../lib/motion/pageMotion";
 import { useCitiesListQuery } from "../lib/queries";
@@ -210,6 +211,13 @@ function CityCard({
           className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/85 via-slate-900/20 to-transparent" />
+        <div
+          className="absolute right-3 top-3 z-10"
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
+          <FavoriteButton itemId={city._id} onModel="City" size={14} />
+        </div>
         <div className="absolute bottom-4 left-5 right-5">
           <h2 className="text-xl font-black tracking-tight text-white md:text-2xl">
             {city.name}

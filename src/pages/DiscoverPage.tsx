@@ -46,6 +46,65 @@ const DISCOVER_CHIPS = [
   { label: "#Autonomous", href: "/universities?filter=research", img: "https://images.unsplash.com/photo-1535905557558-afc4877a26fc?auto=format&fit=crop&q=80&w=300" },
 ];
 
+const DISCOVERY_HUB_CARDS = [
+  {
+    label: "Generation",
+    subtitle: "1st–4th gen universities",
+    href: "/discover/generation",
+    img: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&q=80&w=400",
+    accent: "from-indigo-900/90",
+  },
+  {
+    label: "Institutional excellence",
+    subtitle: "Research & applied schools",
+    href: "/discover/excellence",
+    img: "https://images.unsplash.com/photo-1535905557558-afc4877a26fc?auto=format&fit=crop&q=80&w=400",
+    accent: "from-violet-900/90",
+  },
+  {
+    label: "Discover",
+    subtitle: "Trending & featured picks",
+    href: "/discover/discover",
+    img: "https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?auto=format&fit=crop&q=80&w=400",
+    accent: "from-rose-900/90",
+  },
+  {
+    label: "Nearby",
+    subtitle: "Universities close to you",
+    href: "/discover/nearby",
+    img: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=400",
+    accent: "from-emerald-900/90",
+  },
+  {
+    label: "Trending",
+    subtitle: "Hot picks right now",
+    href: "/discover/trending",
+    img: "https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&q=80&w=400",
+    accent: "from-amber-900/90",
+  },
+  {
+    label: "Personalized picks",
+    subtitle: "Matched to your profile",
+    href: "/discover/for-you",
+    img: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=400",
+    accent: "from-pink-900/90",
+  },
+  {
+    label: "Campus gallery",
+    subtitle: "Explore every campus",
+    href: "/campuses",
+    img: "https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?auto=format&fit=crop&q=80&w=400",
+    accent: "from-blue-900/90",
+  },
+  {
+    label: "Climate",
+    subtitle: "Elevation zones & weather",
+    href: "/elevation-zones",
+    img: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&q=80&w=400",
+    accent: "from-teal-900/90",
+  },
+] as const;
+
 const BROWSE_CATEGORIES: BrowseCategory[] = [
   { label: "All Universities", icon: <Building2 size={16} />, href: "/universities", img: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=400", accent: "from-blue-900/90" },
   { label: "Just for You", icon: <Sparkles size={16} />, href: "/universities?filter=featured", img: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=400", accent: "from-amber-900/90" },
@@ -190,6 +249,46 @@ const DiscoverPage: React.FC = () => {
           viewport={{ once: true, margin: "-40px", amount: 0.08 }}
           className="pt-4"
         >
+
+          {/* --- DISCOVERY HUB --- */}
+          <section className="mb-20">
+            <motion.div
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, margin: "-60px" }}
+              variants={slideInRight}
+              className="mb-6 flex items-center gap-3"
+            >
+              <div className="h-6 w-1.5 rounded-full bg-violet-500 shadow-[0_0_8px_rgba(139,92,246,0.5)]" />
+              <h2 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900 dark:text-white">
+                Explore by theme
+              </h2>
+            </motion.div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {DISCOVERY_HUB_CARDS.map((card) => (
+                <motion.button
+                  key={card.href}
+                  type="button"
+                  variants={itemVariants}
+                  onClick={() => navigate(card.href)}
+                  className="group relative h-44 overflow-hidden rounded-[1.5rem] border border-slate-200/50 text-left shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl dark:border-white/5"
+                >
+                  <img
+                    src={card.img}
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  />
+                  <div
+                    className={`absolute inset-0 bg-gradient-to-t ${card.accent} via-slate-900/30 to-transparent`}
+                  />
+                  <div className="absolute bottom-5 left-5 right-5">
+                    <p className="text-lg font-black text-white">{card.label}</p>
+                    <p className="text-xs font-medium text-white/80">{card.subtitle}</p>
+                  </div>
+                </motion.button>
+              ))}
+            </div>
+          </section>
 
           {/* --- DISCOVER SOMETHING NEW --- */}
           <section className="mb-20">

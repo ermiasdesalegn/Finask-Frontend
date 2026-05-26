@@ -28,6 +28,8 @@ export type UniversitiesListFilters = {
   tags?: string | null;
   /** Backend elevation_ filter against joined elevation zone (e.g. dega, kolla). */
   elevationName?: string | null;
+  institutionalType?: "public" | "private" | null;
+  campusSetting?: "urban" | "suburban" | "rural" | null;
 };
 
 /** GET /api/v1/universities — matches Express aggregation list handler */
@@ -52,6 +54,12 @@ export async function fetchUniversitiesList(
   if (filters.elevationName) {
     params.set("elevation_name", filters.elevationName);
   }
+  if (filters.institutionalType) {
+    params.set("institutionalType", filters.institutionalType);
+  }
+  if (filters.campusSetting) {
+    params.set("campusSetting", filters.campusSetting);
+  }
   return apiGet<UniversitiesListResponse>(
     `/universities?${params.toString()}`
   );
@@ -65,6 +73,7 @@ type LooseUniversitiesPayload = {
   data?: {
     universities?: University[];
     data?: University[];
+    docs?: University[];
   };
 };
 
@@ -73,6 +82,7 @@ function normalizeUniversitiesListResponse(
 ): UniversitiesListResponse {
   const list =
     res.data?.universities ??
+    (Array.isArray(res.data?.docs) ? res.data!.docs! : []) ??
     (Array.isArray(res.data?.data) ? res.data!.data! : []);
   return {
     status: res.status,
@@ -196,8 +206,7 @@ export async function fetchUniversitiesNear(
   options?: { limit?: number; maxDistance?: number }
 ): Promise<UniversitiesListResponse> {
   const params = new URLSearchParams();
-  params.set("lat", String(lat));
-  params.set("lng", String(lng));
+  params.set("latlng", `${lat},${lng}`);
   if (options?.limit) params.set("limit", String(options.limit));
   if (options?.maxDistance) params.set("maxDistance", String(options.maxDistance));
   const res = await apiGet<LooseUniversitiesPayload>(

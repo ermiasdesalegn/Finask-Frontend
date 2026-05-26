@@ -1,10 +1,5 @@
-import {
-  ArrowLeft,
-  Heart,
-  LayoutGrid,
-  Search,
-  User,
-} from "lucide-react";
+import { ArrowLeft, LayoutGrid, Search, User } from "lucide-react";
+import FavoriteButton from "../components/favorites/FavoriteButton";
 import { AnimatePresence, motion } from "motion/react";
 import React, { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -26,8 +21,6 @@ function listThumbSrc(c: Celebrity): string {
 const CelebritiesPage: React.FC = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
-  const [savedIds, setSavedIds] = useState<Record<string, boolean>>({});
-
   const listQuery = useCelebritiesListQuery({ limit: 250, sort: "name" });
   const celebrities = listQuery.data?.data?.celebrities ?? [];
   const apiTotal = listQuery.data?.results;
@@ -59,12 +52,6 @@ const CelebritiesPage: React.FC = () => {
 
   const containerVariants = staggerBlurContainer;
   const itemVariants = staggerBlurItem;
-
-  const toggleSaved = (e: React.MouseEvent, id: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setSavedIds((m) => ({ ...m, [id]: !m[id] }));
-  };
 
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden bg-slate-50 pb-24 pt-4 transition-colors dark:bg-[#05060c] md:pt-8">
@@ -201,7 +188,6 @@ const CelebritiesPage: React.FC = () => {
                   const thumbSrc = listThumbSrc(c);
                   const primaryTag = c.tags?.[0];
                   const id = c._id ?? key;
-                  const saved = savedIds[id] ?? false;
                   return (
                     <motion.div key={key} variants={itemVariants} className="h-full">
                       <Link
@@ -254,21 +240,16 @@ const CelebritiesPage: React.FC = () => {
                             </p>
                           ) : null}
                         </div>
-                        <button
-                          type="button"
-                          onClick={(e) => toggleSaved(e, id)}
-                          className="absolute right-2.5 top-2.5 rounded-full p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-brand-blue dark:hover:bg-white/10 md:right-3 md:top-3"
-                          aria-label={saved ? "Unsave" : "Save"}
+                        <div
+                          className="absolute right-2.5 top-2.5 md:right-3 md:top-3"
+                          onClick={(e) => e.preventDefault()}
                         >
-                          <Heart
-                            className={cn(
-                              "h-5 w-5",
-                              saved
-                                ? "fill-brand-blue text-brand-blue"
-                                : "fill-none stroke-[1.75]"
-                            )}
+                          <FavoriteButton
+                            itemId={id}
+                            onModel="Celebrity"
+                            size={14}
                           />
-                        </button>
+                        </div>
                       </Link>
                     </motion.div>
                   );

@@ -39,7 +39,7 @@ const TABS: {
   { id: "answers", label: "Answers", icon: MessageSquare },
 ];
 
-export default function MePage() {
+export default function MePage({ embedded = false }: { embedded?: boolean }) {
   const { isAuthenticated, user } = useAuth();
   const { openLogin } = useLoginModal();
   const [tab, setTab] = useState<Tab>("reviews");
@@ -61,14 +61,16 @@ export default function MePage() {
   });
 
   if (!isAuthenticated) {
+    const gate = (
+      <SignInGate
+        title="My content"
+        description="Sign in to see reviews, questions, and replies you've posted across FinAsk."
+        onSignIn={openLogin}
+      />
+    );
+    if (embedded) return gate;
     return (
-      <div className="min-h-screen bg-slate-50 pt-20 dark:bg-[#05060c]">
-        <SignInGate
-          title="My content"
-          description="Sign in to see reviews, questions, and replies you've posted across FinAsk."
-          onSignIn={openLogin}
-        />
-      </div>
+      <div className="min-h-screen bg-slate-50 pt-20 dark:bg-[#05060c]">{gate}</div>
     );
   }
 
@@ -77,29 +79,8 @@ export default function MePage() {
     (tab === "questions" && questionsQ.isPending) ||
     (tab === "answers" && answersQ.isPending);
 
-  return (
-    <SubpageLayout
-      badge={
-        <>
-          <MessageSquare size={12} />
-          Your activity
-        </>
-      }
-      title={
-        <>
-          My{" "}
-          <span className="bg-gradient-to-r from-brand-blue to-sky-400 bg-clip-text text-transparent">
-            content
-          </span>
-        </>
-      }
-      subtitle={
-        user?.firstName
-          ? `Hi ${user.firstName} — reviews, questions, and answers you've posted across FinAsk.`
-          : "Everything you've shared across the community."
-      }
-      maxWidth="lg"
-    >
+  const content = (
+    <>
       <div className="mb-8 flex flex-wrap gap-2">
         {TABS.map((t) => {
           const Icon = t.icon;
@@ -141,14 +122,45 @@ export default function MePage() {
         </motion.div>
       </AnimatePresence>
 
-      <p className="mt-8 text-center text-sm text-slate-500">
-        <Link
-          to="/settings"
-          className="font-semibold text-brand-blue hover:underline"
-        >
-          Account settings
-        </Link>
-      </p>
+      {!embedded && (
+        <p className="mt-8 text-center text-sm text-slate-500">
+          <Link
+            to="/account?tab=profile"
+            className="font-semibold text-brand-blue hover:underline"
+          >
+            Account settings
+          </Link>
+        </p>
+      )}
+    </>
+  );
+
+  if (embedded) return content;
+
+  return (
+    <SubpageLayout
+      badge={
+        <>
+          <MessageSquare size={12} />
+          Your activity
+        </>
+      }
+      title={
+        <>
+          My{" "}
+          <span className="bg-gradient-to-r from-brand-blue to-sky-400 bg-clip-text text-transparent">
+            content
+          </span>
+        </>
+      }
+      subtitle={
+        user?.firstName
+          ? `Hi ${user.firstName} — reviews, questions, and answers you've posted across FinAsk.`
+          : "Everything you've shared across the community."
+      }
+      maxWidth="lg"
+    >
+      {content}
     </SubpageLayout>
   );
 }

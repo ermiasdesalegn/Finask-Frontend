@@ -33,3 +33,13 @@ export async function fetchCityDetailBySlug(slug: string): Promise<City> {
   );
   return cityFromDetailResponse(res);
 }
+
+export async function fetchSuggestedCities(limit = 6): Promise<City[]> {
+  const params = new URLSearchParams();
+  params.set("limit", String(limit));
+  const res = await apiGet<{
+    status: string;
+    data: { cities: City[] };
+  }>(`/cities/suggested?${params.toString()}`);
+  return res.data?.cities ?? [];
+}

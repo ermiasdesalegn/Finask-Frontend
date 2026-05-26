@@ -15,10 +15,16 @@ import {
   Users,
 } from "lucide-react";
 import { motion } from "motion/react";
-import React from "react";
+import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { staggerBlurContainer, staggerBlurItem } from "../lib/motion/pageMotion";
 import { useCityByIdQuery } from "../lib/queries/cities";
+import { fetchSuggestedCities } from "../lib/services/cityService";
+import { useAuth } from "../context/AuthContext";
+import EntityMap from "../components/shared/EntityMap";
+import GalleryModal from "../components/shared/GalleryModal";
+import { SuggestedCitiesRow } from "../components/shared/SuggestedRow";
 import { CITY_HERO_IMAGE_FALLBACK } from "../constants/defaultMediaFallbacks";
 import { universityPath } from "../lib/universityUi";
 import FavoriteButton from "../components/favorites/FavoriteButton";
@@ -58,7 +64,14 @@ function SectionTitle({
 const CityPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+  const [galleryOpen, setGalleryOpen] = useState(false);
   const { data: city, isPending, isError, error } = useCityByIdQuery(id);
+  const suggestedQ = useQuery({
+    queryKey: ["cities", "suggested"],
+    queryFn: () => fetchSuggestedCities(6),
+    enabled: isAuthenticated,
+  });
 
   if (isPending) {
     return (
@@ -97,6 +110,14 @@ const CityPage: React.FC = () => {
   const reviews = city.reviews ?? [];
   const climate = city.climate ?? {};
   const profile = city.cityProfile ?? {};
+  const elevationZone =
+    climate.elevationZone &&
+    typeof climate.elevationZone === "object"
+      ? (climate.elevationZone as { slug?: string; name?: string })
+      : null;
+  const hasClimateContent = Boolean(
+    climate.summary || climate.detail || climate.climateTag
+  );
   const annualRain =
     climate.annualPrecipitation ?? climate.annualPercipitation ?? null;
 
@@ -129,6 +150,14 @@ const CityPage: React.FC = () => {
   ] as const;
 
   const heroSrc = city.coverImage || CITY_HERO_IMAGE_FALLBACK;
+  const galleryImages = [
+    ...(city.coverImage ? [city.coverImage] : []),
+    ...(city.images ?? []),
+  ].filter(Boolean) as string[];
+  type FlyFromEntry = { name: string; airportCode?: string; distanceKm?: number };
+  const flyFrom: FlyFromEntry[] = city.flyFromCities?.length
+    ? city.flyFromCities
+    : (city.flightOrigins ?? []).map((name) => ({ name }));
 
   return (
     <div className="min-h-screen bg-slate-50/50 pb-20 transition-colors dark:bg-[#0a0a0a]">
@@ -153,11 +182,11 @@ const CityPage: React.FC = () => {
               <h1 className="truncate text-xl font-black tracking-tight text-slate-900 dark:text-white md:text-2xl">
                 {city.name}
               </h1>
-              {(city.regionDisplayName || city.region) && (
-                <p className="truncate text-sm font-medium text-slate-500 dark:text-slate-400">
-                  {city.regionDisplayName ?? city.region}
-                </p>
-              )}
+              <p className="truncate text-sm font-medium text-slate-500 dark:text-slate-400">
+                {[city.regionDisplayName ?? city.region, profile.population != null ? `${profile.population.toLocaleString()} pop.` : null, profile.elevation != null ? `${profile.elevation}m` : null]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
             </div>
           </div>
           {city._id && <FavoriteButton itemId={city._id} onModel="City" />}
@@ -191,9 +220,23 @@ const CityPage: React.FC = () => {
                     {climate.climateTag}
                   </p>
                 )}
+                <button
+                  type="button"
+                  onClick={() => setGalleryOpen(true)}
+                  className="mt-4 rounded-full bg-white/90 px-4 py-2 text-xs font-black text-slate-900"
+                >
+                  View gallery
+                  {galleryImages.length > 1 ? ` (${galleryImages.length})` : ""}
+                </button>
               </div>
             </div>
           </motion.div>
+          <GalleryModal
+            images={galleryImages.length ? galleryImages : [heroSrc]}
+            title={city.name}
+            open={galleryOpen}
+            onClose={() => setGalleryOpen(false)}
+          />
 
           {/* Tags */}
           {tagChips.length > 0 && (
@@ -269,7 +312,7 @@ const CityPage: React.FC = () => {
           </motion.div>
 
           {/* Climate */}
-          {climate.detail && (
+          {hasClimateContent && (
             <motion.div
               variants={itemVariants}
               className="mb-10 rounded-[2rem] border border-slate-200/60 bg-white/90 p-6 shadow-sm backdrop-blur-sm dark:border-white/5 dark:bg-zinc-900/80 md:p-8"
@@ -280,8 +323,11 @@ const CityPage: React.FC = () => {
                   Climate
                 </span>
               </SectionTitle>
+              {climate.climateTag && (
+                <p className="mb-2 text-sm font-bold text-brand-blue">{climate.climateTag}</p>
+              )}
               <p className="mb-6 max-w-3xl leading-relaxed text-slate-600 dark:text-slate-400">
-                {climate.detail}
+                {climate.detail || climate.summary}
               </p>
               <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
                 {climate.hottestMonth && (
@@ -360,6 +406,14 @@ const CityPage: React.FC = () => {
                   )}
                 </div>
               )}
+              {elevationZone?.slug && (
+                <Link
+                  to={`/elevation-zones/${elevationZone.slug}`}
+                  className="mt-4 inline-block text-sm font-bold text-brand-blue hover:underline"
+                >
+                  View elevation zone ({elevationZone.name ?? elevationZone.slug}) →
+                </Link>
+              )}
             </motion.div>
           )}
 
@@ -408,6 +462,66 @@ const CityPage: React.FC = () => {
             </motion.div>
           )}
 
+          <motion.div variants={itemVariants} className="mb-10">
+            <SectionTitle accentClass="bg-brand-blue shadow-brand-blue/30">
+              View on map
+            </SectionTitle>
+            <EntityMap coordinates={city.location?.coordinates} label={city.name} />
+          </motion.div>
+
+          <motion.div variants={itemVariants} className="mb-10">
+            <SectionTitle accentClass="bg-sky-500 shadow-sky-500/30">
+              Fly from these cities
+            </SectionTitle>
+            {flyFrom.length > 0 ? (
+              <div className="flex flex-wrap gap-3">
+                {flyFrom.map((f, i) => (
+                  <div
+                    key={f.name + i}
+                    className="rounded-2xl border border-slate-200/80 bg-white px-4 py-3 dark:border-white/10 dark:bg-zinc-900"
+                  >
+                    <p className="font-bold text-slate-900 dark:text-white">{f.name}</p>
+                    {f.airportCode ? (
+                      <p className="text-xs text-slate-500">{f.airportCode}</p>
+                    ) : null}
+                    {f.distanceKm != null ? (
+                      <p className="text-xs text-slate-500">{f.distanceKm} km</p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                No flight origin data yet for this city.
+              </p>
+            )}
+          </motion.div>
+
+          {isAuthenticated ? (
+            <motion.div variants={itemVariants}>
+              <SuggestedCitiesRow
+                title="Suggested cities"
+                cities={suggestedQ.data ?? []}
+                loading={suggestedQ.isPending}
+              />
+            </motion.div>
+          ) : (
+            <motion.div
+              variants={itemVariants}
+              className="mb-10 rounded-2xl border border-dashed border-emerald-500/30 bg-emerald-500/5 p-6 text-center dark:bg-emerald-500/10"
+            >
+              <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                Sign in to see cities suggested based on your location.
+              </p>
+              <Link
+                to="/account"
+                className="mt-3 inline-block rounded-xl bg-brand-blue px-5 py-2.5 text-sm font-black text-white"
+              >
+                Sign in
+              </Link>
+            </motion.div>
+          )}
+
           {/* Attractions */}
           {city.touristAttractions?.length ? (
             <motion.div variants={itemVariants} className="mb-10">
@@ -420,9 +534,15 @@ const CityPage: React.FC = () => {
                     key={i}
                     className="overflow-hidden rounded-2xl border border-slate-200/60 bg-white/90 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-white/5 dark:bg-zinc-900/80"
                   >
-                    {a.image && (
-                      <img src={a.image} alt={a.name} className="h-40 w-full object-cover" />
-                    )}
+                    <div className="h-40 w-full bg-slate-100 dark:bg-zinc-800">
+                      {a.image ? (
+                        <img src={a.image} alt={a.name} className="h-40 w-full object-cover" />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-sm font-bold text-slate-400">
+                          {a.name}
+                        </div>
+                      )}
+                    </div>
                     <div className="p-4">
                       <p className="font-black text-slate-900 dark:text-white">{a.name}</p>
                       {a.detail && (

@@ -87,22 +87,13 @@ export default function UserMenu() {
               )}
             </div>
             <Link
-              to="/me"
+              to="/account"
               role="menuitem"
               onClick={() => setOpen(false)}
               className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-brand-blue dark:text-slate-200 dark:hover:bg-white/5"
             >
               <UserCircle size={18} className="text-slate-400" />
-              My content
-            </Link>
-            <Link
-              to="/settings"
-              role="menuitem"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-brand-blue dark:text-slate-200 dark:hover:bg-white/5"
-            >
-              <Settings size={18} className="text-slate-400" />
-              Settings
+              Account
             </Link>
             <button
               type="button"

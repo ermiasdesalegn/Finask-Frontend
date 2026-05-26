@@ -12,7 +12,9 @@ import {
   Wrench,
 } from "lucide-react";
 import { motion } from "motion/react";
-import React from "react";
+import React, { useState } from "react";
+import CollapsibleSection from "../components/shared/CollapsibleSection";
+import GalleryModal from "../components/shared/GalleryModal";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import { ProgramUniversitiesScroller } from "../components/programs/ProgramUniversitiesScroller";
 import { PROGRAM_IMAGE_FALLBACK } from "../constants/defaultMediaFallbacks";
@@ -35,6 +37,7 @@ import QuestionsSection from "../components/community/QuestionsSection";
 const ProgramPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const [galleryOpen, setGalleryOpen] = useState(false);
   const isRareShortcut = slug === "rare";
   const programQuery = useProgramDetailQuery(
     isRareShortcut ? undefined : slug
@@ -84,10 +87,16 @@ const ProgramPage: React.FC = () => {
   const cat =
     PROGRAM_FIELD_STYLES[program.field] ?? DEFAULT_PROGRAM_FIELD_STYLE;
   const tags: string[] = program.tagsDisplayNames ?? program.tags ?? [];
-  const heroImage =
-    unwrapMarkdownLink(program.coverImage) ||
-    program.images?.map((u) => unwrapMarkdownLink(u)).find(Boolean) ||
-    PROGRAM_IMAGE_FALLBACK;
+  const galleryImages = [
+    unwrapMarkdownLink(program.coverImage),
+    ...(program.images ?? []).map((u) => unwrapMarkdownLink(u)),
+  ].filter(Boolean) as string[];
+  const heroImage = galleryImages[0] || PROGRAM_IMAGE_FALLBACK;
+  const offeringCards =
+    program.universityOfferings?.filter((o) => {
+      const u = o.university;
+      return u != null && typeof u !== "string" && Boolean(u.name);
+    }) ?? [];
   const reviews = program.reviews ?? [];
   const questions = program.questions ?? [];
   const embeddedOfferingCount =
@@ -127,13 +136,27 @@ const ProgramPage: React.FC = () => {
 
       <main className="mx-auto max-w-5xl px-6 py-8 lg:px-8">
         <motion.div initial="hidden" animate="show" variants={blurReveal} className="space-y-8">
-          <div className="overflow-hidden rounded-3xl border border-slate-200/60 dark:border-white/10">
+          <div className="relative overflow-hidden rounded-3xl border border-slate-200/60 dark:border-white/10">
             <img
               src={heroImage}
               alt={program.name}
               className="h-56 w-full object-cover md:h-72"
             />
+            <button
+              type="button"
+              onClick={() => setGalleryOpen(true)}
+              className="absolute bottom-4 right-4 rounded-full bg-white/90 px-4 py-2 text-xs font-black text-slate-900 shadow-lg"
+            >
+              View gallery
+              {galleryImages.length > 1 ? ` (${galleryImages.length})` : ""}
+            </button>
           </div>
+          <GalleryModal
+            images={galleryImages.length ? galleryImages : [heroImage]}
+            title={program.name}
+            open={galleryOpen}
+            onClose={() => setGalleryOpen(false)}
+          />
 
           <div className="flex flex-wrap items-center gap-3">
             <span
@@ -219,16 +242,19 @@ const ProgramPage: React.FC = () => {
                 <ListChecks size={18} className="text-brand-blue" />
                 Typical courses
               </h2>
-              <ul className="grid gap-2 sm:grid-cols-2">
-                {program.courses.map((course) => (
-                  <li
+              <CollapsibleSection
+                items={program.courses}
+                limit={8}
+                gridClassName="grid gap-2 sm:grid-cols-2"
+                renderItem={(course) => (
+                  <div
                     key={course}
                     className="rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2 text-sm font-medium text-slate-700 dark:border-white/10 dark:bg-zinc-800/60 dark:text-slate-300"
                   >
                     {course}
-                  </li>
-                ))}
-              </ul>
+                  </div>
+                )}
+              />
             </div>
           )}
 
@@ -267,13 +293,14 @@ const ProgramPage: React.FC = () => {
             <h2 className="mb-4 text-lg font-black text-slate-900 dark:text-white">
               Universities offering this program
             </h2>
-            {embeddedOfferingCount > 0 ? (
-              <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                {program.universityOfferings.map((o) => {
+            {offeringCards.length > 0 ? (
+              <CollapsibleSection
+                items={offeringCards}
+                limit={4}
+                gridClassName="mb-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap"
+                renderItem={(o) => {
                   const u = o.university;
-                  if (u == null) return null;
-                  if (typeof u === "string") return null;
-                  if (!u.name) return null;
+                  if (u == null || typeof u === "string" || !u.name) return null;
                   return (
                     <Link
                       key={o._id}
@@ -289,29 +316,23 @@ const ProgramPage: React.FC = () => {
                         <p className="truncate font-bold text-slate-900 group-hover:text-brand-blue dark:text-white">
                           {u.name}
                         </p>
-                        <div className="mt-0.5 flex flex-wrap gap-x-2 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                          {o.yearOffered != null ? (
-                            <span>Since {o.yearOffered}</span>
-                          ) : null}
-                          {o.graduatesCount != null ? (
-                            <span>
-                              {o.yearOffered != null ? "· " : ""}
-                              {o.graduatesCount.toLocaleString()} grads
-                            </span>
-                          ) : null}
-                        </div>
                       </div>
                     </Link>
                   );
-                })}
-              </div>
-            ) : null}
-            <ProgramUniversitiesScroller
-              program={program}
-              cat={cat}
-              enabled={showUniversitiesScroller}
-              eager={showUniversitiesScroller}
-            />
+                }}
+              />
+            ) : showUniversitiesScroller ? (
+              <ProgramUniversitiesScroller
+                program={program}
+                cat={cat}
+                enabled
+                eager
+              />
+            ) : (
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                No universities linked to this program yet.
+              </p>
+            )}
           </div>
         </motion.div>
       </main>

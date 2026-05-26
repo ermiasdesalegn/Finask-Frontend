@@ -16,6 +16,8 @@ import {
 import type { Review } from "../../types";
 import { cn } from "../../lib/utils";
 
+const PREVIEW_LIMIT = 3;
+
 type Props = {
   parentType: ParentEntityType;
   parentId: string;
@@ -42,8 +44,7 @@ export default function ReviewsSection({
   } = useQuery({
     queryKey: qk,
     queryFn: () => listReviews(parentType, parentId),
-    enabled:
-      Boolean(parentId) && sessionStatus === "ready" && isAuthenticated,
+    enabled: Boolean(parentId) && sessionStatus === "ready",
     placeholderData: seededReviews,
     staleTime: 0,
   });
@@ -53,6 +54,8 @@ export default function ReviewsSection({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
   const [editRating, setEditRating] = useState(5);
+  const [showAll, setShowAll] = useState(false);
+  const [showForm, setShowForm] = useState(false);
 
   const invalidate = () => void qc.invalidateQueries({ queryKey: qk });
 
@@ -89,14 +92,27 @@ export default function ReviewsSection({
   });
 
   const canPost = isAuthenticated && user?.role === "user";
+  const visibleReviews = showAll ? reviews : reviews.slice(0, PREVIEW_LIMIT);
+  const hasMore = reviews.length > PREVIEW_LIMIT;
 
   return (
     <section className="mt-12">
-      <h2 className="mb-4 text-xl font-bold text-slate-900 dark:text-white">
-        Student reviews
-      </h2>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+          Student reviews
+        </h2>
+        {canPost && !showForm && (
+          <button
+            type="button"
+            onClick={() => setShowForm(true)}
+            className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white"
+          >
+            Add review
+          </button>
+        )}
+      </div>
 
-      {canPost && (
+      {canPost && showForm && (
         <form
           className="mb-6 rounded-2xl border border-slate-200 bg-white/80 p-4 dark:border-white/10 dark:bg-zinc-900/80"
           onSubmit={(e) => {
@@ -134,13 +150,22 @@ export default function ReviewsSection({
             rows={3}
             className="mb-3 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-zinc-950"
           />
-          <button
-            type="submit"
-            disabled={createMut.isPending}
-            className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white"
-          >
-            {createMut.isPending ? "Posting…" : "Post review"}
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={createMut.isPending}
+              className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white"
+            >
+              {createMut.isPending ? "Posting…" : "Post review"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium dark:border-white/10"
+            >
+              Cancel
+            </button>
+          </div>
         </form>
       )}
 
@@ -149,26 +174,26 @@ export default function ReviewsSection({
           <button type="button" className="font-semibold text-brand-blue" onClick={openLogin}>
             Sign in
           </button>{" "}
-          to write a review.
+          to post.
         </p>
       )}
 
-      {isLoading && isAuthenticated && (
+      {isLoading && (
         <div className="flex justify-center py-8">
           <Loader2 className="animate-spin text-brand-blue" />
         </div>
       )}
 
-      {isError && isAuthenticated && (
+      {isError && (
         <p className="text-sm text-rose-500">Could not load reviews. Try refreshing.</p>
       )}
 
-      {!isLoading && isAuthenticated && !isError && reviews.length === 0 && (
+      {!isLoading && !isError && reviews.length === 0 && (
         <p className="text-sm text-slate-500">No reviews yet. Be the first!</p>
       )}
 
       <ul className="space-y-4">
-        {reviews.map((r) => {
+        {visibleReviews.map((r) => {
           const isOwner = user?._id && r.user?._id === user._id;
           const authorName =
             r.user?.fullName ||
@@ -262,6 +287,25 @@ export default function ReviewsSection({
           );
         })}
       </ul>
+
+      {hasMore && !showAll && (
+        <button
+          type="button"
+          onClick={() => setShowAll(true)}
+          className="mt-4 text-sm font-bold text-brand-blue hover:underline"
+        >
+          See all reviews ({reviews.length})
+        </button>
+      )}
+      {showAll && hasMore && (
+        <button
+          type="button"
+          onClick={() => setShowAll(false)}
+          className="mt-4 text-sm font-bold text-slate-500 hover:underline"
+        >
+          Show fewer reviews
+        </button>
+      )}
     </section>
   );
 }

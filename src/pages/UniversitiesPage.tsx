@@ -63,7 +63,7 @@ type FilterState = {
   type: string | null;
   setting: string | null;
 };
-type SortOption = "rating-desc" | "name-asc" | "name-desc";
+type SortOption = "rating-desc" | "rank-asc" | "name-asc" | "name-desc";
 
 type DiscoverPreset = "trending" | "featured" | "top-ranked" | "top-rated" | "top-reviewed" | "near-me";
 
@@ -133,11 +133,27 @@ const UniversitiesPage: React.FC = () => {
       isFeatured: filters.featuredOnly ? true : null,
       tags: researchFromUrl ? ("research" as const) : null,
       elevationName: climateView && climateZoneParam ? climateZoneParam : null,
+      institutionalType:
+        filters.type === "Public"
+          ? ("public" as const)
+          : filters.type === "Private"
+            ? ("private" as const)
+            : null,
+      campusSetting:
+        filters.setting === "Urban"
+          ? ("urban" as const)
+          : filters.setting === "Suburban"
+            ? ("suburban" as const)
+            : filters.setting === "Rural"
+              ? ("rural" as const)
+              : null,
     }),
     [
       activeRegionApi,
       filters.minRating,
       filters.featuredOnly,
+      filters.type,
+      filters.setting,
       researchFromUrl,
       climateView,
       climateZoneParam,
@@ -276,14 +292,10 @@ const UniversitiesPage: React.FC = () => {
   const showClimateChips =
     climateView && !isSearching && discoverPreset === null;
 
-  const isBrowsingMode =
-    !isSearching &&
-    activeFilterCount === 0 &&
-    activeRegionLabel === "All" &&
-    !discoverActive;
+  const isBrowsingMode = false;
 
   const discoverHeading = useMemo(() => {
-    if (isBrowsingMode || isSearching) return null;
+    if (isSearching) return null;
     const g = galleryView ? " Larger campus photos." : "";
     if (discoverPreset === "trending") {
       return {
@@ -350,6 +362,11 @@ const UniversitiesPage: React.FC = () => {
       return [...apiResults].sort((a, b) => {
         if (sortBy === "rating-desc")
           return (b.ratingsAverage ?? 0) - (a.ratingsAverage ?? 0);
+        if (sortBy === "rank-asc") {
+          const ar = a.rank?.eduRank?.ethiopiaRank ?? 9999;
+          const br = b.rank?.eduRank?.ethiopiaRank ?? 9999;
+          return ar - br;
+        }
         if (sortBy === "name-asc") return a.name.localeCompare(b.name);
         if (sortBy === "name-desc") return b.name.localeCompare(a.name);
         return 0;
@@ -365,12 +382,26 @@ const UniversitiesPage: React.FC = () => {
         activeRegionApi == null ||
         (u.address?.region ?? "").toLowerCase() ===
           activeRegionApi.toLowerCase();
-      return matchRating && matchFeatured && matchRegion;
+      const matchType =
+        !filters.type ||
+        (filters.type === "Public" && u.institutionalType === "public") ||
+        (filters.type === "Private" && u.institutionalType === "private");
+      const matchSetting =
+        !filters.setting ||
+        (filters.setting === "Urban" && u.campusSetting === "urban") ||
+        (filters.setting === "Suburban" && u.campusSetting === "suburban") ||
+        (filters.setting === "Rural" && u.campusSetting === "rural");
+      return matchRating && matchFeatured && matchRegion && matchType && matchSetting;
     });
 
     result = [...result].sort((a, b) => {
       if (sortBy === "rating-desc")
         return (b.ratingsAverage ?? 0) - (a.ratingsAverage ?? 0);
+      if (sortBy === "rank-asc") {
+        const ar = a.rank?.eduRank?.ethiopiaRank ?? 9999;
+        const br = b.rank?.eduRank?.ethiopiaRank ?? 9999;
+        return ar - br;
+      }
       if (sortBy === "name-asc") return a.name.localeCompare(b.name);
       if (sortBy === "name-desc") return b.name.localeCompare(a.name);
       return 0;
@@ -775,6 +806,7 @@ const UniversitiesPage: React.FC = () => {
                     >
                       {[
                         { id: "rating-desc" as const, label: "Highest Rated" },
+                        { id: "rank-asc" as const, label: "ET Rank (best first)" },
                         { id: "name-asc" as const, label: "Name (A-Z)" },
                         { id: "name-desc" as const, label: "Name (Z-A)" },
                       ].map((option) => (
@@ -998,45 +1030,6 @@ const UniversitiesPage: React.FC = () => {
               />
             ))}
           </div>
-        ) : isBrowsingMode ? (
-          <motion.div
-            id="browse-university-cards"
-            variants={containerVariants}
-            initial="hidden"
-            animate="show"
-          >
-            <EthiopiaMap
-              universities={browseListUniversities}
-              loading={listLoading}
-            />
-            <HorizontalRow
-              title="Universities Near You"
-              subtitle="Popular picks from our directory"
-              items={nearSlice}
-              renderItem={(u) => renderUniCard(u as University, "scroller")}
-            />
-
-            <HorizontalRow
-              title="Institutional Excellence"
-              subtitle="Research-focused institutions"
-              items={researchUnis.slice(0, 12)}
-              renderItem={(u) => renderUniCard(u as University, "scroller")}
-            />
-
-            <HorizontalRow
-              title="Explore Cities"
-              subtitle="Discover universities by major hubs"
-              items={cities.slice(0, 8)}
-              renderItem={(c) => renderCityCard(c as (typeof cities)[0])}
-            />
-
-            <HorizontalRow
-              title="Matching your Interests"
-              subtitle="Featured and specialized schools"
-              items={interestUnis.slice(0, 12)}
-              renderItem={(u) => renderUniCard(u as University, "scroller")}
-            />
-          </motion.div>
         ) : (
           <section id="browse-university-cards" className="mb-20">
             <div className="mb-6 flex flex-wrap items-center justify-between gap-4">

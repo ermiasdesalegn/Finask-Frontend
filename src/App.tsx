@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Route, Routes } from "react-router-dom";
+import CompareBar from "./components/compare/CompareBar";
 import Footer from "./components/layout/Footer";
 import CompleteProfileModal from "./components/layout/CompleteProfileModal";
 import Navbar from "./components/layout/Navbar";
@@ -16,6 +17,7 @@ import CitiesPage from "./pages/CitiesPage";
 import CityPage from "./pages/CityPage";
 import ComparePage from "./pages/ComparePage";
 import DiscoverPage from "./pages/DiscoverPage";
+import DiscoverSectionPage from "./pages/DiscoverSectionPage";
 import FavoritesPage from "./pages/FavoritesPage";
 import HomePage from "./pages/HomePage";
 import ProgramPage from "./pages/ProgramPage";
@@ -23,8 +25,10 @@ import ProgramsPage from "./pages/ProgramsPage";
 import UniversitiesPage from "./pages/UniversitiesPage";
 import UniversityPage from "./pages/University";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import AccountPage, { MeRedirect, SettingsRedirect } from "./pages/AccountPage";
 import SettingsPage from "./pages/SettingsPage";
 import MePage from "./pages/MePage";
+import ChatPage from "./pages/ChatPage";
 import UserProfilePage from "./pages/UserProfilePage";
 import CampusPage from "./pages/CampusPage";
 import ElevationZonesPage from "./pages/ElevationZonesPage";
@@ -106,6 +110,7 @@ function AppShell() {
           darkMode={darkMode}
           toggleDarkMode={() => setDarkMode(!darkMode)}
         />
+        <CompareBar />
 
         <main>
           <Routes>
@@ -116,6 +121,15 @@ function AppShell() {
               element={
                 <div className="min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]">
                   <DiscoverPage />
+                </div>
+              }
+            />
+
+            <Route
+              path="/discover/:section"
+              element={
+                <div className="min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]">
+                  <DiscoverSectionPage />
                 </div>
               }
             />
@@ -238,19 +252,22 @@ function AppShell() {
             />
 
             <Route
-              path="/settings"
+              path="/account"
               element={
-                <div className="min-h-screen bg-white pt-20 dark:bg-[#121212]">
-                  <SettingsPage />
+                <div className="min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]">
+                  <AccountPage />
                 </div>
               }
             />
 
+            <Route path="/settings" element={<SettingsRedirect />} />
+            <Route path="/me" element={<MeRedirect />} />
+
             <Route
-              path="/me"
+              path="/chat"
               element={
-                <div className="min-h-screen bg-white pt-20 dark:bg-[#121212]">
-                  <MePage />
+                <div className="min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]">
+                  <ChatPage />
                 </div>
               }
             />
