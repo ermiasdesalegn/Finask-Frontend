@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Loader2, User } from "lucide-react";
 import { useParams } from "react-router-dom";
 import SubpageLayout, { SubpageCard } from "../components/layout/SubpageLayout";
+import { formatInterestLabel } from "../lib/userProfile";
 import { fetchUserProfile } from "../lib/services/userService";
 
 export default function UserProfilePage() {
@@ -37,6 +38,7 @@ export default function UserProfilePage() {
 
   const initial =
     (profile.firstName?.[0] ?? profile.email?.[0] ?? "?").toUpperCase();
+  const interests = profile.interests ?? [];
 
   return (
     <SubpageLayout
@@ -81,10 +83,34 @@ export default function UserProfilePage() {
                 {profile.email}
               </p>
             )}
-            <p className="mt-4 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-              Public profile — reviews and questions link here when shared on
-              listing pages.
-            </p>
+            {profile.bio && (
+              <p className="mt-4 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                {profile.bio}
+              </p>
+            )}
+            {interests.length > 0 && (
+                <div className="mt-4">
+                  <p className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+                    Interests
+                  </p>
+                  <ul className="flex flex-wrap justify-center gap-2 sm:justify-start">
+                    {interests.map((name) => (
+                      <li
+                        key={name}
+                        className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700 dark:border-white/10 dark:bg-zinc-800 dark:text-slate-200"
+                      >
+                        {formatInterestLabel(name)}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            {!profile.bio && interests.length === 0 && (
+                <p className="mt-4 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                  Public profile — reviews and questions link here when shared
+                  on listing pages.
+                </p>
+              )}
           </div>
         </div>
       </SubpageCard>

@@ -27,16 +27,25 @@ export default function ReviewsSection({
   parentId,
   initialReviews,
 }: Props) {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, sessionStatus } = useAuth();
   const { openLogin } = useLoginModal();
   const qc = useQueryClient();
   const qk = ["reviews", parentType, parentId] as const;
 
-  const { data: reviews = initialReviews ?? [], isLoading } = useQuery({
+  const seededReviews =
+    initialReviews && initialReviews.length > 0 ? initialReviews : undefined;
+
+  const {
+    data: reviews = [],
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: qk,
     queryFn: () => listReviews(parentType, parentId),
-    enabled: Boolean(parentId),
-    initialData: initialReviews,
+    enabled:
+      Boolean(parentId) && sessionStatus === "ready" && isAuthenticated,
+    placeholderData: seededReviews,
+    staleTime: 0,
   });
 
   const [rating, setRating] = useState(5);
@@ -144,13 +153,17 @@ export default function ReviewsSection({
         </p>
       )}
 
-      {isLoading && (
+      {isLoading && isAuthenticated && (
         <div className="flex justify-center py-8">
           <Loader2 className="animate-spin text-brand-blue" />
         </div>
       )}
 
-      {!isLoading && reviews.length === 0 && (
+      {isError && isAuthenticated && (
+        <p className="text-sm text-rose-500">Could not load reviews. Try refreshing.</p>
+      )}
+
+      {!isLoading && isAuthenticated && !isError && reviews.length === 0 && (
         <p className="text-sm text-slate-500">No reviews yet. Be the first!</p>
       )}
 

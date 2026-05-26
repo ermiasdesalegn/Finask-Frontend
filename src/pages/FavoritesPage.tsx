@@ -1,4 +1,5 @@
 import {
+  Brain,
   Building2,
   GraduationCap,
   Heart,
@@ -12,10 +13,12 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import LoginModal from "../components/layout/LoginModal";
 import { FlickeringHeartsBackground } from "../components/ui/flickering-hearts-background";
+import { CELEBRITY_PROFILE_FALLBACK } from "../constants/celebrityFallback";
 import {
   CITY_IMAGE_FALLBACK,
   UNIVERSITY_IMAGE_FALLBACK,
 } from "../constants/defaultMediaFallbacks";
+import { celebrityPath } from "../lib/services/celebrityService";
 import { useAuth } from "../context/AuthContext";
 import { ApiError } from "../lib/api";
 import { blurReveal, springPop } from "../lib/motion/pageMotion";
@@ -31,15 +34,16 @@ import {
   universityPath,
 } from "../lib/universityUi";
 import { cn } from "../lib/utils";
-import type { Campus, City, Favorite, Program, University } from "../types";
+import type { Campus, Celebrity, City, Favorite, Program, University } from "../types";
 
-type Tab = "universities" | "programs" | "cities" | "campuses";
+type Tab = "universities" | "programs" | "cities" | "campuses" | "celebrities";
 
 const TABS: { id: Tab; label: string; icon: typeof Building2 }[] = [
   { id: "universities", label: "Universities", icon: Building2 },
   { id: "programs", label: "Programs", icon: GraduationCap },
   { id: "cities", label: "Cities", icon: MapPin },
   { id: "campuses", label: "Campuses", icon: Users },
+  { id: "celebrities", label: "Great Minds", icon: Brain },
 ];
 
 function modelMatches(f: Favorite, tab: Tab): boolean {
@@ -48,7 +52,16 @@ function modelMatches(f: Favorite, tab: Tab): boolean {
   if (tab === "programs") return m === "program";
   if (tab === "cities") return m === "city";
   if (tab === "campuses") return m === "campus";
+  if (tab === "celebrities") return m === "celebrity";
   return false;
+}
+
+function celebrityCover(c: Celebrity): string {
+  return (
+    c.profileImage?.trim() ||
+    c.coverImage?.trim() ||
+    CELEBRITY_PROFILE_FALLBACK
+  );
 }
 
 function isPopulatedItem(f: Favorite): boolean {
@@ -62,7 +75,12 @@ function isPopulatedItem(f: Favorite): boolean {
 }
 
 function favoritesForTab(favorites: Favorite[], tab: Tab): Favorite[] {
-  return favorites.filter((f) => modelMatches(f, tab) && isPopulatedItem(f));
+  return favorites.filter(
+    (f) =>
+      modelMatches(f, tab) &&
+      (isPopulatedItem(f) ||
+        (typeof f.item === "string" && f.item.trim().length > 0))
+  );
 }
 
 function cityPath(city: City): string {
@@ -83,13 +101,8 @@ function campusCover(campus: Campus): string {
 }
 
 function campusNavigatePath(campus: Campus): string {
-  const u = campus.university;
-  if (typeof u === "object" && u != null) {
-    const slug = "slug" in u && u.slug ? String(u.slug) : "";
-    if (slug) return `/universities/${encodeURIComponent(slug)}`;
-    const id = "_id" in u && u._id ? String(u._id) : "";
-    if (id) return `/universities/${encodeURIComponent(id)}`;
-  }
+  const key = campus.slug?.trim() || campus._id?.trim();
+  if (key) return `/campuses/${encodeURIComponent(key)}`;
   return "/campuses";
 }
 
@@ -188,7 +201,7 @@ export default function FavoritesPage() {
                 Your Favorites
               </h1>
               <p className="mb-8 text-slate-500 dark:text-slate-400">
-                Sign in to save and view your favorite universities, programs, cities, and campuses.
+                Sign in to save and view your favorite universities, programs, cities, campuses, and Great Minds.
               </p>
               <button
                 type="button"
@@ -452,7 +465,13 @@ export default function FavoritesPage() {
                 <EmptyState label="campuses" />
               ) : (
                 tabItems.map((fav) => {
-                  const campus = fav.item as Campus;
+                  const campus =
+                    typeof fav.item === "object" && fav.item !== null
+                      ? (fav.item as Campus)
+                      : ({
+                          _id: String(fav.item),
+                          name: "Saved campus",
+                        } as Campus);
                   const removing =
                     removeMutation.isPending &&
                     removeMutation.variables === fav._id;
@@ -495,6 +514,61 @@ export default function FavoritesPage() {
                               )
                             : "Campus"}
                         </p>
+                      </div>
+                    </motion.div>
+                  );
+                })
+              )
+            ) : activeTab === "celebrities" ? (
+              tabItems.length === 0 ? (
+                <EmptyState label="Great Minds" />
+              ) : (
+                tabItems.map((fav) => {
+                  const celeb =
+                    typeof fav.item === "object" && fav.item !== null
+                      ? (fav.item as Celebrity)
+                      : ({
+                          _id: String(fav.item),
+                          name: "Saved profile",
+                        } as Celebrity);
+                  const removing =
+                    removeMutation.isPending &&
+                    removeMutation.variables === fav._id;
+                  return (
+                    <motion.div
+                      key={fav._id}
+                      whileHover={{ y: -4 }}
+                      onClick={() => navigate(celebrityPath(celeb))}
+                      className="group cursor-pointer rounded-[1.5rem] border border-slate-200/80 bg-white/90 p-2 shadow-sm transition-all hover:border-brand-blue/30 hover:shadow-md dark:border-white/10 dark:bg-black/35 dark:backdrop-blur-md dark:hover:border-slate-500/30 dark:hover:shadow-black/20"
+                    >
+                      <div className="relative mb-3 h-44 overflow-hidden rounded-xl bg-slate-100 dark:bg-zinc-900">
+                        <img
+                          src={celebrityCover(celeb)}
+                          alt={celeb.name}
+                          className="h-full w-full object-cover object-top transition-transform duration-700 group-hover:scale-105"
+                        />
+                        <button
+                          type="button"
+                          disabled={removing}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeMutation.mutate(fav._id);
+                          }}
+                          className="absolute right-3 top-3 rounded-full bg-black/50 p-1.5 text-slate-400 backdrop-blur-md transition-all hover:scale-110 disabled:opacity-50"
+                          title="Remove from favorites"
+                        >
+                          <Heart size={14} className="fill-slate-500" />
+                        </button>
+                      </div>
+                      <div className="px-3 pb-3">
+                        <h3 className="mb-1 truncate font-black text-slate-900 transition-colors group-hover:text-brand-blue dark:text-white dark:group-hover:text-sky-200/90">
+                          {celeb.name}
+                        </h3>
+                        {celeb.notablePosition ? (
+                          <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+                            {celeb.notablePosition}
+                          </p>
+                        ) : null}
                       </div>
                     </motion.div>
                   );

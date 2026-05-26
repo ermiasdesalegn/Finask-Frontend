@@ -43,7 +43,11 @@ export default function ElevationZonesPage() {
           {zones.map((z) => (
             <li key={z._id}>
               <Link
-                to={`/universities?view=climate&zone=${encodeURIComponent(z.slug || z.name)}`}
+                to={
+                  z.slug
+                    ? `/elevation-zones/${encodeURIComponent(z.slug)}`
+                    : `/elevation-zones/${encodeURIComponent(z._id)}`
+                }
                 className="group block overflow-hidden rounded-[1.5rem] border border-slate-200/80 bg-white/80 p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand-blue/30 hover:shadow-lg dark:border-white/10 dark:bg-zinc-900/60"
               >
                 <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 transition-colors group-hover:bg-brand-blue/10 group-hover:text-brand-blue dark:text-emerald-400">
@@ -58,7 +62,7 @@ export default function ElevationZonesPage() {
                   </p>
                 )}
                 <span className="mt-4 inline-block text-xs font-bold uppercase tracking-wider text-brand-blue">
-                  View universities →
+                  View zone details →
                 </span>
               </Link>
             </li>

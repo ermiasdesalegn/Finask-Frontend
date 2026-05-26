@@ -28,6 +28,7 @@ import MePage from "./pages/MePage";
 import UserProfilePage from "./pages/UserProfilePage";
 import CampusPage from "./pages/CampusPage";
 import ElevationZonesPage from "./pages/ElevationZonesPage";
+import ElevationZonePage from "./pages/ElevationZonePage";
 
 function AppShell() {
   const [darkMode, setDarkMode] = useState(() => {
@@ -277,6 +278,15 @@ function AppShell() {
               element={
                 <div className="min-h-screen bg-white pt-20 dark:bg-[#121212]">
                   <ElevationZonesPage />
+                </div>
+              }
+            />
+
+            <Route
+              path="/elevation-zones/:slug"
+              element={
+                <div className="min-h-screen bg-white pt-20 dark:bg-[#121212]">
+                  <ElevationZonePage />
                 </div>
               }
             />

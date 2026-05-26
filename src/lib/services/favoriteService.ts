@@ -1,5 +1,10 @@
 import { apiDelete, apiGet, apiPost } from "../api";
 import { unwrapMarkdownLink } from "../unwrapMarkdownLink";
+import { fetchCampusDetail } from "./campusService";
+import { fetchCelebrityDetail } from "./celebrityService";
+import { fetchCityDetail } from "./cityService";
+import { fetchProgramDetail } from "./programService";
+import { fetchUniversityDetail } from "./universityService";
 import type {
   Campus,
   City,
@@ -51,11 +56,56 @@ function normalizeFavoriteItem(f: Favorite): Favorite {
   return f;
 }
 
+function itemIdFromFavorite(f: Favorite): string | null {
+  const item = f.item;
+  if (typeof item === "string" && item.trim()) return item.trim();
+  if (typeof item === "object" && item !== null && "_id" in item) {
+    return String((item as { _id: string })._id);
+  }
+  return null;
+}
+
+/** When GET /favorites returns an unpopulated `item` id, load the document for display. */
+async function hydrateFavoriteItem(f: Favorite): Promise<Favorite> {
+  if (typeof f.item === "object" && f.item !== null) {
+    return normalizeFavoriteItem(f);
+  }
+  const id = itemIdFromFavorite(f);
+  if (!id) return f;
+  const m = String(f.onModel || "").toLowerCase();
+  try {
+    if (m === "university") {
+      const item = await fetchUniversityDetail(id);
+      return normalizeFavoriteItem({ ...f, item });
+    }
+    if (m === "program") {
+      const item = await fetchProgramDetail(id);
+      return normalizeFavoriteItem({ ...f, item });
+    }
+    if (m === "city") {
+      const item = await fetchCityDetail(id);
+      return normalizeFavoriteItem({ ...f, item });
+    }
+    if (m === "campus") {
+      const item = await fetchCampusDetail(id);
+      return normalizeFavoriteItem({ ...f, item });
+    }
+    if (m === "celebrity") {
+      const res = await fetchCelebrityDetail(id);
+      const item = res.data?.celebrity;
+      if (item) return { ...f, item };
+    }
+  } catch {
+    // Keep row visible with id-only fallback if detail fetch fails.
+  }
+  return f;
+}
+
 /** GET /favorites — Bearer required */
 export async function fetchFavorites(): Promise<Favorite[]> {
   const raw = await apiGet<FavoritesListResponse>("/favorites");
   const list = pickFavoritesArray(raw);
-  return list.map(normalizeFavoriteItem);
+  return Promise.all(list.map(hydrateFavoriteItem));
 }
 
 export type CreateFavoriteBody = {

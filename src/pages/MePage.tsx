@@ -20,7 +20,12 @@ import {
   fetchMyQuestions,
   fetchMyReviews,
 } from "../lib/services/userService";
+import {
+  parentEntityLabel,
+  parentEntityPath,
+} from "../lib/communityParentLink";
 import { cn } from "../lib/utils";
+import type { Question, Review } from "../types";
 
 type Tab = "reviews" | "questions" | "answers";
 
@@ -90,7 +95,7 @@ export default function MePage() {
       }
       subtitle={
         user?.firstName
-          ? `Hi ${user.firstName} — everything you've shared on universities, programs, and cities.`
+          ? `Hi ${user.firstName} — reviews, questions, and answers you've posted across FinAsk.`
           : "Everything you've shared across the community."
       }
       maxWidth="lg"
@@ -159,13 +164,49 @@ function getTabData(
   return answers ?? [];
 }
 
-function ContentList({
-  tab,
-  data,
+type ContentItem = (Review | Question) & {
+  review?: string;
+  rating?: number;
+  question?: string;
+};
+
+function parentContextVerb(tab: Tab): string {
+  if (tab === "reviews") return "Review on";
+  if (tab === "answers") return "Answered on";
+  return "Asked on";
+}
+
+function ParentContext({
+  onModelType,
+  onModelId,
+  verb,
 }: {
-  tab: Tab;
-  data: { _id: string; review?: string; rating?: number; question?: string }[];
+  onModelType?: string;
+  onModelId?: string;
+  verb: string;
 }) {
+  if (!onModelType && !onModelId) return null;
+
+  const href = parentEntityPath(onModelType, onModelId);
+  const label = parentEntityLabel(onModelType);
+  if (!href) {
+    return (
+      <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">
+        {verb} {label}
+      </p>
+    );
+  }
+  return (
+    <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">
+      {verb}{" "}
+      <Link to={href} className="font-bold text-brand-blue hover:underline">
+        {label}
+      </Link>
+    </p>
+  );
+}
+
+function ContentList({ tab, data }: { tab: Tab; data: ContentItem[] }) {
   if (!data.length) {
     return (
       <SubpageCard className="py-16 text-center">
@@ -184,11 +225,19 @@ function ContentList({
     );
   }
 
+  const verb = parentContextVerb(tab);
+
   return (
     <ul className="space-y-4">
       {data.map((item) => (
         <li key={item._id}>
           <SubpageCard className="p-5">
+            <ParentContext
+              verb={verb}
+              onModelType={item.onModelType}
+              onModelId={item.onModelId}
+            />
+
             {tab === "reviews" && "review" in item && item.review != null && (
               <>
                 <div className="mb-2 flex items-center gap-1">
@@ -212,6 +261,7 @@ function ContentList({
                 </p>
               </>
             )}
+
             {(tab === "questions" || tab === "answers") && item.question && (
               <p className="text-sm font-medium leading-relaxed text-slate-800 dark:text-slate-200">
                 {item.question}

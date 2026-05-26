@@ -9,6 +9,9 @@ export const queryKeys = {
   /** Authenticated user's saved favorites (GET /favorites) */
   favorites: () => ["favorites"] as const,
 
+  /** Hobby catalog for profile interests (GET /interests) */
+  interestsCatalog: () => ["interests", "catalog"] as const,
+
   universitiesList: (filters: UniversitiesListFilters) =>
     [
       "universities",

@@ -11,14 +11,16 @@ import {
   deleteQuestion,
   listQuestions,
   toggleQuestionLike,
+  updateQuestion,
 } from "../../lib/services/questionService";
 import {
   createReply,
   deleteReply,
   listReplies,
   toggleReplyLike,
+  updateReply,
 } from "../../lib/services/replyService";
-import type { Question } from "../../types";
+import type { Question, Reply } from "../../types";
 
 type Props = {
   parentType: ParentEntityType;
@@ -33,16 +35,25 @@ export default function QuestionsSection({
   initialQuestions,
   title = "Community questions",
 }: Props) {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, sessionStatus } = useAuth();
   const { openLogin } = useLoginModal();
   const qc = useQueryClient();
   const qk = ["questions", parentType, parentId] as const;
 
-  const { data: questions = initialQuestions ?? [], isLoading } = useQuery({
+  const seededQuestions =
+    initialQuestions && initialQuestions.length > 0 ? initialQuestions : undefined;
+
+  const {
+    data: questions = [],
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: qk,
     queryFn: () => listQuestions(parentType, parentId),
-    enabled: Boolean(parentId),
-    initialData: initialQuestions,
+    enabled:
+      Boolean(parentId) && sessionStatus === "ready" && isAuthenticated,
+    placeholderData: seededQuestions,
+    staleTime: 0,
   });
 
   const [newQ, setNewQ] = useState("");
@@ -52,14 +63,24 @@ export default function QuestionsSection({
   const invalidate = () => void qc.invalidateQueries({ queryKey: qk });
 
   const createQMut = useMutation({
-    mutationFn: () => createQuestion(parentType, parentId, { question: newQ }),
-    onSuccess: () => {
+    mutationFn: () => createQuestion(parentType, parentId, { question: newQ.trim() }),
+    onSuccess: (res) => {
       setNewQ("");
+      const created = res.data?.question;
+      if (created?._id) {
+        qc.setQueryData<Question[]>(qk, (prev) => {
+          const list = prev ?? [];
+          if (list.some((q) => q._id === created._id)) return list;
+          return [created, ...list];
+        });
+      }
       invalidate();
     },
     onError: (e) =>
       showApiToast(e instanceof ApiError ? e.message : "Could not post question"),
   });
+
+  const questionTooShort = newQ.trim().length > 0 && newQ.trim().length < 10;
 
   const canPost = isAuthenticated && user?.role === "user";
 
@@ -72,24 +93,35 @@ export default function QuestionsSection({
           className="mb-6 flex gap-2"
           onSubmit={(e) => {
             e.preventDefault();
-            if (!newQ.trim()) return;
+            const text = newQ.trim();
+            if (!text) return;
+            if (text.length < 10) {
+              showApiToast("Questions must be at least 10 characters.");
+              return;
+            }
             createQMut.mutate();
           }}
         >
           <input
             value={newQ}
             onChange={(e) => setNewQ(e.target.value)}
-            placeholder="Ask a question…"
+            placeholder="Ask a question… (min. 10 characters)"
+            minLength={10}
             className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm dark:border-white/10 dark:bg-zinc-950"
           />
           <button
             type="submit"
-            disabled={createQMut.isPending}
-            className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white"
+            disabled={createQMut.isPending || questionTooShort}
+            className="rounded-xl bg-brand-blue px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
           >
             Ask
           </button>
         </form>
+      )}
+      {canPost && questionTooShort && (
+        <p className="mb-4 text-xs text-amber-600 dark:text-amber-400">
+          Write at least 10 characters before posting.
+        </p>
       )}
 
       {!isAuthenticated && (
@@ -101,13 +133,17 @@ export default function QuestionsSection({
         </p>
       )}
 
-      {isLoading && (
+      {isLoading && isAuthenticated && (
         <div className="flex justify-center py-6">
           <Loader2 className="animate-spin text-brand-blue" />
         </div>
       )}
 
-      {!isLoading && questions.length === 0 && (
+      {isError && isAuthenticated && (
+        <p className="text-sm text-rose-500">Could not load questions. Try refreshing.</p>
+      )}
+
+      {!isLoading && isAuthenticated && !isError && questions.length === 0 && (
         <p className="text-sm text-slate-500">No questions yet.</p>
       )}
 
@@ -158,6 +194,9 @@ function QuestionThread({
   openLogin: () => void;
   onInvalidate: () => void;
 }) {
+  const [editingQ, setEditingQ] = useState(false);
+  const [editQText, setEditQText] = useState(q.question);
+
   const rk = ["replies", parentType, parentId, q._id] as const;
   const { data: replies = [], isLoading } = useQuery({
     queryKey: rk,
@@ -176,11 +215,26 @@ function QuestionThread({
       invReplies();
       onInvalidate();
     },
+    onError: (e) =>
+      showApiToast(e instanceof ApiError ? e.message : "Could not post reply"),
   });
 
   const deleteQMut = useMutation({
     mutationFn: () => deleteQuestion(parentType, parentId, q._id),
     onSuccess: onInvalidate,
+    onError: (e) =>
+      showApiToast(e instanceof ApiError ? e.message : "Could not delete question"),
+  });
+
+  const updateQMut = useMutation({
+    mutationFn: () =>
+      updateQuestion(parentType, parentId, q._id, { question: editQText }),
+    onSuccess: () => {
+      setEditingQ(false);
+      onInvalidate();
+    },
+    onError: (e) =>
+      showApiToast(e instanceof ApiError ? e.message : "Could not update question"),
   });
 
   const likeQMut = useMutation({
@@ -203,27 +257,79 @@ function QuestionThread({
           ) : (
             <span className="text-xs font-semibold text-slate-500">{author}</span>
           )}
-          <p className="mt-1 text-sm text-slate-800 dark:text-slate-200">{q.question}</p>
+          {editingQ ? (
+            <div className="mt-2 space-y-2">
+              <textarea
+                value={editQText}
+                onChange={(e) => setEditQText(e.target.value)}
+                rows={2}
+                className="w-full rounded-lg border px-2 py-1 text-sm dark:border-white/10 dark:bg-zinc-950"
+              />
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className="text-sm font-semibold text-brand-blue"
+                  onClick={() => updateQMut.mutate()}
+                  disabled={updateQMut.isPending}
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  className="text-sm text-slate-500"
+                  onClick={() => {
+                    setEditingQ(false);
+                    setEditQText(q.question);
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className="mt-1 text-sm text-slate-800 dark:text-slate-200">{q.question}</p>
+          )}
           <button
             type="button"
             onClick={onToggle}
             className="mt-2 flex items-center gap-1 text-xs font-medium text-brand-blue"
           >
             <MessageCircle size={14} />
-            {q.replyCount ?? 0} replies
+            {q.replyCount ?? replies.length} replies
             <ChevronDown size={14} className={expanded ? "rotate-180" : ""} />
           </button>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           {isAuthenticated && (
-            <button type="button" onClick={() => likeQMut.mutate()} className="text-slate-400">
+            <button
+              type="button"
+              onClick={() => likeQMut.mutate()}
+              className="flex items-center gap-1 text-xs text-slate-500"
+            >
               <ThumbsUp size={14} />
+              {q.likesCount ?? 0}
             </button>
           )}
-          {isOwner && (
-            <button type="button" onClick={() => deleteQMut.mutate()} className="text-rose-500">
-              <Trash2 size={14} />
-            </button>
+          {isOwner && !editingQ && (
+            <>
+              <button
+                type="button"
+                className="text-xs text-brand-blue"
+                onClick={() => {
+                  setEditQText(q.question);
+                  setEditingQ(true);
+                }}
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                onClick={() => deleteQMut.mutate()}
+                className="text-rose-500"
+              >
+                <Trash2 size={14} />
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -233,12 +339,19 @@ function QuestionThread({
           {isLoading && <Loader2 size={18} className="animate-spin" />}
           <ul className="mb-3 space-y-2">
             {replies.map((r) => (
-              <li key={r._id} className="rounded-lg bg-slate-50 px-3 py-2 text-sm dark:bg-zinc-800/80">
-                <span className="font-medium text-slate-700 dark:text-slate-300">
-                  {[r.user?.firstName, r.user?.lastName].filter(Boolean).join(" ") || "User"}:{" "}
-                </span>
-                {r.reply}
-              </li>
+              <ReplyRow
+                key={r._id}
+                reply={r}
+                parentType={parentType}
+                parentId={parentId}
+                questionId={q._id}
+                userId={userId}
+                isAuthenticated={isAuthenticated}
+                onInvalidate={() => {
+                  invReplies();
+                  onInvalidate();
+                }}
+              />
             ))}
           </ul>
           {isAuthenticated ? (
@@ -267,6 +380,138 @@ function QuestionThread({
           )}
         </div>
       )}
+    </li>
+  );
+}
+
+function ReplyRow({
+  reply,
+  parentType,
+  parentId,
+  questionId,
+  userId,
+  isAuthenticated,
+  onInvalidate,
+}: {
+  reply: Reply;
+  parentType: ParentEntityType;
+  parentId: string;
+  questionId: string;
+  userId?: string;
+  isAuthenticated: boolean;
+  onInvalidate: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [editText, setEditText] = useState(reply.reply);
+
+  const isOwner = userId && reply.user?._id === userId;
+  const author =
+    [reply.user?.firstName, reply.user?.lastName].filter(Boolean).join(" ") || "User";
+
+  const updateMut = useMutation({
+    mutationFn: () =>
+      updateReply(parentType, parentId, questionId, reply._id, { reply: editText }),
+    onSuccess: () => {
+      setEditing(false);
+      onInvalidate();
+    },
+    onError: (e) =>
+      showApiToast(e instanceof ApiError ? e.message : "Could not update reply"),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: () => deleteReply(parentType, parentId, questionId, reply._id),
+    onSuccess: onInvalidate,
+    onError: (e) =>
+      showApiToast(e instanceof ApiError ? e.message : "Could not delete reply"),
+  });
+
+  const likeMut = useMutation({
+    mutationFn: () => toggleReplyLike(parentType, parentId, questionId, reply._id),
+    onSuccess: onInvalidate,
+  });
+
+  return (
+    <li className="rounded-lg bg-slate-50 px-3 py-2 text-sm dark:bg-zinc-800/80">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1">
+          {reply.user?._id ? (
+            <Link
+              to={`/users/${reply.user._id}`}
+              className="font-medium text-brand-blue"
+            >
+              {author}
+            </Link>
+          ) : (
+            <span className="font-medium text-slate-700 dark:text-slate-300">{author}</span>
+          )}
+          {editing ? (
+            <div className="mt-2 space-y-2">
+              <textarea
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
+                rows={2}
+                className="w-full rounded border px-2 py-1 text-sm dark:border-white/10 dark:bg-zinc-950"
+              />
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className="text-xs font-semibold text-brand-blue"
+                  onClick={() => updateMut.mutate()}
+                  disabled={updateMut.isPending}
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  className="text-xs text-slate-500"
+                  onClick={() => {
+                    setEditing(false);
+                    setEditText(reply.reply);
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className="mt-1 text-slate-700 dark:text-slate-300">{reply.reply}</p>
+          )}
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          {isAuthenticated && (
+            <button
+              type="button"
+              onClick={() => likeMut.mutate()}
+              className="flex items-center gap-1 text-slate-400"
+            >
+              <ThumbsUp size={12} />
+              {reply.likesCount ?? 0}
+            </button>
+          )}
+          {isOwner && !editing && (
+            <>
+              <button
+                type="button"
+                className="text-xs text-brand-blue"
+                onClick={() => {
+                  setEditText(reply.reply);
+                  setEditing(true);
+                }}
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                onClick={() => deleteMut.mutate()}
+                className="text-rose-500"
+              >
+                <Trash2 size={12} />
+              </button>
+            </>
+          )}
+        </div>
+      </div>
     </li>
   );
 }

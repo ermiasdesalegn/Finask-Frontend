@@ -74,11 +74,12 @@ const Navbar = ({
     { name: "Discover", path: "/discover" },
     { name: "Universities", path: "/universities" },
     { name: "Programs", path: "/programs" },
+    { name: "Climate", path: "/elevation-zones" },
     { name: "Great Minds", path: "/celebrities" },
     { name: "About", path: "/about" },
   ] as const;
 
-  const condensedHidden = new Set(["Great Minds", "About"]);
+  const condensedHidden = new Set(["Climate", "Great Minds", "About"]);
   const visibleNavLinks = isScrolled
     ? mainNavLinks.filter((l) => !condensedHidden.has(l.name))
     : mainNavLinks;
@@ -87,7 +88,7 @@ const Navbar = ({
     <>
       <header
         className={cn(
-          "fixed left-0 right-0 top-0 z-50 w-full px-4 transition-transform duration-500 sm:px-6",
+          "fixed left-0 right-0 top-0 z-[100] w-full px-4 transition-transform duration-500 sm:px-6",
           isVisible ? "translate-y-0" : "-translate-y-full"
         )}
       >
