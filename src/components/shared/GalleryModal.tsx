@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "../../lib/utils";
 
 type Props = {
@@ -49,7 +50,7 @@ export default function GalleryModal({
 
   if (!images.length) return null;
 
-  return (
+  const modal = (
     <AnimatePresence>
       {open && (
         <motion.div
@@ -168,6 +169,9 @@ export default function GalleryModal({
       )}
     </AnimatePresence>
   );
+
+  if (typeof document === "undefined") return null;
+  return createPortal(modal, document.body);
 }
 
 /** Button to open gallery from cover + images array */

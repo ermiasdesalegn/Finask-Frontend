@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Building2, GraduationCap, Loader2, MapPin } from "lucide-react";
-import { Link } from "react-router-dom";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { useState } from "react";
 import ReviewsSection from "../components/community/ReviewsSection";
 import QuestionsSection from "../components/community/QuestionsSection";
@@ -10,7 +9,7 @@ import CollapsibleSection from "../components/shared/CollapsibleSection";
 import EntityMap from "../components/shared/EntityMap";
 import GalleryModal from "../components/shared/GalleryModal";
 import SubpageLayout, { SubpageCard } from "../components/layout/SubpageLayout";
-import { UNIVERSITY_IMAGE_FALLBACK } from "../constants/defaultMediaFallbacks";
+import { campusImages } from "../lib/campusGalleryUtils";
 import {
   fetchCampusDetail,
   fetchCampusPrograms,
@@ -21,6 +20,12 @@ import type { Program, University } from "../types";
 export default function CampusPage() {
   const { slugOrId } = useParams<{ slugOrId: string }>();
   const [galleryOpen, setGalleryOpen] = useState(false);
+  const [galleryIndex, setGalleryIndex] = useState(0);
+
+  const openGallery = (index = 0) => {
+    setGalleryIndex(index);
+    setGalleryOpen(true);
+  };
   const campusQ = useQuery({
     queryKey: ["campus", slugOrId],
     queryFn: () => fetchCampusDetail(slugOrId!),
@@ -59,11 +64,8 @@ export default function CampusPage() {
     typeof campus.university === "object"
       ? (campus.university as University)
       : null;
-  const galleryImages = [
-    ...(campus.coverImage ? [campus.coverImage] : []),
-    ...(campus.images ?? []),
-  ].filter(Boolean) as string[];
-  const cover = galleryImages[0] || UNIVERSITY_IMAGE_FALLBACK;
+  const galleryImages = campusImages(campus);
+  const cover = galleryImages[0];
   const programs = (programsQ.data ?? []) as Program[];
 
   return (
@@ -83,25 +85,36 @@ export default function CampusPage() {
       }
     >
       <div className="mb-8 overflow-hidden rounded-[1.5rem] border border-slate-200/80 shadow-lg dark:border-white/10">
-        <div className="relative h-56 md:h-64">
-          <img src={cover} alt="" className="h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent" />
+        <div className="relative h-56 md:h-72">
           <button
             type="button"
-            onClick={() => setGalleryOpen(true)}
-            className="absolute bottom-4 right-4 rounded-full bg-white/90 px-4 py-2 text-xs font-black text-slate-900 shadow-lg"
+            onClick={() => openGallery(0)}
+            className="absolute inset-0 z-0 block h-full w-full cursor-zoom-in"
+            aria-label="Open photo gallery"
+          >
+            <img
+              src={cover}
+              alt=""
+              className="h-full w-full object-cover transition-transform duration-700 hover:scale-[1.02]"
+            />
+          </button>
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent" />
+          <button
+            type="button"
+            onClick={() => openGallery(0)}
+            className="absolute bottom-4 right-4 z-10 rounded-full bg-white/90 px-4 py-2 text-xs font-black text-slate-900 shadow-lg backdrop-blur hover:bg-white dark:bg-zinc-900/90 dark:text-white"
           >
             View gallery
             {galleryImages.length > 1 ? ` (${galleryImages.length})` : ""}
           </button>
           {uni && (
-            <div className="absolute bottom-4 left-4 right-4 flex flex-wrap items-center gap-2 text-sm text-white/90">
+            <div className="pointer-events-none absolute bottom-4 left-4 right-28 flex flex-wrap items-center gap-2 text-sm text-white/90">
               <MapPin size={14} />
               {campus.address?.city ?? campus.address?.fullAddress ?? "Ethiopia"}
               <span className="text-white/50">·</span>
               <Link
                 to={universityPath(uni)}
-                className="font-bold text-white hover:text-brand-yellow"
+                className="pointer-events-auto font-bold text-white hover:text-brand-yellow"
               >
                 {uni.name}
               </Link>
@@ -110,9 +123,10 @@ export default function CampusPage() {
         </div>
       </div>
       <GalleryModal
-        images={galleryImages.length ? galleryImages : [cover]}
+        images={galleryImages}
         title={campus.name}
         open={galleryOpen}
+        initialIndex={galleryIndex}
         onClose={() => setGalleryOpen(false)}
       />
 
