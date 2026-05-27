@@ -122,7 +122,10 @@ export function displayUniversityName(
 }
 
 export function universityGalleryPath(uni: University | UniRef): string {
-  const slug = uni.slug || uni._id;
+  // Prefer ID (requested) so the gallery route always works even if slug changes.
+  const id = (uni as { _id?: string })._id;
+  if (id) return `/campuses/gallery/${id}`;
+  const slug = uni.slug;
   return slug ? `/campuses/gallery/${slug}` : "/campuses";
 }
 

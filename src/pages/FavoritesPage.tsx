@@ -101,7 +101,7 @@ function campusCover(campus: Campus): string {
 }
 
 function campusNavigatePath(campus: Campus): string {
-  const key = campus.slug?.trim() || campus._id?.trim();
+  const key = campus._id?.trim();
   if (key) return `/campuses/${encodeURIComponent(key)}`;
   return "/campuses";
 }

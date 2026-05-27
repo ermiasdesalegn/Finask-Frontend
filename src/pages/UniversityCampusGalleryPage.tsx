@@ -36,12 +36,12 @@ function institutionalTypeLabel(uni: University): string | null {
 }
 
 export default function UniversityCampusGalleryPage() {
-  const { universitySlug } = useParams<{ universitySlug: string }>();
+  const { universityId } = useParams<{ universityId: string }>();
   const navigate = useNavigate();
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
 
-  const uniQuery = useUniversityBySlugQuery(universitySlug);
+  const uniQuery = useUniversityBySlugQuery(universityId);
   const uni = uniQuery.data;
   const uniId = uni?._id ?? "";
 
@@ -77,7 +77,7 @@ export default function UniversityCampusGalleryPage() {
     }
   };
 
-  if (!universitySlug) {
+  if (!universityId) {
     return null;
   }
 

@@ -172,7 +172,7 @@ function AppShell() {
             />
 
             <Route
-              path="/campuses/gallery/:universitySlug"
+              path="/campuses/gallery/:universityId"
               element={
                 <div className="min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]">
                   <UniversityCampusGalleryPage />

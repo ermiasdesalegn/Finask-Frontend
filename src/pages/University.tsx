@@ -568,7 +568,9 @@ const UniversityPage: React.FC = () => {
                       images?: string[];
                       address?: { fullAddress?: string; city?: string };
                     }) => {
-                      const campusHref = `/campuses/${encodeURIComponent(campus.slug ?? campus._id)}`;
+                      const campusHref = campus._id
+                        ? `/campuses/${encodeURIComponent(campus._id)}`
+                        : "/campuses";
                       return (
                         <Link
                           key={campus._id}
