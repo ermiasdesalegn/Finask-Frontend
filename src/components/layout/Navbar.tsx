@@ -1,13 +1,13 @@
 import {
-  GitCompare,
-  Heart,
-  LogOut,
-  Menu,
-  Moon,
-  Settings,
-  Sun,
-  UserCircle,
-  X,
+    GitCompare,
+    Heart,
+    LogOut,
+    Menu,
+    Moon,
+    Settings,
+    Sun,
+    UserCircle,
+    X,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import React, { useEffect, useState } from "react";
@@ -15,9 +15,9 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import finaskLogo from "../../assets/finask-logo.png";
 import { useAuth } from "../../context/AuthContext";
 import { useCompare } from "../../context/CompareContext";
+import { useLoginModal } from "../../context/LoginModalContext";
 import { comparePathFromUniversityIds } from "../../lib/compareQueue";
 import { cn } from "../../lib/utils";
-import { useLoginModal } from "../../context/LoginModalContext";
 import UserMenu from "./UserMenu";
 
 const iconBtn =
@@ -73,15 +73,12 @@ const Navbar = ({
     { name: "Home", path: "/" },
     { name: "Discover", path: "/discover" },
     { name: "Universities", path: "/universities" },
-    { name: "Campus", path: "/campuses" },
     { name: "Cities", path: "/cities" },
     { name: "Programs", path: "/programs" },
-    { name: "Climate", path: "/elevation-zones" },
-    { name: "Great Minds", path: "/celebrities" },
     { name: "About", path: "/about" },
   ] as const;
 
-  const condensedHidden = new Set(["Climate", "Great Minds", "About"]);
+  const condensedHidden = new Set(["About"]);
   const visibleNavLinks = isScrolled
     ? mainNavLinks.filter((l) => !condensedHidden.has(l.name))
     : mainNavLinks;
