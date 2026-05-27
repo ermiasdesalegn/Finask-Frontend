@@ -11,6 +11,7 @@ import { apiGet, apiPost, clearToken, getToken, saveToken } from "../lib/api";
 import { subscribeAuthInvalid } from "../lib/authEvents";
 import { queryKeys } from "../lib/queryKeys";
 import { userHasFieldsOfInterest } from "../lib/userProfile";
+import type { University } from "../types";
 
 /**
  * Session: httpOnly `jwt` cookie on the API host (not localStorage). After refresh,
@@ -37,6 +38,8 @@ export interface AuthUser {
   bio?: string;
   profileImage?: string;
   role?: string;
+  /** University this user manages (university_manager). */
+  managedUniversity?: string | University | null;
   /** Program ObjectIds (or populated Program docs from getMe). */
   fieldsOfInterest?: string[] | { _id: string }[];
   /** Hobby tag names from Interest catalog (lowercase). */

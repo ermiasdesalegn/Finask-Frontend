@@ -1,9 +1,11 @@
-import { Link, Navigate, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { cn } from "../lib/utils";
+import { useAuth } from "../context/AuthContext";
 import SettingsPage from "./SettingsPage";
 import MePage from "./MePage";
+import UniversityManagerTab from "./account/UniversityManagerTab";
 
-const TABS = [
+const BASE_TABS = [
   { id: "profile", label: "Profile" },
   { id: "security", label: "Account & security" },
   { id: "preferences", label: "Preferences" },
@@ -12,10 +14,23 @@ const TABS = [
   { id: "legal", label: "Legal & info" },
 ] as const;
 
-type TabId = (typeof TABS)[number]["id"];
+const MANAGER_TAB = { id: "university" as const, label: "University" };
+
+type BaseTabId = (typeof BASE_TABS)[number]["id"];
+type TabId = BaseTabId | "university";
 
 export default function AccountPage() {
+  const { user } = useAuth();
   const [params, setParams] = useSearchParams();
+  const isManager = user?.role === "university_manager";
+  const tabs = isManager
+    ? [
+        BASE_TABS[0],
+        BASE_TABS[1],
+        MANAGER_TAB,
+        ...BASE_TABS.slice(2),
+      ]
+    : [...BASE_TABS];
   const tab = (params.get("tab") as TabId) || "profile";
 
   return (
@@ -26,7 +41,7 @@ export default function AccountPage() {
             Account
           </h1>
           <nav className="flex flex-row flex-wrap gap-2 lg:flex-col lg:gap-1">
-            {TABS.map((t) => (
+            {tabs.map((t) => (
               <button
                 key={t.id}
                 type="button"
@@ -45,7 +60,9 @@ export default function AccountPage() {
         </aside>
 
         <main className="min-w-0 flex-1">
-          {tab === "activity" ? (
+          {tab === "university" ? (
+            <UniversityManagerTab />
+          ) : tab === "activity" ? (
             <MePage embedded />
           ) : tab === "help" ? (
             <div className="rounded-2xl border border-slate-200 bg-white p-8 dark:border-white/10 dark:bg-zinc-900">

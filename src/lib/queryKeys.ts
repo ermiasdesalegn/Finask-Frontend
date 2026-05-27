@@ -100,4 +100,11 @@ export const queryKeys = {
   /** Order of ids matters for column order — use stable joined string from caller */
   universitiesCompare: (idsKey: string, lat: number | null, lng: number | null) =>
     ["universities", "compare", idsKey, lat, lng] as const,
+
+  managedUniversity: () => ["managed-university"] as const,
+
+  managerUniversity: (id: string) => ["manager-university", id] as const,
+
+  managerUniversityCampuses: (universityId: string) =>
+    ["manager-university-campuses", universityId] as const,
 };

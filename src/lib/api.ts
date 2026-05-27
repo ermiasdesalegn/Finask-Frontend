@@ -187,7 +187,7 @@ export async function apiGet<T = unknown>(
     throw new ApiError("Network error", 0, null);
   }
 
-  const body = await parseJsonSafe(res);
+  const parsed = await parseJsonSafe(res);
 
   if (res.status === 401 && shouldInvalidateSession(path)) {
     emitAuthInvalid();
@@ -195,13 +195,13 @@ export async function apiGet<T = unknown>(
 
   if (!res.ok) {
     const msg =
-      typeof body === "object" && body !== null && "message" in body
-        ? String((body as { message: string }).message)
+      typeof parsed === "object" && parsed !== null && "message" in parsed
+        ? String((parsed as { message: string }).message)
         : res.statusText;
-    throw new ApiError(msg || "Request failed", res.status, body);
+    throw new ApiError(msg || "Request failed", res.status, parsed);
   }
 
-  return body as T;
+  return parsed as T;
 }
 
 export async function apiPost<T = unknown>(
@@ -298,32 +298,31 @@ export async function apiPatch<T = unknown>(
   return parsed as T;
 }
 
-export async function apiDelete<T = unknown>(
+/** PATCH with multipart FormData (no JSON Content-Type). */
+export async function apiPatchForm<T = unknown>(
   path: string,
+  formData: FormData,
   init?: RequestInit
 ): Promise<T> {
-  if (USE_MOCK && /^\/favorites\//.test(path.split("?")[0] ?? "")) {
-    return {} as T;
-  }
-
   let res: Response;
   try {
     res = await fetch(joinUrl(path), {
       ...init,
       credentials: "include",
-      method: "DELETE",
+      method: "PATCH",
       headers: {
         Accept: "application/json",
         ...authHeaders(),
         ...(init?.headers as Record<string, string>),
       },
+      body: formData,
     });
   } catch {
     notifyNetwork("Network error. Check your connection and try again.");
     throw new ApiError("Network error", 0, null);
   }
 
-  const body = await parseJsonSafe(res);
+  const parsed = await parseJsonSafe(res);
 
   if (res.status === 401 && shouldInvalidateSession(path)) {
     emitAuthInvalid();
@@ -331,11 +330,60 @@ export async function apiDelete<T = unknown>(
 
   if (!res.ok) {
     const msg =
-      typeof body === "object" && body !== null && "message" in body
-        ? String((body as { message: string }).message)
+      typeof parsed === "object" && parsed !== null && "message" in parsed
+        ? String((parsed as { message: string }).message)
         : res.statusText;
-    throw new ApiError(msg || "Request failed", res.status, body);
+    throw new ApiError(msg || "Request failed", res.status, parsed);
   }
 
-  return (body ?? {}) as T;
+  return parsed as T;
+}
+
+export async function apiDelete<T = unknown>(
+  path: string,
+  body?: unknown,
+  init?: RequestInit
+): Promise<T> {
+  if (USE_MOCK && /^\/favorites\//.test(path.split("?")[0] ?? "")) {
+    return {} as T;
+  }
+
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    ...authHeaders(),
+    ...(init?.headers as Record<string, string>),
+  };
+  const hasBody = body !== undefined;
+
+  let res: Response;
+  try {
+    res = await fetch(joinUrl(path), {
+      ...init,
+      credentials: "include",
+      method: "DELETE",
+      headers: hasBody
+        ? { ...headers, "Content-Type": "application/json" }
+        : headers,
+      body: hasBody ? JSON.stringify(body) : undefined,
+    });
+  } catch {
+    notifyNetwork("Network error. Check your connection and try again.");
+    throw new ApiError("Network error", 0, null);
+  }
+
+  const parsed = await parseJsonSafe(res);
+
+  if (res.status === 401 && shouldInvalidateSession(path)) {
+    emitAuthInvalid();
+  }
+
+  if (!res.ok) {
+    const msg =
+      typeof parsed === "object" && parsed !== null && "message" in parsed
+        ? String((parsed as { message: string }).message)
+        : res.statusText;
+    throw new ApiError(msg || "Request failed", res.status, parsed);
+  }
+
+  return (parsed ?? {}) as T;
 }
