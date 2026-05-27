@@ -9,7 +9,9 @@ import {
 import { motion } from "motion/react";
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import CampusGalleryMasonry from "../components/campus/CampusGalleryMasonry";
+import CampusGalleryMasonry, {
+  CampusGalleryBentoSkeleton,
+} from "../components/campus/CampusGalleryMasonry";
 import CampusGallerySectionTitle from "../components/campus/CampusGallerySectionTitle";
 import FavoriteButton from "../components/favorites/FavoriteButton";
 import GalleryModal from "../components/shared/GalleryModal";
@@ -201,16 +203,7 @@ export default function UniversityCampusGalleryPage() {
           </p>
         )}
 
-        {loading && !error && (
-          <div className="columns-2 gap-3 lg:columns-3">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div
-                key={i}
-                className="mb-3 aspect-[4/3] animate-pulse break-inside-avoid rounded-2xl bg-slate-200 dark:bg-zinc-800"
-              />
-            ))}
-          </div>
-        )}
+        {loading && !error && <CampusGalleryBentoSkeleton />}
 
         {!loading && !error && (
           <motion.div

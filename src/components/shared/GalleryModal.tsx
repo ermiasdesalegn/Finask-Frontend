@@ -56,8 +56,7 @@ export default function GalleryModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          // top-[160px] clears both the navbar (~64px) and the sticky university header (~96px)
-          className="fixed bottom-0 left-0 right-0 top-[160px] z-[300] flex flex-col bg-black/95"
+          className="fixed inset-0 z-[300] flex flex-col bg-black/95"
           role="dialog"
           aria-modal
           aria-label={title ?? "Photo gallery"}
@@ -65,7 +64,7 @@ export default function GalleryModal({
         >
           {/* Top row: close button sits inside the modal, never clipped */}
           <div
-            className="flex shrink-0 items-center justify-end px-4 py-2"
+            className="flex shrink-0 items-center justify-end px-4 py-3"
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -80,7 +79,7 @@ export default function GalleryModal({
 
           {/* Main image area */}
           <div
-            className="relative flex min-h-0 flex-1 items-center justify-center px-16"
+            className="relative flex min-h-0 flex-1 items-center justify-center px-4 sm:px-10 lg:px-16"
             onClick={onClose}
           >
             {images.length > 1 && (
@@ -102,11 +101,15 @@ export default function GalleryModal({
               className="flex h-full w-full items-center justify-center"
               onClick={(e) => e.stopPropagation()}
             >
-              <img
-                src={images[index]}
-                alt={title ? `${title} ${index + 1}` : `Gallery image ${index + 1}`}
-                className="max-h-full max-w-full rounded-2xl object-contain"
-              />
+              <div className="relative h-full w-full max-w-6xl overflow-hidden rounded-2xl">
+                <img
+                  src={images[index]}
+                  alt={
+                    title ? `${title} ${index + 1}` : `Gallery image ${index + 1}`
+                  }
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+              </div>
             </motion.div>
 
             {images.length > 1 && (
