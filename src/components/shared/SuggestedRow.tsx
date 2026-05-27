@@ -55,7 +55,7 @@ export function SuggestedUniversitiesRow({
           </Link>
         ) : null}
       </div>
-      <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-thin">
+      <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none [&::-webkit-scrollbar]:hidden">
         {universities.map((u) => (
           <Link
             key={u._id ?? u.slug}
@@ -108,7 +108,7 @@ export function SuggestedCitiesRow({ title, cities, loading }: CityRowProps) {
       <h2 className="mb-4 text-xl font-black text-slate-900 dark:text-white">
         {title}
       </h2>
-      <div className="flex gap-4 overflow-x-auto pb-2">
+      <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none [&::-webkit-scrollbar]:hidden">
         {cities.map((c) => (
           <Link
             key={c._id}

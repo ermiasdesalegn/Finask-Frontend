@@ -1,5 +1,5 @@
-import { AnimatePresence, motion } from "motion/react";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
 import { cn } from "../../lib/utils";
 
@@ -56,87 +56,109 @@ export default function GalleryModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 p-4"
+          // top-[160px] clears both the navbar (~64px) and the sticky university header (~96px)
+          className="fixed bottom-0 left-0 right-0 top-[160px] z-[300] flex flex-col bg-black/95"
           role="dialog"
           aria-modal
           aria-label={title ?? "Photo gallery"}
           onClick={onClose}
         >
-          <button
-            type="button"
-            onClick={onClose}
-            className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
-            aria-label="Close gallery"
-          >
-            <X size={22} />
-          </button>
-
-          {images.length > 1 && (
-            <>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  go(-1);
-                }}
-                className="absolute left-4 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
-                aria-label="Previous image"
-              >
-                <ChevronLeft size={28} />
-              </button>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  go(1);
-                }}
-                className="absolute right-4 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
-                aria-label="Next image"
-              >
-                <ChevronRight size={28} />
-              </button>
-            </>
-          )}
-
-          <motion.div
-            key={index}
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="relative max-h-[85vh] max-w-5xl"
+          {/* Top row: close button sits inside the modal, never clipped */}
+          <div
+            className="flex shrink-0 items-center justify-end px-4 py-2"
             onClick={(e) => e.stopPropagation()}
           >
-            <img
-              src={images[index]}
-              alt={title ? `${title} ${index + 1}` : `Gallery image ${index + 1}`}
-              className="max-h-[85vh] w-full rounded-2xl object-contain"
-            />
-            {images.length > 1 && (
-              <p className="mt-3 text-center text-sm font-medium text-white/70">
-                {index + 1} / {images.length}
-              </p>
-            )}
-          </motion.div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white transition-colors hover:bg-white/30"
+              aria-label="Close gallery"
+            >
+              <X size={20} />
+            </button>
+          </div>
 
-          {images.length > 1 && (
-            <div className="absolute bottom-6 left-1/2 flex max-w-full -translate-x-1/2 gap-2 overflow-x-auto px-4">
-              {images.map((src, i) => (
-                <button
-                  key={src + i}
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIndex(i);
-                  }}
-                  className={cn(
-                    "h-14 w-20 shrink-0 overflow-hidden rounded-lg border-2 transition-all",
-                    i === index
-                      ? "border-brand-blue opacity-100"
-                      : "border-transparent opacity-50 hover:opacity-80"
+          {/* Main image area */}
+          <div
+            className="relative flex min-h-0 flex-1 items-center justify-center px-16"
+            onClick={onClose}
+          >
+            {images.length > 1 && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); go(-1); }}
+                className="absolute left-4 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/25"
+                aria-label="Previous image"
+              >
+                <ChevronLeft size={26} />
+              </button>
+            )}
+
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, scale: 0.97 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.18 }}
+              className="flex h-full w-full items-center justify-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={images[index]}
+                alt={title ? `${title} ${index + 1}` : `Gallery image ${index + 1}`}
+                className="max-h-full max-w-full rounded-2xl object-contain"
+              />
+            </motion.div>
+
+            {images.length > 1 && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); go(1); }}
+                className="absolute right-4 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/25"
+                aria-label="Next image"
+              >
+                <ChevronRight size={26} />
+              </button>
+            )}
+
+            {/* Title + counter — bottom-right corner of image area */}
+            {(title || images.length > 1) && (
+              <div
+                className="absolute bottom-3 right-4 z-10 rounded-xl bg-black/50 px-3 py-1.5 backdrop-blur-sm"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <p className="text-sm font-semibold text-white/90">
+                  {title && <span className="mr-2">{title}</span>}
+                  {images.length > 1 && (
+                    <span className="text-white/60">{index + 1} / {images.length}</span>
                   )}
-                >
-                  <img src={src} alt="" className="h-full w-full object-cover" />
-                </button>
-              ))}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Thumbnail strip */}
+          {images.length > 1 && (
+            <div
+              className="shrink-0 py-3"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-center gap-1.5 overflow-x-auto px-4 scrollbar-none [&::-webkit-scrollbar]:hidden">
+                {images.map((src, i) => (
+                  <button
+                    key={src + i}
+                    type="button"
+                    onClick={() => setIndex(i)}
+                    className={cn(
+                      "h-12 w-16 shrink-0 overflow-hidden rounded-lg border-2 transition-all",
+                      i === index
+                        ? "border-brand-blue opacity-100"
+                        : "border-transparent opacity-50 hover:opacity-80"
+                    )}
+                  >
+                    <img src={src} alt="" className="h-full w-full object-cover" />
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </motion.div>

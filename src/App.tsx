@@ -11,6 +11,7 @@ import { setApiToastNotifier } from "./lib/api";
 import { cn } from "./lib/utils";
 import AboutPage from "./pages/AboutPage";
 import CampusesPage from "./pages/CampusesPage";
+import UniversityCampusGalleryPage from "./pages/UniversityCampusGalleryPage";
 import CelebritiesPage from "./pages/CelebritiesPage";
 import CelebrityPage from "./pages/CelebrityPage";
 import CitiesPage from "./pages/CitiesPage";
@@ -166,6 +167,15 @@ function AppShell() {
               element={
                 <div className="min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]">
                   <CampusesPage />
+                </div>
+              }
+            />
+
+            <Route
+              path="/campuses/gallery/:universitySlug"
+              element={
+                <div className="min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]">
+                  <UniversityCampusGalleryPage />
                 </div>
               }
             />

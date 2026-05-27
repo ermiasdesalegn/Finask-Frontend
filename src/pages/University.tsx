@@ -19,18 +19,19 @@ import {
 } from "lucide-react";
 import { motion } from "motion/react";
 import React, { useMemo, useState } from "react";
-import FavoriteButton from "../components/favorites/FavoriteButton";
-import ReviewsSection from "../components/community/ReviewsSection";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import QuestionsSection from "../components/community/QuestionsSection";
+import ReviewsSection from "../components/community/ReviewsSection";
+import FavoriteButton from "../components/favorites/FavoriteButton";
 import CollapsibleSection from "../components/shared/CollapsibleSection";
 import EntityMap from "../components/shared/EntityMap";
 import GalleryModal from "../components/shared/GalleryModal";
 import { SuggestedUniversitiesRow } from "../components/shared/SuggestedRow";
-import { useAuth } from "../context/AuthContext";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { PROGRAM_IMAGE_FALLBACK } from "../constants/defaultMediaFallbacks";
 import {
   PROGRAM_FIELD_LABELS,
 } from "../constants/programFieldStyles";
+import { useAuth } from "../context/AuthContext";
 import { useCompare } from "../context/CompareContext";
 import { showApiToast } from "../lib/api";
 import { staggerBlurContainer, staggerBlurItem } from "../lib/motion/pageMotion";
@@ -49,7 +50,6 @@ import {
   universityCityId,
   universityCover,
 } from "../lib/universityUi";
-import { PROGRAM_IMAGE_FALLBACK } from "../constants/defaultMediaFallbacks";
 import type { City, Program, University } from "../types";
 
 const containerVariants = staggerBlurContainer;
@@ -117,7 +117,12 @@ const UniversityPage: React.FC = () => {
 
   const gallery = useMemo(() => {
     if (!uni) return [];
-    const imgs = [uni.coverImage, ...(uni.images ?? [])].filter(Boolean) as string[];
+    const seen = new Set<string>();
+    const imgs: string[] = [];
+    for (const src of [uni.coverImage, ...(uni.images ?? [])]) {
+      const s = src?.trim();
+      if (s && !seen.has(s)) { seen.add(s); imgs.push(s); }
+    }
     return imgs.length ? imgs : [universityCover(uni as University)];
   }, [uni]);
 
@@ -240,34 +245,47 @@ const UniversityPage: React.FC = () => {
 
           {/* Gallery */}
           <motion.div variants={itemVariants}
-            className="mb-10 grid h-[50vh] min-h-[360px] grid-cols-1 gap-3 md:grid-cols-4 md:grid-rows-2 md:gap-4">
-            <div className="relative overflow-hidden rounded-[2rem] border-4 border-white shadow-md dark:border-zinc-800/50 md:col-span-2 md:row-span-2">
+            className="relative mb-10 grid min-h-[360px] grid-cols-1 gap-3 md:grid-cols-2 md:gap-3" style={{ height: 'clamp(360px, 55vh, 520px)' }}>
+
+            {/* Big left image */}
+            <button
+              type="button"
+              onClick={() => setGalleryOpen(true)}
+              className="relative overflow-hidden rounded-[2rem] border-4 border-white shadow-md dark:border-zinc-800/50"
+            >
               <img src={gallery[0]} alt={uni.name} className="h-full w-full object-cover transition-transform duration-700 hover:scale-105" />
               {uni.isFeatured && (
                 <div className="absolute left-4 top-4 rounded-full bg-brand-yellow px-3 py-1 text-[10px] font-black uppercase tracking-widest text-black">Featured</div>
               )}
+            </button>
+
+            {/* Right 2×2 grid */}
+            <div className="hidden grid-cols-2 grid-rows-2 gap-3 md:grid">
+              {[1, 2, 3, 4].map((i) =>
+                gallery[i] ? (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setGalleryOpen(true)}
+                    className="relative overflow-hidden rounded-[1.2rem] border-2 border-white shadow-sm dark:border-zinc-800/50"
+                  >
+                    <img src={gallery[i]} alt="" className="h-full w-full object-cover transition-transform duration-700 hover:scale-105" />
+                    {i === 4 && gallery.length > 5 && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                        <span className="text-lg font-black text-white">+{gallery.length - 5} more</span>
+                      </div>
+                    )}
+                  </button>
+                ) : (
+                  <div key={i} className="rounded-[1.2rem] bg-slate-100 dark:bg-zinc-800" />
+                )
+              )}
             </div>
-            {gallery[1] && (
-              <div className="relative hidden overflow-hidden rounded-[1.5rem] border-2 border-white shadow-sm dark:border-zinc-800/50 md:block">
-                <img src={gallery[1]} alt="" className="h-full w-full object-cover transition-transform duration-700 hover:scale-105" />
-              </div>
-            )}
-            {gallery[2] && (
-              <div className="relative hidden overflow-hidden rounded-[1.5rem] border-2 border-white shadow-sm dark:border-zinc-800/50 md:block">
-                <img src={gallery[2]} alt="" className="h-full w-full object-cover transition-transform duration-700 hover:scale-105" />
-              </div>
-            )}
-            {/* Fallback placeholder tiles */}
-            {!gallery[1] && (
-              <div className="hidden rounded-[1.5rem] bg-slate-100 dark:bg-zinc-800 md:block" />
-            )}
-            {!gallery[2] && (
-              <div className="hidden rounded-[1.5rem] bg-slate-100 dark:bg-zinc-800 md:block" />
-            )}
+
             <button
               type="button"
               onClick={() => setGalleryOpen(true)}
-              className="absolute bottom-4 right-4 z-10 rounded-full bg-white/90 px-4 py-2 text-xs font-black text-slate-900 shadow-lg backdrop-blur hover:bg-white dark:bg-zinc-900/90 dark:text-white md:bottom-6 md:right-6"
+              className="absolute bottom-4 right-4 z-10 rounded-full bg-white/90 px-4 py-2 text-xs font-black text-slate-900 shadow-lg backdrop-blur hover:bg-white dark:bg-zinc-900/90 dark:text-white"
             >
               View gallery
             </button>
