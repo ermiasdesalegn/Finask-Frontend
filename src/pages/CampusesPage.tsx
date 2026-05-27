@@ -15,15 +15,14 @@ import { useNavigate } from "react-router-dom";
 import CampusGallerySectionTitle from "../components/campus/CampusGallerySectionTitle";
 import CampusGalleryUniversityCard from "../components/campus/CampusGalleryUniversityCard";
 import { AnimatedGridPattern } from "../components/ui/animated-grid-pattern";
-import { useCampusesListQuery } from "../lib/queries";
+import { useUniversitiesListQuery } from "../lib/queries";
 import {
   filterGalleryGroups,
-  groupCampusesByUniversity,
   sortGalleryGroups,
+  universitiesToGalleryGroups,
   type GallerySort,
 } from "../lib/campusGalleryUtils";
 import { cn } from "../lib/utils";
-import type { Campus } from "../types";
 
 const PAGE_SIZE = 9;
 
@@ -44,18 +43,22 @@ const CampusesPage: React.FC = () => {
   const [showFilter, setShowFilter] = useState(false);
   const [page, setPage] = useState(1);
 
-  const campusesQuery = useCampusesListQuery({ limit: 300, sort: "name" });
-  const campuses: Campus[] = campusesQuery.data?.data?.campuses ?? [];
-  const loading = campusesQuery.isPending;
-  const error = campusesQuery.isError
-    ? campusesQuery.error instanceof Error
-      ? campusesQuery.error.message
+  const universitiesQuery = useUniversitiesListQuery({
+    limit: 300,
+    sort: "-ratingsAverage",
+  });
+  const universities =
+    universitiesQuery.data?.data?.universities ?? [];
+  const loading = universitiesQuery.isPending;
+  const error = universitiesQuery.isError
+    ? universitiesQuery.error instanceof Error
+      ? universitiesQuery.error.message
       : "Something went wrong"
     : null;
 
   const allGroups = useMemo(
-    () => groupCampusesByUniversity(campuses),
-    [campuses]
+    () => universitiesToGalleryGroups(universities),
+    [universities]
   );
 
   const filtered = useMemo(() => {
@@ -310,7 +313,7 @@ const CampusesPage: React.FC = () => {
             <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">{error}</p>
             <button
               type="button"
-              onClick={() => void campusesQuery.refetch()}
+              onClick={() => void universitiesQuery.refetch()}
               className="mt-6 rounded-xl bg-brand-blue px-6 py-2.5 text-sm font-bold text-white"
             >
               Try again
@@ -325,7 +328,7 @@ const CampusesPage: React.FC = () => {
             <p className="mt-2 text-sm text-slate-500">
               {search || featuredOnly
                 ? "Try clearing filters or search."
-                : "Campus photos will appear here once added."}
+                : "University galleries will appear here once photos are added."}
             </p>
             {(search || featuredOnly) && (
               <button

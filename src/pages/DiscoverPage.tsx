@@ -51,7 +51,7 @@ const DISCOVERY_HUB_CARDS = [
     label: "Generation",
     subtitle: "1st–4th gen universities",
     href: "/discover/generation",
-    img: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&q=80&w=400",
+    img: "https://images.unsplash.com/photo-1523580494863-6df3ab0bea9f?auto=format&fit=crop&q=80&w=800",
     accent: "from-indigo-900/90",
   },
   {

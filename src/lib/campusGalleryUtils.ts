@@ -1,5 +1,5 @@
 import { UNIVERSITY_IMAGE_FALLBACK } from "../constants/defaultMediaFallbacks";
-import { universityCover } from "./universityUi";
+import { universityCity, universityCover } from "./universityUi";
 import { unwrapMarkdownLink } from "./unwrapMarkdownLink";
 import type { Campus, University } from "../types";
 
@@ -127,6 +127,30 @@ export function universityGalleryPath(uni: University | UniRef): string {
   if (id) return `/campuses/gallery/${id}`;
   const slug = uni.slug;
   return slug ? `/campuses/gallery/${slug}` : "/campuses";
+}
+
+/** One gallery card per university (browse page — not per campus). */
+export function universityToGalleryGroup(uni: University): UniversityGalleryGroup {
+  const uniRef = uni as UniRef;
+  const key = uni._id ?? uni.slug ?? uni.name;
+  const images = collectGalleryImages(uniRef, []);
+  const cover = images[0] ?? universityCover(uni);
+
+  return {
+    key: String(key),
+    uni: uniRef,
+    campuses: [],
+    images,
+    cover,
+    name: uni.name,
+    city: universityCity(uni) || "",
+  };
+}
+
+export function universitiesToGalleryGroups(
+  universities: University[]
+): UniversityGalleryGroup[] {
+  return universities.map(universityToGalleryGroup);
 }
 
 export function groupCampusesByUniversity(
