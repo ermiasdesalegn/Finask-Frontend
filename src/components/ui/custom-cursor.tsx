@@ -2,57 +2,66 @@ import { GraduationCap } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 export function CustomCursor() {
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [followerPosition, setFollowerPosition] = useState({ x: 0, y: 0 });
   const [isVisible, setIsVisible] = useState(false);
-  const requestRef = useRef<number>(0);
+  const dotRef = useRef<HTMLDivElement | null>(null);
+  const followerRef = useRef<HTMLDivElement | null>(null);
+
+  const rafRef = useRef<number | null>(null);
+  const targetRef = useRef({ x: 0, y: 0 });
+  const followerPosRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
-    const updatePosition = (e: MouseEvent) => {
-      setPosition({ x: e.clientX, y: e.clientY });
+    const onMove = (e: MouseEvent) => {
+      targetRef.current.x = e.clientX;
+      targetRef.current.y = e.clientY;
       setIsVisible(true);
     };
 
-    const handleMouseLeave = () => {
-      setIsVisible(false);
-    };
+    const onLeave = () => setIsVisible(false);
 
-    window.addEventListener("mousemove", updatePosition);
-    document.addEventListener("mouseleave", handleMouseLeave);
+    window.addEventListener("mousemove", onMove, { passive: true });
+    document.addEventListener("mouseleave", onLeave);
 
     return () => {
-      window.removeEventListener("mousemove", updatePosition);
-      document.removeEventListener("mouseleave", handleMouseLeave);
+      window.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseleave", onLeave);
     };
   }, []);
 
   useEffect(() => {
-    const animate = () => {
-      setFollowerPosition((prev) => {
-        const dx = position.x - prev.x;
-        const dy = position.y - prev.y;
-        
-        // Smooth easing with higher speed when far away
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        const speed = distance > 50 ? 0.25 : 0.2;
-        
-        return {
-          x: prev.x + dx * speed,
-          y: prev.y + dy * speed,
-        };
-      });
+    if (!isVisible) return;
 
-      requestRef.current = requestAnimationFrame(animate);
-    };
+    const step = () => {
+      const dot = dotRef.current;
+      const follower = followerRef.current;
+      const target = targetRef.current;
+      const followerPos = followerPosRef.current;
 
-    requestRef.current = requestAnimationFrame(animate);
-
-    return () => {
-      if (requestRef.current) {
-        cancelAnimationFrame(requestRef.current);
+      if (dot) {
+        dot.style.transform = `translate3d(${target.x}px, ${target.y}px, 0) translate(-50%, -50%)`;
       }
+
+      const dx = target.x - followerPos.x;
+      const dy = target.y - followerPos.y;
+      const distance = Math.hypot(dx, dy);
+      const speed = distance > 60 ? 0.28 : 0.2;
+
+      followerPos.x += dx * speed;
+      followerPos.y += dy * speed;
+
+      if (follower) {
+        follower.style.transform = `translate3d(${followerPos.x}px, ${followerPos.y}px, 0) translate(-50%, -50%)`;
+      }
+
+      rafRef.current = requestAnimationFrame(step);
     };
-  }, [position]);
+
+    rafRef.current = requestAnimationFrame(step);
+    return () => {
+      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    };
+  }, [isVisible]);
 
   if (!isVisible) return null;
 
@@ -60,24 +69,21 @@ export function CustomCursor() {
     <>
       {/* Main Cursor Dot */}
       <div
+        ref={dotRef}
         className="fixed pointer-events-none z-[9999] mix-blend-difference"
-        style={{
-          left: `${position.x}px`,
-          top: `${position.y}px`,
-          transform: "translate(-50%, -50%)",
-        }}
+        style={{ left: 0, top: 0, willChange: "transform" }}
       >
         <div className="w-2 h-2 bg-white rounded-full" />
       </div>
 
       {/* Follower with Graduation Cap */}
       <div
+        ref={followerRef}
         className="fixed pointer-events-none z-[9998]"
         style={{
-          left: `${followerPosition.x}px`,
-          top: `${followerPosition.y}px`,
-          transform: "translate(-50%, -50%)",
-          transition: "transform 0.1s ease-out",
+          left: 0,
+          top: 0,
+          willChange: "transform",
         }}
       >
         <div className="w-8 h-8 rounded-full bg-brand-blue/20 backdrop-blur-sm border border-brand-blue/30 flex items-center justify-center">
