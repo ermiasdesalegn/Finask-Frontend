@@ -1,8 +1,17 @@
-import { ArrowLeft, Loader2, MapPin } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { motion } from "motion/react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { UNIVERSITY_IMAGE_FALLBACK } from "../constants/defaultMediaFallbacks";
+import CompareAiVerdict from "../components/compare/CompareAiVerdict";
+import CompareFactsTable from "../components/compare/CompareFactsTable";
+import ComparePageHero from "../components/compare/ComparePageHero";
+import ComparePreferencesPanel from "../components/compare/ComparePreferencesPanel";
+import CompareShortlistBar, {
+  CompareLocationControls,
+} from "../components/compare/CompareShortlistBar";
+import { SuggestedUniversitiesRow } from "../components/shared/SuggestedRow";
+import { FlickeringGrid } from "../components/ui/flickering-grid";
+import { useAuth } from "../context/AuthContext";
 import { useCompare } from "../context/CompareContext";
 import { ApiError, showApiToast } from "../lib/api";
 import {
@@ -10,20 +19,30 @@ import {
   parseValidUniversityIdsParam,
 } from "../lib/compareQueue";
 import {
+  hasComparePreferences,
+  mapComparePreferencesToApi,
+  type ComparePreferences,
+} from "../lib/comparePreferences";
+import {
   clearCompareUserCoords,
   loadCompareUserCoords,
   saveCompareUserCoords,
 } from "../lib/compareUserCoords";
 import { useUniversitiesCompareQuery } from "../lib/queries/compare";
+import { useSuggestedByLocationQuery } from "../lib/queries/universities";
 import { blurReveal } from "../lib/motion/pageMotion";
 import { cn } from "../lib/utils";
 
 export default function ComparePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { isAuthenticated } = useAuth();
   const { ids: queueIds, remove, clear } = useCompare();
   const [coords, setCoords] = useState(() => loadCompareUserCoords());
   const [geoPending, setGeoPending] = useState(false);
+  const [submittedPrefs, setSubmittedPrefs] =
+    useState<ComparePreferences | null>(null);
+  const [programNames, setProgramNames] = useState<string[]>([]);
 
   const urlIds = useMemo(
     () => parseValidUniversityIdsParam(searchParams.get("ids")),
@@ -38,16 +57,62 @@ export default function ComparePage() {
 
   const usingQueue = urlIds.length < 2 && effectiveIds.length >= 2;
 
+  const apiPreferences = useMemo(
+    () => mapComparePreferencesToApi(submittedPrefs, programNames),
+    [submittedPrefs, programNames]
+  );
+
   const compareQuery = useUniversitiesCompareQuery({
     universityIds: effectiveIds,
     userCoordinates: coords,
+    preferences: apiPreferences,
     enabled: effectiveIds.length >= 2 && effectiveIds.length <= 3,
   });
+
+  const suggestedQuery = useSuggestedByLocationQuery(
+    isAuthenticated && effectiveIds.length >= 2
+  );
+
+  const suggestedUniversities = useMemo(() => {
+    const list = suggestedQuery.data?.data?.universities ?? [];
+    const compared = new Set(effectiveIds);
+    return list
+      .filter((u) => {
+        const id = u._id ?? u.id;
+        return id && !compared.has(String(id));
+      })
+      .slice(0, 6);
+  }, [suggestedQuery.data, effectiveIds]);
 
   const data = compareQuery.data?.data;
   const cols = data?.universities ?? [];
   const facts = data?.comparisonFacts ?? [];
   const aiSummary = data?.aiSummary ?? null;
+  const personalized = hasComparePreferences(submittedPrefs);
+
+  const handlePreferencesSubmit = useCallback(
+    (prefs: ComparePreferences, names: string[]) => {
+      setSubmittedPrefs(prefs);
+      setProgramNames(names);
+    },
+    []
+  );
+
+  const handleRemoveUniversity = useCallback(
+    (id: string) => {
+      remove(id);
+      const nextIds = effectiveIds.filter((x) => x !== id);
+      setSubmittedPrefs(null);
+      setProgramNames([]);
+      if (nextIds.length >= 2) {
+        navigate(comparePathFromUniversityIds(nextIds), { replace: true });
+      } else {
+        navigate("/compare", { replace: true });
+      }
+    },
+    [remove, effectiveIds, navigate]
+  );
+
   const requestLocation = () => {
     if (!navigator.geolocation) {
       showApiToast("Location is not supported in this browser.");
@@ -81,80 +146,86 @@ export default function ComparePage() {
     void compareQuery.refetch();
   };
 
+  const locationControls = (
+    <CompareLocationControls
+      hasCoords={Boolean(coords)}
+      geoPending={geoPending}
+      fetching={compareQuery.isFetching}
+      onRequestLocation={requestLocation}
+      onClearLocation={dropCoords}
+    />
+  );
+
   return (
-    <div className="min-h-screen bg-slate-50 pb-24 pt-24 transition-colors dark:bg-[#0a0a0a]">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
-        <motion.div
+    <div className="relative min-h-screen overflow-hidden pb-24 pt-20 transition-colors dark:bg-[#0a0a0a]">
+      <FlickeringGrid
+        className="pointer-events-none absolute inset-0 z-0 opacity-[0.12] dark:opacity-[0.08]"
+        color="#60A5FA"
+        maxOpacity={0.15}
+        squareSize={4}
+        gridGap={8}
+        flickerChance={0.12}
+      />
+      <div
+        className="pointer-events-none absolute -right-32 top-20 h-96 w-96 rounded-full bg-brand-blue/20 blur-[120px]"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute -left-24 top-1/3 h-80 w-80 rounded-full bg-brand-yellow/15 blur-[100px]"
+        aria-hidden
+      />
+
+      <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
+        <motion.header
           initial="hidden"
           animate="show"
           variants={blurReveal}
-          className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+          className={cn(
+            "sticky top-20 z-20 -mx-2 mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/60 bg-white/75 px-4 py-3 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/75"
+          )}
         >
-          <div className="flex items-start gap-4">
-            <button
-              type="button"
-              onClick={() => navigate(-1)}
-              className="mt-1 rounded-full bg-slate-200/80 p-2.5 transition-colors hover:bg-slate-300 dark:bg-zinc-800 dark:hover:bg-zinc-700"
-              aria-label="Go back"
-            >
-              <ArrowLeft className="h-5 w-5 text-slate-700 dark:text-slate-200" />
-            </button>
-            <div>
-              <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white md:text-4xl">
-                Compare universities
-              </h1>
-              <p className="mt-1 max-w-xl text-sm text-slate-600 dark:text-slate-400">
-                Add up to 3 schools from any university page, then compare rank,
-                climate, generation, and excellence side by side.
-              </p>
-              {usingQueue ? (
-                <p className="mt-2 text-xs font-medium text-brand-blue">
-                  Using your compare list (
-                  <Link
-                    to={comparePathFromUniversityIds(effectiveIds)}
-                    className="underline"
-                  >
-                    share this link
-                  </Link>
-                  ).
-                </p>
-              ) : null}
-            </div>
-          </div>
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="rounded-full bg-slate-100 p-2.5 transition-colors hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700"
+            aria-label="Go back"
+          >
+            <ArrowLeft className="h-5 w-5 text-slate-700 dark:text-slate-200" />
+          </button>
+          {effectiveIds.length >= 2 ? (
+            <span className="rounded-full bg-brand-blue/10 px-3 py-1 text-xs font-black text-brand-blue">
+              {effectiveIds.length} schools selected
+            </span>
+          ) : null}
+          {effectiveIds.length >= 2 ? locationControls : null}
+        </motion.header>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              disabled={geoPending || compareQuery.isFetching}
-              onClick={requestLocation}
-              className={cn(
-                "inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm transition-colors hover:bg-slate-50 disabled:opacity-60 dark:border-white/10 dark:bg-zinc-900 dark:text-slate-100 dark:hover:bg-zinc-800"
-              )}
-            >
-              {geoPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <MapPin className="h-4 w-4 text-brand-blue" />
-              )}
-              {coords ? "Update my location" : "Use my location"}
-            </button>
-            {coords ? (
-              <button
-                type="button"
-                onClick={dropCoords}
-                className="rounded-full px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+        <ComparePageHero
+          subtitle={
+            effectiveIds.length >= 2
+              ? "Side-by-side facts for your selected schools. Personalize below for a tailored AI verdict."
+              : "Add up to 3 schools from any university page, then compare rank, climate, generation, and excellence."
+          }
+        >
+          {usingQueue && effectiveIds.length >= 2 ? (
+            <p className="mt-3 text-xs font-medium text-brand-blue">
+              Using your compare list (
+              <Link
+                to={comparePathFromUniversityIds(effectiveIds)}
+                className="underline"
               >
-                Clear location
-              </button>
-            ) : null}
-          </div>
-        </motion.div>
+                share this link
+              </Link>
+              ).
+            </p>
+          ) : null}
+        </ComparePageHero>
 
         {effectiveIds.length < 2 ? (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm dark:border-white/10 dark:bg-[#141414]"
+            className="rounded-[2rem] border border-slate-200/80 bg-white/90 p-8 shadow-lg backdrop-blur-md dark:border-white/10 dark:bg-zinc-900/80"
           >
             <h2 className="mb-2 text-lg font-bold text-slate-900 dark:text-white">
               Pick 2–3 universities
@@ -162,7 +233,7 @@ export default function ComparePage() {
             <ol className="mb-6 list-decimal space-y-2 pl-5 text-sm text-slate-600 dark:text-slate-400">
               <li>Browse the university directory or open a school profile.</li>
               <li>Tap the compare icon in the header to add it (max 3).</li>
-              <li>Return here or use the navbar compare button to view the table.</li>
+              <li>Return here or use the navbar compare button to view results.</li>
             </ol>
 
             {queueIds.length > 0 ? (
@@ -219,7 +290,7 @@ export default function ComparePage() {
             </div>
           </motion.div>
         ) : compareQuery.isPending ? (
-          <div className="flex flex-col items-center justify-center gap-3 rounded-[2rem] border border-slate-200 bg-white py-24 dark:border-white/10 dark:bg-[#141414]">
+          <div className="flex flex-col items-center justify-center gap-3 rounded-[2rem] border border-slate-200/80 bg-white/90 py-24 backdrop-blur-md dark:border-white/10 dark:bg-zinc-900/80">
             <Loader2 className="h-10 w-10 animate-spin text-brand-blue" />
             <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
               Building comparison…
@@ -242,99 +313,32 @@ export default function ComparePage() {
           </div>
         ) : (
           <>
-            {aiSummary ? (
-              <motion.section
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-6 overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#141414]"
-              >
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
-                      AI summary
-                    </p>
-                    <h2 className="mt-1 text-lg font-black text-slate-900 dark:text-white">
-                      Key takeaways
-                    </h2>
-                  </div>
-                </div>
-                <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">
-                  {aiSummary}
-                </p>
-              </motion.section>
-            ) : (
-              <motion.section
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-6 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#141414]"
-              >
-                <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
-                  AI summary
-                </p>
-                <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-                  No AI summary available for this comparison yet.
-                </p>
-              </motion.section>
-            )}
+            <CompareShortlistBar
+              universities={cols}
+              onRemove={handleRemoveUniversity}
+            />
 
-            <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
-              Side-by-side facts for your selected schools:
-            </p>
+            <ComparePreferencesPanel
+              onSubmit={handlePreferencesSubmit}
+              pending={compareQuery.isFetching && personalized}
+            />
 
-            <div className="overflow-x-auto rounded-[2rem] border border-slate-200 shadow-lg dark:border-white/10">
-              <table className="w-full min-w-[640px] border-collapse bg-white text-left dark:bg-[#1e1e1e]">
-                <thead>
-                  <tr className="bg-slate-50 dark:bg-white/5">
-                    <th className="p-5 text-left text-xs font-bold uppercase tracking-widest text-slate-400">
-                      Criteria
-                    </th>
-                    {cols.map((u) => (
-                      <th key={String(u.id)} className="p-5">
-                        <div className="flex items-center gap-3">
-                          <img
-                            src={
-                              u.coverImage?.trim() || UNIVERSITY_IMAGE_FALLBACK
-                            }
-                            alt=""
-                            className="h-11 w-11 shrink-0 rounded-lg object-cover"
-                          />
-                          <div className="min-w-0">
-                            <div className="font-bold text-slate-900 dark:text-white">
-                              {u.name}
-                            </div>
-                            {u.city ? (
-                              <div className="truncate text-xs text-slate-500 dark:text-slate-400">
-                                {u.city}
-                              </div>
-                            ) : null}
-                          </div>
-                        </div>
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                  {facts.map((row) => (
-                    <tr
-                      key={row.label}
-                      className="transition-colors hover:bg-slate-50 dark:hover:bg-white/5"
-                    >
-                      <td className="whitespace-nowrap p-5 text-sm font-bold text-slate-600 dark:text-slate-400">
-                        {row.label}
-                      </td>
-                      {cols.map((u) => (
-                        <td
-                          key={`${row.label}-${String(u.id)}`}
-                          className="p-5 text-sm text-slate-900 dark:text-slate-100"
-                        >
-                          {row.values[u.abbreviation] ?? "—"}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <CompareAiVerdict
+              summary={aiSummary}
+              personalized={personalized}
+            />
+
+            <CompareFactsTable universities={cols} facts={facts} />
+
+            {isAuthenticated ? (
+              <SuggestedUniversitiesRow
+                title="You might also like"
+                subtitle="Other schools students explore"
+                universities={suggestedUniversities}
+                loading={suggestedQuery.isPending}
+                viewAllHref="/universities"
+              />
+            ) : null}
           </>
         )}
       </div>
