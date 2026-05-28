@@ -1,5 +1,6 @@
 import { LogOut } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
+import { createPortal } from "react-dom";
 
 type LogoutConfirmModalProps = {
   open: boolean;
@@ -14,7 +15,7 @@ export default function LogoutConfirmModal({
   onClose,
   onConfirm,
 }: LogoutConfirmModalProps) {
-  return (
+  const modal = (
     <AnimatePresence>
       {open && (
         <motion.div
@@ -39,6 +40,7 @@ export default function LogoutConfirmModal({
             exit={{ opacity: 0, scale: 0.95, y: 12 }}
             transition={{ duration: 0.2 }}
             className="relative z-10 w-full max-w-sm rounded-3xl border border-slate-200/80 bg-white p-6 shadow-2xl dark:border-white/10 dark:bg-zinc-900"
+            onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 dark:bg-rose-950/40">
               <LogOut size={22} className="text-rose-600 dark:text-rose-400" />
@@ -76,4 +78,7 @@ export default function LogoutConfirmModal({
       )}
     </AnimatePresence>
   );
+
+  if (typeof document === "undefined") return modal;
+  return createPortal(modal, document.body);
 }
