@@ -16,6 +16,10 @@ import { useNavigate } from "react-router-dom";
 import { SearchDropdown } from "../components/ui/SearchDropdown";
 import { FlickeringGrid } from "../components/ui/flickering-grid";
 import {
+    DISCOVER_GENERATION_IMAGE,
+    UNIVERSITY_IMAGE_FALLBACK,
+} from "../constants/defaultMediaFallbacks";
+import {
     PROGRAM_FIELD_LABELS,
     PROGRAM_FIELD_STYLES,
 } from "../constants/programFieldStyles";
@@ -51,7 +55,7 @@ const DISCOVERY_HUB_CARDS = [
     label: "Generation",
     subtitle: "1st–4th gen universities",
     href: "/discover/generation",
-    img: "https://images.unsplash.com/photo-1523580494863-6df3ab0bea9f?auto=format&fit=crop&q=80&w=800",
+    img: DISCOVER_GENERATION_IMAGE,
     accent: "from-indigo-900/90",
   },
   {
@@ -277,6 +281,12 @@ const DiscoverPage: React.FC = () => {
                     src={card.img}
                     alt=""
                     className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    onError={(e) => {
+                      const el = e.currentTarget;
+                      if (el.dataset.fallbackApplied) return;
+                      el.dataset.fallbackApplied = "1";
+                      el.src = UNIVERSITY_IMAGE_FALLBACK;
+                    }}
                   />
                   <div
                     className={`absolute inset-0 bg-gradient-to-t ${card.accent} via-slate-900/30 to-transparent`}

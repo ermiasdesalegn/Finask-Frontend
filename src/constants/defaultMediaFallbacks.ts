@@ -15,3 +15,7 @@ export const CITY_IMAGE_FALLBACK =
 /** City detail hero — wider asset for full-width headers. */
 export const CITY_HERO_IMAGE_FALLBACK =
   "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?auto=format&fit=crop&q=80&w=1600";
+
+/** Discover hub — Generation theme (classic campus / established universities). */
+export const DISCOVER_GENERATION_IMAGE =
+  "https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&q=80&w=800";
