@@ -1,4 +1,5 @@
-﻿import { BookOpen, ChevronRight, MapPin, Navigation, Sparkles, Star, TrendingUp, Trophy } from "lucide-react";
+import { BookOpen, ChevronRight, MapPin, Navigation, Sparkles, Star, TrendingUp, Trophy } from "lucide-react";
+import AuthRequiredSection from "../auth/AuthRequiredSection";
 import FavoriteButton from "../favorites/FavoriteButton";
 import { motion } from "motion/react";
 import { Link } from "react-router-dom";
@@ -236,31 +237,36 @@ const HomeHighlights = ({ home, loading }: Props) => {
         </Row>
       )}
 
-      {suggestedByLocation.length > 0 && (
-        <Row
-          icon={<MapPin size={16} />}
-          title="Similar Climate"
-          subtitle="Universities in regions like yours"
-          viewAllHref="/universities"
-        >
-          {suggestedByLocation.map((u) => (
-            <UniCard key={u.slug} uni={u} />
-          ))}
-        </Row>
-      )}
+      <AuthRequiredSection
+        title="Sign in to see recommended universities"
+        description="Sign in to see universities in regions like yours and programs that match your interests."
+      >
+        {suggestedByLocation.length > 0 && (
+          <Row
+            icon={<MapPin size={16} />}
+            title="Similar Climate"
+            subtitle="Universities in regions like yours"
+            viewAllHref="/universities"
+          >
+            {suggestedByLocation.map((u) => (
+              <UniCard key={u.slug} uni={u} />
+            ))}
+          </Row>
+        )}
 
-      {suggestedByProgram.length > 0 && (
-        <Row
-          icon={<Trophy size={16} />}
-          title="Matching Your Interests"
-          subtitle="Based on programs you've explored"
-          viewAllHref="/universities"
-        >
-          {suggestedByProgram.map((u) => (
-            <UniCard key={u.slug} uni={u} />
-          ))}
-        </Row>
-      )}
+        {suggestedByProgram.length > 0 && (
+          <Row
+            icon={<Trophy size={16} />}
+            title="Matching Your Interests"
+            subtitle="Based on programs you've explored"
+            viewAllHref="/universities"
+          >
+            {suggestedByProgram.map((u) => (
+              <UniCard key={u.slug} uni={u} />
+            ))}
+          </Row>
+        )}
+      </AuthRequiredSection>
 
       {topRanked.length > 0 && (
         <Row

@@ -1,4 +1,4 @@
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { cn } from "../lib/utils";
 import { useAuth } from "../context/AuthContext";
 import SettingsPage from "./SettingsPage";

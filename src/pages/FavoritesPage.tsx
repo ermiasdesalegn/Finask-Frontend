@@ -3,7 +3,6 @@ import {
   Building2,
   GraduationCap,
   Heart,
-  LogIn,
   MapPin,
   Star,
   Users,
@@ -11,7 +10,6 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import LoginModal from "../components/layout/LoginModal";
 import { FlickeringHeartsBackground } from "../components/ui/flickering-hearts-background";
 import { CELEBRITY_PROFILE_FALLBACK } from "../constants/celebrityFallback";
 import {
@@ -131,7 +129,6 @@ const EmptyState = ({ label }: { label: string }) => (
 
 export default function FavoritesPage() {
   const [activeTab, setActiveTab] = useState<Tab>("universities");
-  const [loginOpen, setLoginOpen] = useState(false);
   const navigate = useNavigate();
   const { user, sessionStatus, isAuthenticated } = useAuth();
 
@@ -179,47 +176,6 @@ export default function FavoritesPage() {
     );
   }
 
-  // ── Not authenticated ──────────────────────────────────────────────────────
-  if (!isAuthenticated) {
-    return (
-      <>
-        <div className="relative min-h-screen w-full bg-slate-50 pb-24 dark:bg-[#05060c]">
-          <div className="pointer-events-none fixed inset-0 z-0 hidden dark:block">
-            <FlickeringHeartsBackground className="h-full w-full" />
-          </div>
-          <div className="relative z-10 flex min-h-[70vh] flex-col items-center justify-center px-6 text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="max-w-sm"
-            >
-              <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-[2rem] border border-slate-200/80 bg-white shadow-xl dark:border-white/10 dark:bg-zinc-900">
-                <Heart size={40} className="text-slate-300 dark:text-slate-600" />
-              </div>
-              <h1 className="mb-3 text-3xl font-black tracking-tight text-slate-900 dark:text-white">
-                Your Favorites
-              </h1>
-              <p className="mb-8 text-slate-500 dark:text-slate-400">
-                Sign in to save and view your favorite universities, programs, cities, campuses, and Great Minds.
-              </p>
-              <button
-                type="button"
-                onClick={() => setLoginOpen(true)}
-                className="inline-flex items-center gap-2 rounded-2xl bg-brand-blue px-8 py-4 font-black text-white shadow-lg shadow-brand-blue/25 transition-all hover:-translate-y-0.5 hover:bg-blue-700 active:scale-95"
-              >
-                <LogIn size={18} />
-                Sign In to Continue
-              </button>
-            </motion.div>
-          </div>
-        </div>
-        <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
-      </>
-    );
-  }
-
-  // ── Authenticated ──────────────────────────────────────────────────────────
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden bg-slate-50 pb-24 transition-colors duration-300 dark:bg-[#05060c]">
       <div className="pointer-events-none fixed inset-0 z-0 hidden dark:block">

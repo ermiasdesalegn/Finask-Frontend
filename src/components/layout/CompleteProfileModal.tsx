@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import finaskLogo from "../../assets/finask-logo.png";
 import { useAuth } from "../../context/AuthContext";
 import { ApiError, apiPatch } from "../../lib/api";
+import { useLogoutConfirm } from "../../lib/hooks/useLogoutConfirm";
 import FieldsOfStudyPicker from "./FieldsOfStudyPicker";
 
 type UpdateMeResponse = {
@@ -19,7 +20,8 @@ const inputClass =
  * Cannot dismiss until at least one field is saved.
  */
 export default function CompleteProfileModal() {
-  const { user, needsFieldsOfInterest, updateUser, logout } = useAuth();
+  const { user, needsFieldsOfInterest, updateUser } = useAuth();
+  const { requestLogout, LogoutConfirmDialog } = useLogoutConfirm();
   const [selectedProgramIds, setSelectedProgramIds] = useState<string[]>([]);
   const [firstName, setFirstName] = useState(user?.firstName ?? "");
   const [lastName, setLastName] = useState(user?.lastName ?? "");
@@ -74,6 +76,7 @@ export default function CompleteProfileModal() {
   };
 
   return (
+    <>
     <motion.div
       className="fixed inset-0 z-[110] flex items-center justify-center overflow-hidden p-4 sm:p-6"
       initial={{ opacity: 0 }}
@@ -179,7 +182,7 @@ export default function CompleteProfileModal() {
 
             <button
               type="button"
-              onClick={() => void logout()}
+              onClick={requestLogout}
               className="w-full text-center text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
             >
               Log out instead
@@ -188,5 +191,7 @@ export default function CompleteProfileModal() {
         </form>
       </motion.div>
     </motion.div>
+    {LogoutConfirmDialog}
+    </>
   );
 }

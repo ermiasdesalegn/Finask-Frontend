@@ -5,6 +5,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import finaskLogo from "../../assets/finask-logo.png";
 import { useAuth, type AuthUser } from "../../context/AuthContext";
+import type { LoginModalMode } from "../../context/LoginModalContext";
 import { ApiError, apiPost } from "../../lib/api";
 import {
   formatGoogleSignInError,
@@ -57,13 +58,15 @@ const GoogleIcon = () => (
 
 const LoginModal = ({
   open,
+  initialMode = "signin",
   onClose,
 }: {
   open: boolean;
+  initialMode?: LoginModalMode;
   onClose: () => void;
 }) => {
   const { login } = useAuth();
-  const [mode, setMode] = useState<Mode>("signin");
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [flowStep, setFlowStep] = useState<FlowStep>("form");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,6 +81,10 @@ const LoginModal = ({
   const [signupPassword, setSignupPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [selectedProgramIds, setSelectedProgramIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (open) setMode(initialMode);
+  }, [open, initialMode]);
 
   const [verificationEmail, setVerificationEmail] = useState("");
   const [otpCells, setOtpCells] = useState<string[]>(() => emptyOtpCells());

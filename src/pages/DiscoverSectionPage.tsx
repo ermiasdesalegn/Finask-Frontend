@@ -1,7 +1,7 @@
 import { ArrowLeft, Loader2, Search } from "lucide-react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
+import AuthRequiredSection from "../components/auth/AuthRequiredSection";
 import { useAuth } from "../context/AuthContext";
-import { useLoginModal } from "../context/LoginModalContext";
 import { useHomePageQuery } from "../lib/queries/home";
 import {
   useFeaturedUniversitiesQuery,
@@ -94,7 +94,6 @@ export default function DiscoverSectionPage() {
   const { section } = useParams<{ section: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const { isAuthenticated, sessionStatus } = useAuth();
-  const { openLogin } = useLoginModal();
   const tokenFp =
     sessionStatus === "loading"
       ? "bootstrapping"
@@ -144,7 +143,7 @@ export default function DiscoverSectionPage() {
     enabled: section === "trending" || section === "discover",
   });
   const featuredQ = useFeaturedUniversitiesQuery({
-    enabled: section === "discover" || section === "for-you",
+    enabled: section === "discover",
   });
   const suggestedLocQ = useSuggestedByLocationQuery(
     section === "for-you" && isAuthenticated
@@ -219,7 +218,10 @@ export default function DiscoverSectionPage() {
       loading =
         trendingQ.isPending || topRatedQ.isPending || featuredQ.isPending;
     } else if (section === "for-you") {
-      if (isAuthenticated) {
+      if (!isAuthenticated) {
+        list = [];
+        loading = false;
+      } else {
         const a =
           suggestedLocQ.data?.data?.universities ??
           homeQ.data?.data?.suggestedByLocation ??
@@ -229,24 +231,13 @@ export default function DiscoverSectionPage() {
           homeQ.data?.data?.suggestedByProgram ??
           [];
         const seen = new Set<string>();
-        const personalized = [...a, ...b].filter((u) => {
+        list = [...a, ...b].filter((u) => {
           const id = u._id ?? u.slug ?? "";
           if (!id || seen.has(id)) return false;
           seen.add(id);
           return true;
         });
-        if (personalized.length > 0) {
-          list = personalized;
-        } else {
-          list =
-            featuredQ.data?.data?.universities ??
-            homeQ.data?.data?.featured ??
-            [];
-        }
         loading = suggestedLocQ.isPending || suggestedProgQ.isPending;
-      } else {
-        list = featuredQ.data?.data?.universities ?? homeQ.data?.data?.featured ?? [];
-        loading = featuredQ.isPending;
       }
     }
 
@@ -336,29 +327,15 @@ export default function DiscoverSectionPage() {
           </div>
         )}
 
-        {section === "for-you" && !isAuthenticated && (
-          <p className="mb-6 text-sm text-slate-500">
-            <button
-              type="button"
-              className="font-bold text-brand-blue hover:underline"
-              onClick={() => openLogin()}
-            >
-              Sign in
-            </button>{" "}
-            for program- and climate-based suggestions. Showing featured picks for now.
-          </p>
-        )}
-
         {section === "for-you" &&
           isAuthenticated &&
           !rawUniversities.loading &&
-          universities.length > 0 &&
+          universities.length === 0 &&
           (suggestedLocQ.data?.data?.universities?.length ?? 0) +
             (suggestedProgQ.data?.data?.universities?.length ?? 0) ===
             0 && (
             <p className="mb-6 text-sm text-slate-500">
-              Personalized matches need a profile location and program interests.
-              Showing featured picks until those are set.{" "}
+              Personalized matches need a profile location and program interests.{" "}
               <Link to="/account" className="font-bold text-brand-blue hover:underline">
                 Update profile
               </Link>
@@ -384,37 +361,78 @@ export default function DiscoverSectionPage() {
           </div>
         )}
 
-        {showToolbar && (
-          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="relative flex-1">
-              <Search
-                size={18}
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-              />
-              <input
-                type="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search in this list…"
-                className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-sm font-medium dark:border-white/10 dark:bg-zinc-900"
-              />
-            </div>
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value as SortOption)}
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold dark:border-white/10 dark:bg-zinc-900"
-            >
-              <option value="rating-desc">Highest rated</option>
-              <option value="name-asc">Name A–Z</option>
-              <option value="name-desc">Name Z–A</option>
-            </select>
-          </div>
-        )}
+        {section === "for-you" ? (
+          <AuthRequiredSection
+            title="Sign in to see recommended universities"
+            description="Sign in to see recommended universities matched to your profile, programs, and location."
+          >
+            {showToolbar && (
+              <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="relative flex-1">
+                  <Search
+                    size={18}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                  />
+                  <input
+                    type="search"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search in this list…"
+                    className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-sm font-medium dark:border-white/10 dark:bg-zinc-900"
+                  />
+                </div>
+                <select
+                  value={sort}
+                  onChange={(e) => setSort(e.target.value as SortOption)}
+                  className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold dark:border-white/10 dark:bg-zinc-900"
+                >
+                  <option value="rating-desc">Highest rated</option>
+                  <option value="name-asc">Name A–Z</option>
+                  <option value="name-desc">Name Z–A</option>
+                </select>
+              </div>
+            )}
 
-        <UniGrid
-          universities={universities}
-          loading={rawUniversities.loading && section !== "nearby"}
-        />
+            <UniGrid
+              universities={universities}
+              loading={rawUniversities.loading}
+            />
+          </AuthRequiredSection>
+        ) : (
+          <>
+            {showToolbar && (
+              <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="relative flex-1">
+                  <Search
+                    size={18}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                  />
+                  <input
+                    type="search"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search in this list…"
+                    className="w-full rounded-2xl border border-slate-200 bg-white py-3 pl-11 pr-4 text-sm font-medium dark:border-white/10 dark:bg-zinc-900"
+                  />
+                </div>
+                <select
+                  value={sort}
+                  onChange={(e) => setSort(e.target.value as SortOption)}
+                  className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold dark:border-white/10 dark:bg-zinc-900"
+                >
+                  <option value="rating-desc">Highest rated</option>
+                  <option value="name-asc">Name A–Z</option>
+                  <option value="name-desc">Name Z–A</option>
+                </select>
+              </div>
+            )}
+
+            <UniGrid
+              universities={universities}
+              loading={rawUniversities.loading && section !== "nearby"}
+            />
+          </>
+        )}
       </div>
     </div>
   );

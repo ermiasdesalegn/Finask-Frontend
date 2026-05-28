@@ -4,6 +4,8 @@ import CompareBar from "./components/compare/CompareBar";
 import Footer from "./components/layout/Footer";
 import CompleteProfileModal from "./components/layout/CompleteProfileModal";
 import Navbar from "./components/layout/Navbar";
+import GuestOnlyRoute from "./components/routing/GuestOnlyRoute";
+import ProtectedRoute from "./components/routing/ProtectedRoute";
 import { CustomCursor } from "./components/ui/custom-cursor";
 import { FlickeringGrid } from "./components/ui/flickering-grid";
 import ScrollToTop from "./components/utils/ScrollToTop";
@@ -26,6 +28,7 @@ import ProgramsPage from "./pages/ProgramsPage";
 import UniversitiesPage from "./pages/UniversitiesPage";
 import UniversityPage from "./pages/University";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import LoginPage from "./pages/LoginPage";
 import AccountPage, { MeRedirect, SettingsRedirect } from "./pages/AccountPage";
 import SettingsPage from "./pages/SettingsPage";
 import MePage from "./pages/MePage";
@@ -34,6 +37,25 @@ import UserProfilePage from "./pages/UserProfilePage";
 import CampusPage from "./pages/CampusPage";
 import ElevationZonesPage from "./pages/ElevationZonesPage";
 import ElevationZonePage from "./pages/ElevationZonePage";
+
+function PageShell({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]",
+        className
+      )}
+    >
+      {children}
+    </div>
+  );
+}
 
 function AppShell() {
   const [darkMode, setDarkMode] = useState(() => {
@@ -118,203 +140,246 @@ function AppShell() {
             <Route path="/" element={<HomePage />} />
 
             <Route
+              path="/login"
+              element={
+                <GuestOnlyRoute>
+                  <LoginPage />
+                </GuestOnlyRoute>
+              }
+            />
+
+            <Route
               path="/discover"
               element={
-                <div className="min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]">
+                <PageShell>
                   <DiscoverPage />
-                </div>
+                </PageShell>
+              }
+            />
+
+            <Route
+              path="/discover/for-you"
+              element={
+                <PageShell>
+                  <DiscoverSectionPage />
+                </PageShell>
               }
             />
 
             <Route
               path="/discover/:section"
               element={
-                <div className="min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]">
+                <PageShell>
                   <DiscoverSectionPage />
-                </div>
+                </PageShell>
               }
             />
 
             <Route
               path="/universities"
               element={
-                <div className="min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]">
+                <PageShell>
                   <UniversitiesPage />
-                </div>
+                </PageShell>
               }
             />
 
             <Route
               path="/universities/:slug"
               element={
-                <div className="min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]">
+                <PageShell>
                   <UniversityPage />
-                </div>
+                </PageShell>
               }
             />
 
             <Route
               path="/compare"
               element={
-                <div className="min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]">
-                  <ComparePage />
-                </div>
+                <ProtectedRoute>
+                  <PageShell>
+                    <ComparePage />
+                  </PageShell>
+                </ProtectedRoute>
               }
             />
 
             <Route
               path="/campuses"
               element={
-                <div className="min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]">
+                <PageShell>
                   <CampusesPage />
-                </div>
+                </PageShell>
               }
             />
 
             <Route
               path="/campuses/gallery/:universityId"
               element={
-                <div className="min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]">
+                <PageShell>
                   <UniversityCampusGalleryPage />
-                </div>
+                </PageShell>
               }
             />
 
             <Route
               path="/cities"
               element={
-                <div className="min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]">
+                <PageShell>
                   <CitiesPage />
-                </div>
+                </PageShell>
               }
             />
 
             <Route
               path="/cities/:id"
               element={
-                <div className="min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]">
+                <PageShell>
                   <CityPage />
-                </div>
+                </PageShell>
               }
             />
 
             <Route
               path="/programs/:slug"
               element={
-                <div className="min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]">
+                <PageShell>
                   <ProgramPage />
-                </div>
+                </PageShell>
               }
             />
 
             <Route
               path="/programs"
               element={
-                <div className="min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]">
+                <PageShell>
                   <ProgramsPage />
-                </div>
+                </PageShell>
               }
             />
 
             <Route
               path="/celebrities"
               element={
-                <div className="min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]">
+                <PageShell>
                   <CelebritiesPage />
-                </div>
+                </PageShell>
               }
             />
 
             <Route
               path="/celebrities/:slugOrId"
               element={
-                <div className="min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]">
+                <PageShell>
                   <CelebrityPage />
-                </div>
+                </PageShell>
               }
             />
 
             <Route
               path="/favorites"
               element={
-                <div className="min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]">
-                  <FavoritesPage />
-                </div>
+                <ProtectedRoute>
+                  <PageShell>
+                    <FavoritesPage />
+                  </PageShell>
+                </ProtectedRoute>
               }
             />
 
             <Route
               path="/about"
               element={
-                <div className="min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]">
+                <PageShell>
                   <AboutPage />
-                </div>
+                </PageShell>
               }
             />
 
             <Route
               path="/forgot-password"
               element={
-                <div className="min-h-screen bg-white pt-20 dark:bg-[#121212]">
-                  <ForgotPasswordPage />
-                </div>
+                <GuestOnlyRoute>
+                  <PageShell className="dark:bg-[#121212]">
+                    <ForgotPasswordPage />
+                  </PageShell>
+                </GuestOnlyRoute>
               }
             />
 
             <Route
               path="/account"
               element={
-                <div className="min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]">
-                  <AccountPage />
-                </div>
+                <ProtectedRoute>
+                  <PageShell>
+                    <AccountPage />
+                  </PageShell>
+                </ProtectedRoute>
               }
             />
 
-            <Route path="/settings" element={<SettingsRedirect />} />
-            <Route path="/me" element={<MeRedirect />} />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <SettingsRedirect />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/me"
+              element={
+                <ProtectedRoute>
+                  <MeRedirect />
+                </ProtectedRoute>
+              }
+            />
 
             <Route
               path="/chat"
               element={
-                <div className="min-h-screen bg-white pt-20 transition-colors duration-300 dark:bg-[#121212]">
-                  <ChatPage />
-                </div>
+                <ProtectedRoute>
+                  <PageShell>
+                    <ChatPage />
+                  </PageShell>
+                </ProtectedRoute>
               }
             />
 
             <Route
               path="/users/:id"
               element={
-                <div className="min-h-screen bg-white pt-20 dark:bg-[#121212]">
+                <PageShell className="dark:bg-[#121212]">
                   <UserProfilePage />
-                </div>
+                </PageShell>
               }
             />
 
             <Route
               path="/campuses/:slugOrId"
               element={
-                <div className="min-h-screen bg-white pt-20 dark:bg-[#121212]">
+                <PageShell className="dark:bg-[#121212]">
                   <CampusPage />
-                </div>
+                </PageShell>
               }
             />
 
             <Route
               path="/elevation-zones"
               element={
-                <div className="min-h-screen bg-white pt-20 dark:bg-[#121212]">
+                <PageShell className="dark:bg-[#121212]">
                   <ElevationZonesPage />
-                </div>
+                </PageShell>
               }
             />
 
             <Route
               path="/elevation-zones/:slug"
               element={
-                <div className="min-h-screen bg-white pt-20 dark:bg-[#121212]">
+                <PageShell className="dark:bg-[#121212]">
                   <ElevationZonePage />
-                </div>
+                </PageShell>
               }
             />
           </Routes>

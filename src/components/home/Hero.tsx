@@ -3,6 +3,9 @@ import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import heroImg from "../../assets/hero-img.png";
+import { useAuth } from "../../context/AuthContext";
+import { useLoginModal } from "../../context/LoginModalContext";
+import { AUTH_DEFAULT_APP_PATH } from "../../lib/authRoutes";
 import { useDebounce } from "../../lib/hooks/useDebounce";
 import { useSearchQuery } from "../../lib/queries/search";
 import {
@@ -29,6 +32,10 @@ function sumRatingsQuantity(
   return t;
 }
 
+/** Shared primary hero CTA — same footprint for Get Started and Continue exploring */
+const PRIMARY_CTA_CLASS =
+  "inline-flex min-w-[15.5rem] items-center justify-center gap-3 whitespace-nowrap rounded-2xl bg-brand-blue px-10 py-5 text-lg font-black text-white shadow-2xl shadow-blue-500/40 transition-all hover:-translate-y-1 hover:bg-blue-700 active:scale-95";
+
 const Hero = ({
   home,
   loading,
@@ -37,6 +44,9 @@ const Hero = ({
   loading: boolean;
 }) => {
   const navigate = useNavigate();
+  const { isAuthenticated, sessionStatus } = useAuth();
+  const { openSignUp } = useLoginModal();
+  const authReady = sessionStatus === "ready";
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedQuery = useDebounce(searchQuery, 300);
   const isSearching = debouncedQuery.trim().length >= 2;
@@ -99,12 +109,24 @@ const Hero = ({
             academic future with confidence.
           </p>
           <div className="flex flex-wrap gap-5">
-            <Link
-              to="/universities"
-              className="flex items-center gap-3 rounded-2xl bg-brand-blue px-10 py-5 text-lg font-black text-white shadow-2xl shadow-blue-500/40 transition-all hover:-translate-y-1 hover:bg-blue-700 active:scale-95"
-            >
-              Get Started <ArrowRight size={22} />
-            </Link>
+            {authReady && isAuthenticated ? (
+              <Link to={AUTH_DEFAULT_APP_PATH} className={PRIMARY_CTA_CLASS}>
+                Continue exploring <ArrowRight size={22} />
+              </Link>
+            ) : authReady ? (
+              <button
+                type="button"
+                onClick={() => openSignUp()}
+                className={PRIMARY_CTA_CLASS}
+              >
+                Get Started <ArrowRight size={22} />
+              </button>
+            ) : (
+              <span
+                className={`${PRIMARY_CTA_CLASS} pointer-events-none animate-pulse bg-slate-200 shadow-none dark:bg-zinc-800`}
+                aria-hidden
+              />
+            )}
             <button
               type="button"
               className="rounded-2xl border-2 border-slate-200 px-10 py-5 text-lg font-black transition-all hover:-translate-y-1 hover:bg-slate-50 active:scale-95 dark:border-white/10 dark:hover:bg-white/5"

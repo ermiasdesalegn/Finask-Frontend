@@ -2,6 +2,7 @@ import { ArrowRight, BookOpen, Building2, Mail, MapPin, Phone, Sparkles } from "
 import { motion } from "motion/react";
 import { Link } from "react-router-dom";
 import finaskLogo from "../../assets/finask-logo.png";
+import { useAuth } from "../../context/AuthContext";
 
 const NAV_LINKS = [
   { label: "Home", to: "/" },
@@ -46,6 +47,8 @@ const SOCIAL_LINKS = [
 
 const Footer = () => {
   const year = new Date().getFullYear();
+  const { isAuthenticated, sessionStatus } = useAuth();
+  const showGuestCta = sessionStatus === "ready" && !isAuthenticated;
 
   return (
     <footer className="relative mt-20 border-t border-slate-200/60 bg-white/60 backdrop-blur-xl dark:border-white/5 dark:bg-zinc-950/80">
@@ -88,32 +91,33 @@ const Footer = () => {
             </div>
           </div>
 
-          {/* CTA card */}
-          <div className="w-full max-w-md rounded-3xl border border-slate-200/80 bg-white/80 p-6 shadow-xl shadow-slate-200/30 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/80 dark:shadow-none">
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-blue-200/60 bg-blue-50 px-3 py-1 text-xs font-bold text-brand-blue dark:border-brand-blue/20 dark:bg-brand-blue/10">
-              <Sparkles size={12} className="text-brand-yellow" />
-              Start your journey
+          {showGuestCta && (
+            <div className="w-full max-w-md rounded-3xl border border-slate-200/80 bg-white/80 p-6 shadow-xl shadow-slate-200/30 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/80 dark:shadow-none">
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-blue-200/60 bg-blue-50 px-3 py-1 text-xs font-bold text-brand-blue dark:border-brand-blue/20 dark:bg-brand-blue/10">
+                <Sparkles size={12} className="text-brand-yellow" />
+                Start your journey
+              </div>
+              <h3 className="mb-1 text-lg font-black tracking-tight text-slate-900 dark:text-white">
+                Find your perfect university
+              </h3>
+              <p className="mb-4 text-xs text-slate-500 dark:text-slate-400">
+                Join 21,000+ students already navigating smarter with Finask.
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  placeholder="Your email address"
+                  className="flex-1 rounded-xl border border-slate-200/80 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-brand-blue/40 focus:bg-white dark:border-white/10 dark:bg-zinc-800 dark:text-white dark:placeholder:text-slate-500"
+                />
+                <button
+                  type="button"
+                  className="flex items-center gap-1.5 rounded-xl bg-brand-blue px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand-blue/20 transition-all hover:bg-blue-700 active:scale-95"
+                >
+                  Go <ArrowRight size={14} />
+                </button>
+              </div>
             </div>
-            <h3 className="mb-1 text-lg font-black tracking-tight text-slate-900 dark:text-white">
-              Find your perfect university
-            </h3>
-            <p className="mb-4 text-xs text-slate-500 dark:text-slate-400">
-              Join 21,000+ students already navigating smarter with Finask.
-            </p>
-            <div className="flex gap-2">
-              <input
-                type="email"
-                placeholder="Your email address"
-                className="flex-1 rounded-xl border border-slate-200/80 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-brand-blue/40 focus:bg-white dark:border-white/10 dark:bg-zinc-800 dark:text-white dark:placeholder:text-slate-500"
-              />
-              <button
-                type="button"
-                className="flex items-center gap-1.5 rounded-xl bg-brand-blue px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand-blue/20 transition-all hover:bg-blue-700 active:scale-95"
-              >
-                Go <ArrowRight size={14} />
-              </button>
-            </div>
-          </div>
+          )}
         </motion.div>
 
         {/* Divider */}

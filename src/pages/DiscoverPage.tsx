@@ -3,6 +3,7 @@ import {
     Brain,
     Building2,
     Heart,
+    Lock,
     MapPin,
     Search,
     Sparkles,
@@ -13,6 +14,8 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { useLoginModal } from "../context/LoginModalContext";
 import { SearchDropdown } from "../components/ui/SearchDropdown";
 import { FlickeringGrid } from "../components/ui/flickering-grid";
 import {
@@ -109,6 +112,8 @@ const DISCOVERY_HUB_CARDS = [
   },
 ] as const;
 
+const PERSONALIZED_DISCOVER_HREF = "/discover/for-you";
+
 const BROWSE_CATEGORIES: BrowseCategory[] = [
   { label: "All Universities", icon: <Building2 size={16} />, href: "/universities", img: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=400", accent: "from-blue-900/90" },
   { label: "Just for You", icon: <Sparkles size={16} />, href: "/universities?filter=featured", img: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=400", accent: "from-amber-900/90" },
@@ -135,6 +140,9 @@ const itemVariants = staggerBlurItem;
 const DiscoverPage: React.FC = () => {
   const isDark = useDocumentDark();
   const navigate = useNavigate();
+  const { isAuthenticated, sessionStatus } = useAuth();
+  const { openLogin } = useLoginModal();
+  const authReady = sessionStatus === "ready";
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedQuery = useDebounce(searchQuery, 300);
   const isSearching = debouncedQuery.trim().length >= 2;
@@ -269,12 +277,23 @@ const DiscoverPage: React.FC = () => {
               </h2>
             </motion.div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {DISCOVERY_HUB_CARDS.map((card) => (
+              {DISCOVERY_HUB_CARDS.map((card) => {
+                const isPersonalized = card.href === PERSONALIZED_DISCOVER_HREF;
+                const guestLocked =
+                  isPersonalized && authReady && !isAuthenticated;
+
+                return (
                 <motion.button
                   key={card.href}
                   type="button"
                   variants={itemVariants}
-                  onClick={() => navigate(card.href)}
+                  onClick={() => {
+                    if (guestLocked) {
+                      openLogin();
+                      return;
+                    }
+                    navigate(card.href);
+                  }}
                   className="group relative h-44 overflow-hidden rounded-[1.5rem] border border-slate-200/50 text-left shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl dark:border-white/5"
                 >
                   <img
@@ -291,12 +310,21 @@ const DiscoverPage: React.FC = () => {
                   <div
                     className={`absolute inset-0 bg-gradient-to-t ${card.accent} via-slate-900/30 to-transparent`}
                   />
+                  {guestLocked && (
+                    <span className="absolute right-4 top-4 inline-flex items-center gap-1 rounded-full bg-black/50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-white backdrop-blur-md">
+                      <Lock size={10} />
+                      Sign in
+                    </span>
+                  )}
                   <div className="absolute bottom-5 left-5 right-5">
                     <p className="text-lg font-black text-white">{card.label}</p>
-                    <p className="text-xs font-medium text-white/80">{card.subtitle}</p>
+                    <p className="text-xs font-medium text-white/80">
+                      {guestLocked ? "Sign in to see your matches" : card.subtitle}
+                    </p>
                   </div>
                 </motion.button>
-              ))}
+              );
+              })}
             </div>
           </section>
 

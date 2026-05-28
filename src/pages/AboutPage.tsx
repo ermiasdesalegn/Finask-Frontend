@@ -1,7 +1,10 @@
-import { motion } from "motion/react";
 import { ArrowRight, BookOpen, Brain, Compass, GraduationCap, Heart, Mail, MapPin, Sparkles, Star, Users, Zap } from 'lucide-react';
+import { motion } from "motion/react";
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import ephremAvatar from "../assets/team/architects/ephrem_ketachew.jpg";
+import ermiasAvatar from "../assets/team/architects/ermias_desalegn.jpg";
+import henokAvatar from "../assets/team/architects/henok_enyew.jpg";
 import { FlickeringGrid } from "../components/ui/flickering-grid";
 import {
   blurReveal,
@@ -21,10 +24,24 @@ const STATS = [
 ];
 
 const TEAM = [
-  { name: 'Abebe Girma', role: 'Founder & CEO', avatar: 'https://i.pravatar.cc/150?u=101', bio: 'Former student who struggled to find the right university. Built Finask to solve that.' },
-  { name: 'Tigist Haile', role: 'Head of Product', avatar: 'https://i.pravatar.cc/150?u=102', bio: 'UX researcher passionate about making education accessible to every Ethiopian student.' },
-  { name: 'Dawit Bekele', role: 'Lead Engineer', avatar: 'https://i.pravatar.cc/150?u=103', bio: 'Full-stack engineer with a love for building tools that matter.' },
-  { name: 'Sara Tesfaye', role: 'Data & AI', avatar: 'https://i.pravatar.cc/150?u=104', bio: 'Machine learning engineer turning university data into actionable insights.' },
+  {
+    name: "Ermias Desalegn",
+    role: "Frontend Engineer",
+    avatar: ermiasAvatar,
+    bio: "Builds the Finask UI and frontend experiences.",
+  },
+  {
+    name: "Henok Enyew",
+    role: "Lead Engineer",
+    avatar: henokAvatar,
+    bio: "Leads engineering execution across the platform.",
+  },
+  {
+    name: "Ephrem Ketachew",
+    role: "Backend Engineer",
+    avatar: ephremAvatar,
+    bio: "Builds APIs and services powering discovery and personalization.",
+  },
 ];
 
 // Reconfigured spans for a beautiful 2-1 / 1-2 interlocking Bento Grid
@@ -264,7 +281,7 @@ const AboutPage = () => {
             initial="hidden"
             whileInView="show"
             viewport={{ once: true }}
-            className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 items-start"
+            className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 items-start"
           >
             {TEAM.map((member, i) => (
               <motion.div

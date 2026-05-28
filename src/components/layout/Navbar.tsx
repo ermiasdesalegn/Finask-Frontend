@@ -17,6 +17,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useCompare } from "../../context/CompareContext";
 import { useLoginModal } from "../../context/LoginModalContext";
 import { comparePathFromUniversityIds } from "../../lib/compareQueue";
+import { useLogoutConfirm } from "../../lib/hooks/useLogoutConfirm";
 import { cn } from "../../lib/utils";
 import UserMenu from "./UserMenu";
 
@@ -33,10 +34,12 @@ const Navbar = ({
   const [isScrolled, setIsScrolled] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { openLogin } = useLoginModal();
+  const { openLogin, openSignUp } = useLoginModal();
   const location = useLocation();
   const navigate = useNavigate();
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user, sessionStatus } = useAuth();
+  const { requestLogout, LogoutConfirmDialog } = useLogoutConfirm();
+  const authReady = sessionStatus === "ready";
   const { ids: compareIds } = useCompare();
   const compareDest = comparePathFromUniversityIds(compareIds);
 
@@ -178,16 +181,30 @@ const Navbar = ({
                 </button>
               </div>
 
-              {isAuthenticated && user ? (
+              {!authReady ? (
+                <div
+                  className="hidden h-9 w-[8.5rem] rounded-full bg-slate-100/80 dark:bg-white/5 md:block"
+                  aria-hidden
+                />
+              ) : isAuthenticated && user ? (
                 <UserMenu />
               ) : (
-                <button
-                  type="button"
-                  onClick={() => openLogin()}
-                  className="hidden rounded-full bg-brand-blue px-5 py-2 text-sm font-bold text-white shadow-md shadow-brand-blue/20 transition-all hover:bg-blue-700 md:block"
-                >
-                  Sign in
-                </button>
+                <div className="hidden items-center gap-2 md:flex">
+                  <button
+                    type="button"
+                    onClick={() => openLogin()}
+                    className="rounded-full px-4 py-2 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10"
+                  >
+                    Log in
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openSignUp()}
+                    className="rounded-full bg-brand-blue px-5 py-2 text-sm font-bold text-white shadow-md shadow-brand-blue/20 transition-all hover:bg-blue-700"
+                  >
+                    Sign up
+                  </button>
+                </div>
               )}
 
               <button
@@ -228,7 +245,7 @@ const Navbar = ({
                 ))}
               </div>
 
-              {isAuthenticated && user ? (
+              {!authReady ? null : isAuthenticated && user ? (
                 <div className="border-t border-slate-100 p-3 dark:border-white/10">
                   <p className="mb-2 px-2 text-xs font-bold uppercase tracking-wider text-slate-400">
                     Account
@@ -253,7 +270,7 @@ const Navbar = ({
                     type="button"
                     onClick={() => {
                       closeMenu();
-                      void logout();
+                      requestLogout();
                     }}
                     className="mt-1 flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 py-3 font-semibold text-rose-600 dark:border-white/10 dark:text-rose-400"
                   >
@@ -269,9 +286,19 @@ const Navbar = ({
                       closeMenu();
                       openLogin();
                     }}
+                    className="mb-2 w-full rounded-2xl border border-slate-200 py-3.5 font-bold text-slate-800 dark:border-white/10 dark:text-white"
+                  >
+                    Log in
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      closeMenu();
+                      openSignUp();
+                    }}
                     className="w-full rounded-2xl bg-brand-blue py-3.5 font-bold text-white"
                   >
-                    Sign in
+                    Sign up
                   </button>
                 </div>
               )}
@@ -279,6 +306,7 @@ const Navbar = ({
           )}
         </AnimatePresence>
       </header>
+      {LogoutConfirmDialog}
     </>
   );
 };

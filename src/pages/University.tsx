@@ -32,6 +32,7 @@ import {
   PROGRAM_FIELD_LABELS,
 } from "../constants/programFieldStyles";
 import { useAuth } from "../context/AuthContext";
+import { useLoginModal } from "../context/LoginModalContext";
 import { useCompare } from "../context/CompareContext";
 import { showApiToast } from "../lib/api";
 import { staggerBlurContainer, staggerBlurItem } from "../lib/motion/pageMotion";
@@ -68,6 +69,7 @@ const UniversityPage: React.FC = () => {
   const navigate = useNavigate();
   const { add, remove, contains } = useCompare();
   const { isAuthenticated } = useAuth();
+  const { openLogin, openSignUp } = useLoginModal();
 
   const universityQuery = useUniversityBySlugQuery(slug);
   const uni = (universityQuery.data as University | undefined) ?? null;
@@ -712,12 +714,22 @@ const UniversityPage: React.FC = () => {
                   <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
                     Sign in for personalized university picks matched to your profile.
                   </p>
-                  <Link
-                    to="/discover/for-you"
-                    className="mt-3 inline-block rounded-xl bg-brand-blue px-5 py-2.5 text-sm font-black text-white"
-                  >
-                    Explore personalized picks
-                  </Link>
+                  <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => openLogin()}
+                      className="rounded-xl bg-brand-blue px-5 py-2.5 text-sm font-black text-white"
+                    >
+                      Log in
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openSignUp()}
+                      className="rounded-xl border-2 border-slate-200 px-5 py-2.5 text-sm font-black dark:border-white/10"
+                    >
+                      Sign up
+                    </button>
+                  </div>
                 </motion.div>
               )}
 

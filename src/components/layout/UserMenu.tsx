@@ -1,13 +1,14 @@
 import { ChevronDown, LogOut, Settings, UserCircle } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useLogoutConfirm } from "../../lib/hooks/useLogoutConfirm";
 import { cn } from "../../lib/utils";
 
 export default function UserMenu() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { requestLogout, LogoutConfirmDialog } = useLogoutConfirm();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -100,8 +101,7 @@ export default function UserMenu() {
               role="menuitem"
               onClick={() => {
                 setOpen(false);
-                void logout();
-                navigate("/");
+                requestLogout();
               }}
               className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-rose-600 transition-colors hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/40"
             >
@@ -111,6 +111,7 @@ export default function UserMenu() {
           </motion.div>
         )}
       </AnimatePresence>
+      {LogoutConfirmDialog}
     </div>
   );
 }
