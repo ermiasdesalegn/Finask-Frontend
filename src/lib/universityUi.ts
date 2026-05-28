@@ -92,7 +92,24 @@ export function universityClimateFocus(uni: University): string {
       }
       if (clim.climateTag) parts.push(clim.climateTag);
       if (clim.elevationZone) parts.push(clim.elevationZone);
-      if (parts.length) return parts.join(", ");
+      if (parts.length) {
+        // Some API payloads accidentally include ids in display fields.
+        const raw = parts.join(", ");
+        const withoutIds = raw
+          // Mongo ObjectId (24 hex chars)
+          .replace(/\b[a-f0-9]{24}\b/gi, "")
+          // UUID (8-4-4-4-12)
+          .replace(
+            /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi,
+            ""
+          );
+        const cleaned = withoutIds
+          .replace(/\s{2,}/g, " ")
+          .replace(/\s*,\s*,+/g, ", ")
+          .replace(/,\s*$/g, "")
+          .trim();
+        return cleaned || "—";
+      }
     }
   }
 
