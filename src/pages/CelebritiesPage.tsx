@@ -14,8 +14,7 @@ import type { Celebrity } from "../types";
 
 function listThumbSrc(c: Celebrity): string {
   const profile = unwrapMarkdownLink(c.profileImage ?? undefined);
-  const cover = unwrapMarkdownLink(c.coverImage ?? undefined);
-  return profile || cover || CELEBRITY_PROFILE_FALLBACK;
+  return profile || CELEBRITY_PROFILE_FALLBACK;
 }
 
 const CelebritiesPage: React.FC = () => {

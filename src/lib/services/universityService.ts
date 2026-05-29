@@ -60,9 +60,10 @@ export async function fetchUniversitiesList(
   if (filters.campusSetting) {
     params.set("campusSetting", filters.campusSetting);
   }
-  return apiGet<UniversitiesListResponse>(
+  const res = await apiGet<LooseUniversitiesPayload>(
     `/universities?${params.toString()}`
   );
+  return normalizeUniversitiesListResponse(res);
 }
 
 /** Some API docs / older deploys return `data.data` instead of `data.universities`. */

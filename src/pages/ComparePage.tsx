@@ -43,6 +43,7 @@ export default function ComparePage() {
   const [submittedPrefs, setSubmittedPrefs] =
     useState<ComparePreferences | null>(null);
   const [programNames, setProgramNames] = useState<string[]>([]);
+  const [prefsExpanded, setPrefsExpanded] = useState(true);
 
   const urlIds = useMemo(
     () => parseValidUniversityIdsParam(searchParams.get("ids")),
@@ -94,9 +95,12 @@ export default function ComparePage() {
     (prefs: ComparePreferences, names: string[]) => {
       setSubmittedPrefs(prefs);
       setProgramNames(names);
+      setPrefsExpanded(false);
     },
     []
   );
+
+  const prefsCollapsed = submittedPrefs != null && !prefsExpanded;
 
   const handleRemoveUniversity = useCallback(
     (id: string) => {
@@ -321,6 +325,9 @@ export default function ComparePage() {
             <ComparePreferencesPanel
               onSubmit={handlePreferencesSubmit}
               pending={compareQuery.isFetching && personalized}
+              collapsed={prefsCollapsed}
+              onExpand={() => setPrefsExpanded(true)}
+              programNamesPreview={programNames}
             />
 
             <CompareAiVerdict

@@ -118,11 +118,14 @@ const UniversitiesPage: React.FC = () => {
   const climateView = searchParams.get("view") === "climate";
   const climateZoneParam = searchParams.get("zone");
 
-  const useMainList = discoverPreset === null;
-
   const activeRegionApi = REGION_FILTERS.find(
     (r) => r.label === activeRegionLabel
   )?.value;
+
+  /** Region pills use GET /universities?city_region=… — use main list whenever a region is selected. */
+  const useMainList = discoverPreset === null || activeRegionApi != null;
+
+  const regionFilteredOnServer = activeRegionApi != null && useMainList;
 
   const listFilters = useMemo(
     () => ({
@@ -378,10 +381,11 @@ const UniversitiesPage: React.FC = () => {
       const matchRating =
         filters.minRating === null || rating >= filters.minRating;
       const matchFeatured = !filters.featuredOnly || u.isFeatured;
+      // Backend filters via city_region on the joined City doc; address.region is often unset.
       const matchRegion =
+        regionFilteredOnServer ||
         activeRegionApi == null ||
-        (u.address?.region ?? "").toLowerCase() ===
-          activeRegionApi.toLowerCase();
+        (u.address?.region ?? "").toLowerCase() === activeRegionApi.toLowerCase();
       const matchType =
         !filters.type ||
         (filters.type === "Public" && u.institutionalType === "public") ||
@@ -413,6 +417,7 @@ const UniversitiesPage: React.FC = () => {
     searchQuery_.data,
     filters,
     sortBy,
+    regionFilteredOnServer,
     activeRegionApi,
   ]);
 
@@ -1143,7 +1148,7 @@ const UniversitiesPage: React.FC = () => {
                         <Search size={24} />
                       </motion.div>
                       <h3 className="mb-2 text-xl font-black tracking-tight text-slate-900 dark:text-white">
-                        No campuses found
+                        No universities found
                       </h3>
                       <p className="text-sm text-slate-500 dark:text-slate-400">
                         Try tweaking your search terms or clearing the filters.

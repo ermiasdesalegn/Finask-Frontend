@@ -34,7 +34,7 @@ export default function CompareAiVerdict({
     <motion.section
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="mb-6 overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/90 p-6 shadow-lg backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/80"
+      className="mb-6 rounded-[2rem] border border-slate-200/80 bg-white/90 p-6 shadow-lg backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/80"
     >
       <div className="mb-4 flex items-start gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-brand-yellow/20">
@@ -53,9 +53,9 @@ export default function CompareAiVerdict({
           </h2>
         </div>
       </div>
-      <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">
+      <div className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">
         {formatAiSummary(summary)}
-      </p>
+      </div>
     </motion.section>
   );
 }

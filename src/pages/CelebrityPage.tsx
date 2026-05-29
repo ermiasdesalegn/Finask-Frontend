@@ -11,7 +11,10 @@ import {
 import { motion } from "motion/react";
 import React, { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { CELEBRITY_PROFILE_FALLBACK } from "../constants/celebrityFallback";
+import {
+  CELEBRITY_COVER_FALLBACK,
+  CELEBRITY_PROFILE_FALLBACK,
+} from "../constants/celebrityFallback";
 import { PROGRAM_IMAGE_FALLBACK } from "../constants/defaultMediaFallbacks";
 import {
   DEFAULT_PROGRAM_FIELD_STYLE,
@@ -29,9 +32,6 @@ import { cn } from "../lib/utils";
 import FavoriteButton from "../components/favorites/FavoriteButton";
 import QuestionsSection from "../components/community/QuestionsSection";
 import type { Celebrity, Program, Question } from "../types";
-
-const HERO_FALLBACK =
-  "https://images.unsplash.com/photo-1457369804613-52c61a468e7d?auto=format&fit=crop&q=80&w=1200";
 
 const BIO_PREVIEW_CHARS = 280;
 
@@ -187,8 +187,7 @@ const CelebrityPage: React.FC = () => {
 
   const coverSrc =
     unwrapMarkdownLink(celeb?.coverImage ?? undefined) ||
-    unwrapMarkdownLink(celeb?.profileImage ?? undefined) ||
-    HERO_FALLBACK;
+    CELEBRITY_COVER_FALLBACK;
   const profileSrc =
     unwrapMarkdownLink(celeb?.profileImage ?? undefined) ||
     CELEBRITY_PROFILE_FALLBACK;
@@ -543,7 +542,7 @@ const CelebrityPage: React.FC = () => {
               {related.map((c) => {
                 const profileU = unwrapMarkdownLink(c.profileImage ?? undefined);
                 const coverU = unwrapMarkdownLink(c.coverImage ?? undefined);
-                const stripSrc = profileU || coverU || CELEBRITY_PROFILE_FALLBACK;
+                const stripSrc = coverU || CELEBRITY_COVER_FALLBACK;
                 const avatarSrc = profileU || CELEBRITY_PROFILE_FALLBACK;
                 return (
                   <Link

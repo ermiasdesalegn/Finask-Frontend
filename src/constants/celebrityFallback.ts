@@ -1,3 +1,8 @@
-/** Used when `profileImage` (and optionally `coverImage`) is null — list, detail avatar, related cards. */
-export const CELEBRITY_PROFILE_FALLBACK =
-  "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=400&h=400&fit=crop";
+import avatarPlaceholder from "../assets/avatar-placeholder.png";
+
+/** Profile avatar when `profileImage` is missing — not used for cover/banner. */
+export const CELEBRITY_PROFILE_FALLBACK = avatarPlaceholder;
+
+/** Cover/banner when `coverImage` is missing — not used for profile avatar. */
+export const CELEBRITY_COVER_FALLBACK =
+  "https://images.unsplash.com/photo-1457369804613-52c61a468e7d?auto=format&fit=crop&q=80&w=1200";

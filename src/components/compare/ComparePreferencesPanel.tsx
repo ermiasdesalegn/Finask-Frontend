@@ -1,8 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, MessageCircle, Send, Sparkles } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
-import FieldsOfStudyPicker from "../layout/FieldsOfStudyPicker";
-import PersonalInterestsPicker from "../layout/PersonalInterestsPicker";
+import {
+  ChevronDown,
+  Loader2,
+  MessageCircle,
+  Pencil,
+  Send,
+  Sparkles,
+} from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import MultiSelectDropdown from "../ui/MultiSelectDropdown";
 import { useAuth } from "../../context/AuthContext";
 import {
   canSubmitComparePreferences,
@@ -15,9 +21,11 @@ import {
   type ComparePriority,
 } from "../../lib/comparePreferences";
 import { queryKeys } from "../../lib/queryKeys";
+import { fetchInterestCatalog } from "../../lib/services/interestService";
 import { fetchProgramsList } from "../../lib/services/programService";
 import {
   fieldsOfInterestIds,
+  formatInterestLabel,
   userInterestNames,
 } from "../../lib/userProfile";
 import { cn } from "../../lib/utils";
@@ -33,6 +41,9 @@ const programsFilters = {
 type ComparePreferencesPanelProps = {
   onSubmit: (prefs: ComparePreferences, programNames: string[]) => void;
   pending?: boolean;
+  collapsed?: boolean;
+  onExpand?: () => void;
+  programNamesPreview?: string[];
 };
 
 function chatToNotes(messages: ChatMessage[]): string {
@@ -86,6 +97,9 @@ function ChipGroup<T extends string>({
 export default function ComparePreferencesPanel({
   onSubmit,
   pending = false,
+  collapsed = false,
+  onExpand,
+  programNamesPreview = [],
 }: ComparePreferencesPanelProps) {
   const { user } = useAuth();
   const profileInitialized = useRef(false);
@@ -111,6 +125,39 @@ export default function ComparePreferencesPanel({
   });
   const programs = programsQuery.data?.data.programs ?? [];
 
+  const catalogQuery = useQuery({
+    queryKey: queryKeys.interestsCatalog(),
+    queryFn: fetchInterestCatalog,
+    staleTime: 10 * 60_000,
+  });
+  const catalog = catalogQuery.data ?? {};
+
+  const programOptions = useMemo(
+    () =>
+      programs
+        .map((p) => {
+          const id = p._id || p.id;
+          if (!id) return null;
+          return { value: id, label: p.name };
+        })
+        .filter((o): o is { value: string; label: string } => o != null),
+    [programs]
+  );
+
+  const interestOptions = useMemo(() => {
+    const out: { value: string; label: string; group?: string }[] = [];
+    for (const category of Object.keys(catalog)) {
+      for (const name of catalog[category] ?? []) {
+        out.push({
+          value: name.toLowerCase(),
+          label: formatInterestLabel(name),
+          group: category,
+        });
+      }
+    }
+    return out;
+  }, [catalog]);
+
   useEffect(() => {
     if (!user || profileInitialized.current) return;
     profileInitialized.current = true;
@@ -119,21 +166,6 @@ export default function ComparePreferencesPanel({
     if (fromProfilePrograms.length) setProgramIds(fromProfilePrograms);
     if (fromProfileInterests.length) setInterestNames(fromProfileInterests);
   }, [user]);
-
-  const toggleProgram = useCallback((id: string) => {
-    setProgramIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
-  }, []);
-
-  const toggleInterest = useCallback((name: string) => {
-    const key = name.toLowerCase();
-    setInterestNames((prev) =>
-      prev.some((n) => n.toLowerCase() === key)
-        ? prev.filter((n) => n.toLowerCase() !== key)
-        : [...prev, key]
-    );
-  }, []);
 
   const togglePriority = useCallback((p: ComparePriority) => {
     setPriorities((prev) => {
@@ -169,15 +201,69 @@ export default function ComparePreferencesPanel({
 
     const programNames = programIds
       .map((id) => {
-        const p = programs.find(
-          (prog) => String(prog._id ?? prog.id) === id
-        );
+        const p = programs.find((prog) => String(prog._id ?? prog.id) === id);
         return p?.name;
       })
       .filter((n): n is string => Boolean(n));
 
     onSubmit(draftPrefs, programNames);
   };
+
+  const collapsedSummary = useMemo(() => {
+    const parts: string[] = [];
+    const programs =
+      programNamesPreview.length > 0
+        ? programNamesPreview
+        : programIds
+            .map((id) => programOptions.find((o) => o.value === id)?.label)
+            .filter(Boolean) as string[];
+    if (programs.length) {
+      parts.push(
+        programs.length <= 2
+          ? programs.join(", ")
+          : `${programs.slice(0, 2).join(", ")} +${programs.length - 2} more`
+      );
+    }
+    if (priorities.length) parts.push(priorities.join(" · "));
+    if (learningMode) parts.push(learningMode);
+    if (campusSetting) parts.push(campusSetting);
+    return parts.length ? parts.join(" · ") : "Preferences saved";
+  }, [
+    programNamesPreview,
+    programIds,
+    programOptions,
+    priorities,
+    learningMode,
+    campusSetting,
+  ]);
+
+  if (collapsed) {
+    return (
+      <section
+        id="compare-preferences"
+        className="mb-6 overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/90 px-5 py-4 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-zinc-900/80"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-bold uppercase tracking-widest text-brand-blue">
+              Your preferences
+            </p>
+            <p className="mt-1 truncate text-sm font-medium text-slate-700 dark:text-slate-300">
+              {collapsedSummary}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onExpand}
+            className="inline-flex shrink-0 items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold text-slate-800 transition hover:border-brand-blue/40 hover:text-brand-blue dark:border-white/10 dark:bg-zinc-800 dark:text-slate-100"
+          >
+            <Pencil className="size-4" />
+            Edit & recompare
+          </button>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section
@@ -201,14 +287,34 @@ export default function ComparePreferencesPanel({
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        <FieldsOfStudyPicker
-          selectedIds={programIds}
-          onToggle={toggleProgram}
+        <MultiSelectDropdown
+          label="Fields of study"
+          description="Pick at least one program you care about."
+          placeholder="Select programs…"
+          options={programOptions}
+          selected={programIds}
+          onChange={setProgramIds}
+          loading={programsQuery.isPending}
+          error={
+            programsQuery.isError
+              ? "Could not load programs. Check your connection."
+              : null
+          }
         />
 
-        <PersonalInterestsPicker
-          selectedNames={interestNames}
-          onToggle={toggleInterest}
+        <MultiSelectDropdown
+          label="Personal interests"
+          description="Optional — hobbies and activities that matter to you."
+          placeholder="Select interests…"
+          options={interestOptions}
+          selected={interestNames}
+          onChange={setInterestNames}
+          loading={catalogQuery.isPending}
+          error={
+            catalogQuery.isError
+              ? "Could not load interests."
+              : null
+          }
         />
 
         <div>
@@ -243,14 +349,14 @@ export default function ComparePreferencesPanel({
           label="Learning mode (optional)"
           options={COMPARE_LEARNING_MODE_OPTIONS}
           value={learningMode}
-          onChange={setLearningMode}
+          onChange={(v) => setLearningMode(v as CompareLearningMode | undefined)}
         />
 
         <ChipGroup
           label="Campus setting (optional)"
           options={COMPARE_CAMPUS_SETTING_OPTIONS}
           value={campusSetting}
-          onChange={setCampusSetting}
+          onChange={(v) => setCampusSetting(v as CompareCampusSetting | undefined)}
         />
 
         <div>
@@ -298,8 +404,14 @@ export default function ComparePreferencesPanel({
               <MessageCircle size={16} className="text-brand-blue" />
               Notes for AI (optional)
             </span>
-            <span className="text-xs font-medium text-slate-500">
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-500">
               {chatOpen ? "Hide" : "Show"}
+              <ChevronDown
+                className={cn(
+                  "size-3.5 transition-transform",
+                  chatOpen && "rotate-180"
+                )}
+              />
             </span>
           </button>
 

@@ -54,12 +54,8 @@ function modelMatches(f: Favorite, tab: Tab): boolean {
   return false;
 }
 
-function celebrityCover(c: Celebrity): string {
-  return (
-    c.profileImage?.trim() ||
-    c.coverImage?.trim() ||
-    CELEBRITY_PROFILE_FALLBACK
-  );
+function celebrityProfileThumb(c: Celebrity): string {
+  return c.profileImage?.trim() || CELEBRITY_PROFILE_FALLBACK;
 }
 
 function isPopulatedItem(f: Favorite): boolean {
@@ -499,7 +495,7 @@ export default function FavoritesPage() {
                     >
                       <div className="relative mb-3 h-44 overflow-hidden rounded-xl bg-slate-100 dark:bg-zinc-900">
                         <img
-                          src={celebrityCover(celeb)}
+                          src={celebrityProfileThumb(celeb)}
                           alt={celeb.name}
                           className="h-full w-full object-cover object-top transition-transform duration-700 group-hover:scale-105"
                         />
