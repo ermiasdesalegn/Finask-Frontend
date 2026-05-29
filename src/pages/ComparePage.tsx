@@ -161,7 +161,7 @@ export default function ComparePage() {
   );
 
   return (
-    <div className="relative min-h-screen overflow-hidden pb-24 pt-20 transition-colors dark:bg-[#0a0a0a]">
+    <div className="relative min-h-screen overflow-hidden pb-24 pt-16 transition-colors dark:bg-[#0a0a0a] md:pt-20">
       <FlickeringGrid
         className="pointer-events-none absolute inset-0 z-0 opacity-[0.12] dark:opacity-[0.08]"
         color="#60A5FA"
@@ -185,7 +185,9 @@ export default function ComparePage() {
           animate="show"
           variants={blurReveal}
           className={cn(
-            "sticky top-20 z-20 -mx-2 mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/60 bg-white/75 px-4 py-3 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/75"
+            "-mx-2 mb-10 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/60 bg-white/75 px-4 py-2.5 backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/75 md:mb-12",
+            effectiveIds.length >= 2 &&
+              "sticky top-16 z-20 mb-8 md:top-20 md:mb-10"
           )}
         >
           <button

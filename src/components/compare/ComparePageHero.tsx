@@ -15,7 +15,7 @@ export default function ComparePageHero({
       initial="hidden"
       animate="show"
       variants={blurReveal}
-      className="mb-8 text-center md:mb-10"
+      className="mb-8 scroll-mt-32 text-center md:mb-10 md:scroll-mt-36"
     >
       <span className="mb-4 inline-block rounded-full border border-brand-blue/20 bg-brand-blue/5 px-4 py-1.5 text-xs font-black uppercase tracking-widest text-brand-blue">
         Compare · Side by side
